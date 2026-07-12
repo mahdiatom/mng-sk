@@ -11,6 +11,40 @@ $table = $wpdb->prefix . 'sc_bot_messages';
 $list_url = admin_url('admin.php?page=sc-bale-bot-messages');
 $add_url  = admin_url('admin.php?page=sc-bale-bot-send');
 
+// حذف تکی
+if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['message_id'])) {
+    $delete_id = absint($_GET['message_id']);
+    check_admin_referer('sc_delete_bale_bot_message_' . $delete_id);
+    if (function_exists('sc_bale_bot_messages_delete')) {
+        $del = sc_bale_bot_messages_delete([$delete_id]);
+        if ($del['deleted'] > 0) {
+            echo '<div class="notice notice-success is-dismissible"><p>پیام از لیست حذف شد.</p></div>';
+        } else {
+            echo '<div class="notice notice-error is-dismissible"><p>حذف پیام ناموفق بود.</p></div>';
+        }
+    }
+}
+
+// حذف دسته‌جمعی
+if (
+    isset($_POST['bulk_action'], $_POST['message_ids'])
+    && is_array($_POST['message_ids'])
+    && sanitize_key(wp_unslash($_POST['bulk_action'])) === 'delete'
+    && check_admin_referer('sc_bulk_bale_bot_messages_nonce')
+) {
+    $bulk_ids = array_map('absint', wp_unslash($_POST['message_ids']));
+    if (function_exists('sc_bale_bot_messages_delete')) {
+        $del = sc_bale_bot_messages_delete($bulk_ids);
+        if ($del['deleted'] > 0) {
+            echo '<div class="notice notice-success is-dismissible"><p>'
+                . esc_html(sprintf('%d پیام از لیست حذف شد.', $del['deleted']))
+                . '</p></div>';
+        } else {
+            echo '<div class="notice notice-error is-dismissible"><p>هیچ پیامی حذف نشد.</p></div>';
+        }
+    }
+}
+
 $search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
 $filter_target = isset($_GET['filter_target']) ? sanitize_text_field(wp_unslash($_GET['filter_target'])) : '';
 $filter_delivery = isset($_GET['filter_delivery']) ? sanitize_text_field(wp_unslash($_GET['filter_delivery'])) : '';
@@ -232,60 +266,98 @@ if ($filter_date_to_shamsi !== '') {
 
     <div class="sc-bale-list-table-card">
         <div class="sc-bale-list-summary"><span><?php echo (int) $total; ?> پیام</span></div>
-        <div class="sc-bale-table-scroll">
-            <table class="wp-list-table widefat striped sc-bale-messages-table">
-                <thead>
-                    <tr>
-                        <th class="manage-column">عنوان</th>
-                        <th class="manage-column">مخاطب</th>
-                        <th class="manage-column">حالت ارسال</th>
-                        <th class="manage-column">دریافت‌کنندگان</th>
-                        <th class="manage-column">ارسال موفق (ربات)</th>
-                        <th class="manage-column">ارسال سفیر</th>
-                        <th class="manage-column">ناموفق</th>
-                        <th class="manage-column">تاریخ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($messages)) : ?>
-                        <tr><td colspan="8" class="sc-bale-messages-empty">پیامی یافت نشد.</td></tr>
-                    <?php else : ?>
-                        <?php foreach ($messages as $msg) :
-                            $delivery_key = (int) $msg->send_safir;
-                            $delivery_badge = 'sc-badge--soft';
-                            if ($delivery_key === 0) {
-                                $delivery_badge = 'sc-badge--success';
-                            } elseif ($delivery_key === 1) {
-                                $delivery_badge = 'sc-badge--warning';
-                            } elseif ($delivery_key === 2) {
-                                $delivery_badge = 'sc-badge--purple';
-                            }
-                            $fail_count = (int) $msg->fail_count;
-                            $date_display = function_exists('sc_date_shamsi')
-                                ? sc_date_shamsi($msg->created_at, 'Y/m/d H:i')
-                                : $msg->created_at;
-                            ?>
+        <?php if (empty($messages)) : ?>
+            <div class="sc-bale-table-scroll">
+                <table class="wp-list-table widefat striped sc-bale-messages-table">
+                    <tbody>
+                        <tr><td class="sc-bale-messages-empty">پیامی یافت نشد.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        <?php else : ?>
+            <form method="post" id="sc-bale-bot-messages-form">
+                <?php wp_nonce_field('sc_bulk_bale_bot_messages_nonce'); ?>
+                <div class="tablenav top">
+                    <div class="alignleft actions bulkactions">
+                        <label for="bulk-action-selector-top" class="screen-reader-text">عملیات دسته‌جمعی</label>
+                        <select name="bulk_action" id="bulk-action-selector-top">
+                            <option value="">عملیات دسته‌جمعی...</option>
+                            <option value="delete">حذف</option>
+                        </select>
+                        <input type="submit" class="button action" id="doaction" value="اجرا">
+                    </div>
+                </div>
+                <div class="sc-bale-table-scroll">
+                    <table class="wp-list-table widefat striped sc-bale-messages-table">
+                        <thead>
                             <tr>
-                                <td data-label="عنوان"><strong class="sc-bale-msg-title"><?php echo esc_html($msg->title); ?></strong></td>
-                                <td data-label="مخاطب"><span class="sc-badge sc-badge--soft"><?php echo esc_html($target_labels[$msg->target_type] ?? $msg->target_type); ?></span></td>
-                                <td data-label="حالت ارسال"><span class="sc-badge <?php echo esc_attr($delivery_badge); ?>"><?php echo esc_html($delivery_labels[$delivery_key] ?? '-'); ?></span></td>
-                                <td data-label="دریافت‌کنندگان"><?php echo (int) $msg->recipients_count; ?></td>
-                                <td data-label="ارسال موفق (ربات)"><span class="sc-bale-count sc-bale-count--ok"><?php echo (int) $msg->bot_sent_count; ?></span></td>
-                                <td data-label="ارسال سفیر"><span class="sc-bale-count sc-bale-count--safir"><?php echo (int) $msg->safir_sent_count; ?></span></td>
-                                <td data-label="ناموفق">
-                                    <?php if ($fail_count > 0) : ?>
-                                        <span class="sc-badge sc-badge--danger"><?php echo $fail_count; ?></span>
-                                    <?php else : ?>
-                                        <span class="sc-bale-count">0</span>
-                                    <?php endif; ?>
+                                <td class="manage-column column-cb check-column">
+                                    <input type="checkbox" id="sc-bale-msg-cb-select-all">
                                 </td>
-                                <td data-label="تاریخ"><?php echo esc_html($date_display); ?></td>
+                                <th class="manage-column">عنوان</th>
+                                <th class="manage-column">مخاطب</th>
+                                <th class="manage-column">حالت ارسال</th>
+                                <th class="manage-column">دریافت‌کنندگان</th>
+                                <th class="manage-column">ارسال موفق (ربات)</th>
+                                <th class="manage-column">ارسال سفیر</th>
+                                <th class="manage-column">ناموفق</th>
+                                <th class="manage-column">تاریخ</th>
+                                <th class="manage-column">عملیات</th>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($messages as $msg) :
+                                $delivery_key = (int) $msg->send_safir;
+                                $delivery_badge = 'sc-badge--soft';
+                                if ($delivery_key === 0) {
+                                    $delivery_badge = 'sc-badge--success';
+                                } elseif ($delivery_key === 1) {
+                                    $delivery_badge = 'sc-badge--warning';
+                                } elseif ($delivery_key === 2) {
+                                    $delivery_badge = 'sc-badge--purple';
+                                }
+                                $fail_count = (int) $msg->fail_count;
+                                $date_display = function_exists('sc_date_shamsi')
+                                    ? sc_date_shamsi($msg->created_at, 'Y/m/d H:i')
+                                    : $msg->created_at;
+                                $delete_url = wp_nonce_url(
+                                    add_query_arg(array_merge($pagination_args, [
+                                        'action' => 'delete',
+                                        'message_id' => (int) $msg->id,
+                                    ]), admin_url('admin.php')),
+                                    'sc_delete_bale_bot_message_' . (int) $msg->id
+                                );
+                                ?>
+                                <tr>
+                                    <th scope="row" class="check-column">
+                                        <input type="checkbox" name="message_ids[]" value="<?php echo (int) $msg->id; ?>" class="sc-bale-msg-cb-item">
+                                    </th>
+                                    <td data-label="عنوان"><strong class="sc-bale-msg-title"><?php echo esc_html($msg->title); ?></strong></td>
+                                    <td data-label="مخاطب"><span class="sc-badge sc-badge--soft"><?php echo esc_html($target_labels[$msg->target_type] ?? $msg->target_type); ?></span></td>
+                                    <td data-label="حالت ارسال"><span class="sc-badge <?php echo esc_attr($delivery_badge); ?>"><?php echo esc_html($delivery_labels[$delivery_key] ?? '-'); ?></span></td>
+                                    <td data-label="دریافت‌کنندگان"><?php echo (int) $msg->recipients_count; ?></td>
+                                    <td data-label="ارسال موفق (ربات)"><span class="sc-bale-count sc-bale-count--ok"><?php echo (int) $msg->bot_sent_count; ?></span></td>
+                                    <td data-label="ارسال سفیر"><span class="sc-bale-count sc-bale-count--safir"><?php echo (int) $msg->safir_sent_count; ?></span></td>
+                                    <td data-label="ناموفق">
+                                        <?php if ($fail_count > 0) : ?>
+                                            <span class="sc-badge sc-badge--danger"><?php echo $fail_count; ?></span>
+                                        <?php else : ?>
+                                            <span class="sc-bale-count">0</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td data-label="تاریخ"><?php echo esc_html($date_display); ?></td>
+                                    <td data-label="عملیات">
+                                        <a href="<?php echo esc_url($delete_url); ?>"
+                                           class="button button-small sc-bale-msg-delete-one"
+                                           data-confirm="این پیام از لیست حذف شود؟">حذف</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+        <?php endif; ?>
 
         <?php if ($total_pages > 1) : ?>
             <div class="tablenav bottom sc_paginate sc-bale-list-pagination">
@@ -325,6 +397,35 @@ jQuery(function($) {
             $panel.removeAttr('hidden');
             $toggle.attr('aria-expanded', 'true');
             $label.text($label.data('label-open'));
+        }
+    });
+
+    $('#sc-bale-msg-cb-select-all').on('change', function () {
+        $('.sc-bale-msg-cb-item').prop('checked', this.checked);
+    });
+
+    $('#sc-bale-bot-messages-form').on('submit', function (e) {
+        var action = $('#bulk-action-selector-top').val();
+        if (action === 'delete') {
+            var checked = $('.sc-bale-msg-cb-item:checked').length;
+            if (!checked) {
+                e.preventDefault();
+                alert('حداقل یک پیام را انتخاب کنید.');
+                return;
+            }
+            if (!window.confirm('پیام‌های انتخاب‌شده از لیست حذف شوند؟')) {
+                e.preventDefault();
+            }
+        } else if (!action) {
+            e.preventDefault();
+            alert('یک عملیات را انتخاب کنید.');
+        }
+    });
+
+    $(document).on('click', '.sc-bale-msg-delete-one', function (e) {
+        var msg = $(this).data('confirm') || 'این پیام حذف شود؟';
+        if (!window.confirm(msg)) {
+            e.preventDefault();
         }
     });
 });

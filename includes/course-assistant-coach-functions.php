@@ -106,6 +106,13 @@ function sc_get_assistants_for_primary_coach($course_id, $primary_coach_id, $cha
     $chapter_name = sanitize_text_field((string) $chapter_name);
     $group_name = sanitize_text_field((string) $group_name);
 
+    if (
+        function_exists('sc_is_pro_feature_assistant_coach_salary_enabled')
+        && !sc_is_pro_feature_assistant_coach_salary_enabled()
+    ) {
+        return [];
+    }
+
     if (!$course_id || !$primary_coach_id || $chapter_name === '' || !sc_course_assistant_coaches_table_ready()) {
         return [];
     }
@@ -208,6 +215,96 @@ function sc_coach_is_assistant_only_for_course_chapter($course_id, $coach_id, $c
 }
 
 /**
+ * نقش رکورد دستمزد: مربی اصلی یا کمک‌مربی (برای نمایش در گزارش مدیریت).
+ *
+ * @param int    $coach_id
+ * @param int    $course_id
+ * @param string $chapter_name
+ * @param string $salary_type percentage|fixed
+ * @return array{role:string,label:string,primary_coach_id:int,primary_coach_name:string}
+ */
+function sc_resolve_coach_salary_record_role($coach_id, $course_id, $chapter_name = '', $salary_type = 'percentage') {
+    $out = [
+        'role' => 'primary',
+        'label' => 'مربی اصلی',
+        'primary_coach_id' => 0,
+        'primary_coach_name' => '',
+    ];
+
+    $coach_id = absint($coach_id);
+    $course_id = absint($course_id);
+    $chapter_name = sanitize_text_field((string) $chapter_name);
+    $salary_type = sanitize_text_field((string) $salary_type);
+
+    if (!$coach_id || $salary_type === 'fixed' || $course_id < 1 || !sc_course_assistant_coaches_table_ready()) {
+        if ($salary_type === 'fixed') {
+            $out['label'] = 'مربی';
+        }
+        return $out;
+    }
+
+    global $wpdb;
+    $cc = $wpdb->prefix . 'sc_course_coaches';
+    $is_primary = 0;
+    if ($chapter_name !== '') {
+        $is_primary = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM `$cc` WHERE course_id = %d AND coach_id = %d AND chapter_name = %s",
+            $course_id,
+            $coach_id,
+            $chapter_name
+        ));
+    } else {
+        $is_primary = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM `$cc` WHERE course_id = %d AND coach_id = %d",
+            $course_id,
+            $coach_id
+        ));
+    }
+    if ($is_primary > 0) {
+        return $out;
+    }
+
+    $t = sc_course_assistant_coaches_table();
+    $coaches = $wpdb->prefix . 'sc_coaches';
+    if ($chapter_name !== '') {
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT a.primary_coach_id, c.first_name, c.last_name
+             FROM `$t` a
+             LEFT JOIN `$coaches` c ON c.id = a.primary_coach_id
+             WHERE a.course_id = %d AND a.assistant_coach_id = %d AND a.chapter_name = %s
+             ORDER BY a.id ASC
+             LIMIT 1",
+            $course_id,
+            $coach_id,
+            $chapter_name
+        ));
+    } else {
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT a.primary_coach_id, c.first_name, c.last_name
+             FROM `$t` a
+             LEFT JOIN `$coaches` c ON c.id = a.primary_coach_id
+             WHERE a.course_id = %d AND a.assistant_coach_id = %d
+             ORDER BY a.id ASC
+             LIMIT 1",
+            $course_id,
+            $coach_id
+        ));
+    }
+
+    if (!$row) {
+        return $out;
+    }
+
+    $primary_name = trim((string) ($row->first_name ?? '') . ' ' . (string) ($row->last_name ?? ''));
+    return [
+        'role' => 'assistant',
+        'label' => 'کمک‌مربی',
+        'primary_coach_id' => (int) ($row->primary_coach_id ?? 0),
+        'primary_coach_name' => $primary_name,
+    ];
+}
+
+/**
  * ذخیره کمک‌مربی‌ها از فرم دوره
  *
  * @param int      $course_id
@@ -217,6 +314,13 @@ function sc_save_course_assistant_coaches_from_post($course_id, array $allowed_c
     global $wpdb;
     $course_id = absint($course_id);
     if (!$course_id || !sc_course_assistant_coaches_table_ready()) {
+        return;
+    }
+
+    if (
+        function_exists('sc_is_pro_feature_assistant_coach_salary_enabled')
+        && !sc_is_pro_feature_assistant_coach_salary_enabled()
+    ) {
         return;
     }
     if (empty($_POST['course_assistant_assign_present'])) {

@@ -342,6 +342,89 @@ function sc_render_product_branch_stock_fields($product_id, $field_name_prefix, 
 }
 
 /**
+ * نمایش فقط‌خواندنی موجودی شعبه‌ها برای یک محصول/variation
+ *
+ * @param int $product_id
+ * @param string $css_class
+ */
+function sc_render_product_branch_stock_readonly($product_id, $css_class = '') {
+    $chapters = sc_product_branch_stock_get_chapter_names();
+    $map = sc_get_product_branch_stock_map($product_id);
+
+    echo '<div class="sc-pbs-admin sc-pbs-admin--readonly ' . esc_attr($css_class) . '">';
+    if (empty($chapters)) {
+        echo '<p class="description sc-pbs-admin-empty">' . esc_html__('هنوز شعبه‌ای در باشگاه تعریف نشده است.', 'sportclub-manager') . '</p></div>';
+        return;
+    }
+    if (empty($map)) {
+        echo '<p class="description">' . esc_html__('برای این مورد هنوز موجودی شعبه‌ای در تب تغییرات تنظیم نشده است.', 'sportclub-manager') . '</p></div>';
+        return;
+    }
+
+    echo '<table class="widefat sc-pbs-admin-table"><thead><tr>';
+    echo '<th>' . esc_html__('شعبه', 'sportclub-manager') . '</th>';
+    echo '<th>' . esc_html__('موجودی', 'sportclub-manager') . '</th>';
+    echo '</tr></thead><tbody>';
+    foreach ($chapters as $chapter) {
+        if (!array_key_exists($chapter, $map)) {
+            continue;
+        }
+        $qty = (int) $map[$chapter];
+        echo '<tr class="sc-pbs-admin-row">';
+        echo '<td><strong>' . esc_html($chapter) . '</strong></td>';
+        echo '<td>' . esc_html((string) $qty) . '</td>';
+        echo '</tr>';
+    }
+    echo '</tbody></table></div>';
+}
+
+/**
+ * خلاصه فقط‌خواندنی موجودی شعبه‌ها از روی variationها
+ *
+ * @param WC_Product|null $product
+ */
+function sc_pbs_render_variable_branch_stock_readonly($product) {
+    echo '<div class="sc-pbs-variable-readonly" style="padding:0 12px 12px;">';
+    echo '<p class="form-field" style="padding:12px 0 0;margin:0;">';
+    echo '<strong>' . esc_html__('محصول متغیر — فقط نمایش', 'sportclub-manager') . '</strong><br>';
+    echo '<span class="description">' . esc_html__('موجودی شعبه‌ها فقط از طریق هر variation در تب «تغییرات» تنظیم و ذخیره می‌شود. این تب چیزی ذخیره نمی‌کند و فقط دادهٔ ورییشن‌ها را نشان می‌دهد.', 'sportclub-manager') . '</span>';
+    echo '</p>';
+
+    if (!$product || !is_a($product, 'WC_Product')) {
+        echo '<p class="description">' . esc_html__('محصول یافت نشد.', 'sportclub-manager') . '</p></div>';
+        return;
+    }
+
+    $children = $product->get_children();
+    if (empty($children)) {
+        echo '<p class="description">' . esc_html__('هنوز variationی ساخته نشده است. ابتدا در تب «تغییرات» ورییشن بسازید و موجودی شعبه را آنجا تنظیم کنید.', 'sportclub-manager') . '</p></div>';
+        return;
+    }
+
+    foreach ($children as $vid) {
+        $variation = function_exists('wc_get_product') ? wc_get_product((int) $vid) : null;
+        if (!$variation) {
+            continue;
+        }
+        $attrs = function_exists('wc_get_formatted_variation')
+            ? wc_get_formatted_variation($variation, true, false, true)
+            : $variation->get_name();
+        $label = $attrs !== '' ? $attrs : ('#' . (int) $vid);
+        $sku = $variation->get_sku();
+        if ($sku) {
+            $label .= ' · SKU: ' . $sku;
+        }
+
+        echo '<div class="sc-pbs-variation-readonly-block" style="margin:14px 0;padding:12px;border:1px solid #e2e4e7;border-radius:8px;background:#fafafa;">';
+        echo '<p style="margin:0 0 8px;"><strong>' . esc_html($label) . '</strong>';
+        echo ' <span class="description">(' . esc_html(sprintf(__('شناسه: %d', 'sportclub-manager'), (int) $vid)) . ')</span></p>';
+        sc_render_product_branch_stock_readonly((int) $vid, 'sc-pbs-variation-readonly');
+        echo '</div>';
+    }
+    echo '</div>';
+}
+
+/**
  * پارس ورودی فرم موجودی شعبه
  *
  * @param mixed $raw
@@ -401,37 +484,18 @@ function sc_pbs_render_product_data_panel() {
         return;
     }
     $product = function_exists('wc_get_product') ? wc_get_product($post->ID) : null;
-    $is_variable = $product && $product->is_type('variable');
     ?>
     <div id="sc_branch_stock_product_data" class="panel woocommerce_options_panel hidden">
-        <div class="options_group">
-            <?php if ($is_variable) : ?>
-                <p class="form-field" style="padding:12px 12px 0;">
-                    <strong><?php echo esc_html__('محصول متغیر', 'sportclub-manager'); ?></strong><br>
-                    <span class="description"><?php echo esc_html__('برای محصول متغیر، موجودی هر شعبه را داخل هر variation (تب تغییرات) تنظیم کنید. جدول زیر فقط برای یادآوری است و ذخیره نمی‌شود.', 'sportclub-manager'); ?></span>
-                </p>
-                <div class="sc-pbs-admin" style="margin:12px;">
-                    <?php
-                    $chapters = sc_product_branch_stock_get_chapter_names();
-                    if (empty($chapters)) {
-                        echo '<p class="description">' . esc_html__('شعبه‌ای یافت نشد.', 'sportclub-manager') . ' <a href="' . esc_url(admin_url('admin.php?page=sc_chapter')) . '">' . esc_html__('مدیریت شعبه‌ها', 'sportclub-manager') . '</a></p>';
-                    } else {
-                        echo '<ul class="sc-pbs-chapter-list">';
-                        foreach ($chapters as $ch) {
-                            echo '<li>' . esc_html($ch) . '</li>';
-                        }
-                        echo '</ul>';
-                    }
-                    ?>
-                </div>
-            <?php else : ?>
-                <p class="form-field" style="padding:12px 12px 0;">
-                    <strong><?php echo esc_html__('موجودی به تفکیک شعبه', 'sportclub-manager'); ?></strong>
-                </p>
-                <div style="padding:0 12px 12px;">
-                    <?php sc_render_product_branch_stock_fields((int) $post->ID, 'sc_branch_stock', 'sc_branch_stock_enable', 'sc-pbs-simple'); ?>
-                </div>
-            <?php endif; ?>
+        <div class="options_group show_if_simple">
+            <p class="form-field" style="padding:12px 12px 0;">
+                <strong><?php echo esc_html__('موجودی به تفکیک شعبه', 'sportclub-manager'); ?></strong>
+            </p>
+            <div style="padding:0 12px 12px;">
+                <?php sc_render_product_branch_stock_fields((int) $post->ID, 'sc_branch_stock', 'sc_branch_stock_enable', 'sc-pbs-simple'); ?>
+            </div>
+        </div>
+        <div class="options_group show_if_variable">
+            <?php sc_pbs_render_variable_branch_stock_readonly($product); ?>
         </div>
     </div>
     <?php
@@ -452,7 +516,12 @@ function sc_pbs_save_simple_product_fields($product_id) {
         return;
     }
     $product = function_exists('wc_get_product') ? wc_get_product($product_id) : null;
-    if (!$product || $product->is_type('variable')) {
+    // محصول متغیر: موجودی فقط از variation ذخیره می‌شود — هیچ ذخیره‌ای روی والد
+    if (!$product || $product->is_type('variable') || $product->is_type('variation')) {
+        return;
+    }
+    $posted_type = isset($_POST['product-type']) ? sanitize_text_field(wp_unslash($_POST['product-type'])) : '';
+    if ($posted_type === 'variable') {
         return;
     }
     if (!isset($_POST['sc_branch_stock_enable'])) {
@@ -856,55 +925,8 @@ function sc_ajax_product_stock_search() {
         wp_send_json_success(['items' => []]);
     }
 
-    $product_ids = [];
-
-    // جستجوی عنوان با WP_Query (بهتر از wc_get_products برای فارسی)
-    $query = new WP_Query([
-        'post_type' => ['product', 'product_variation'],
-        'post_status' => ['publish', 'private'],
-        's' => $q,
-        'posts_per_page' => 40,
-        'fields' => 'ids',
-        'orderby' => 'title',
-        'order' => 'ASC',
-        'suppress_filters' => false,
-    ]);
-    if (!empty($query->posts)) {
-        $product_ids = array_map('intval', $query->posts);
-    }
-
-    // جستجوی SKU (دقیق + جزئی)
-    global $wpdb;
-    $like = '%' . $wpdb->esc_like($q) . '%';
-    $sku_ids = $wpdb->get_col($wpdb->prepare(
-        "SELECT post_id FROM {$wpdb->postmeta} pm
-         INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-         WHERE pm.meta_key = '_sku'
-           AND pm.meta_value LIKE %s
-           AND p.post_type IN ('product', 'product_variation')
-           AND p.post_status IN ('publish', 'private')
-         LIMIT 40",
-        $like
-    ));
-    if (!empty($sku_ids)) {
-        $product_ids = array_merge($product_ids, array_map('intval', $sku_ids));
-    }
-
-    // تطبیق عنوان با LIKE مستقیم (پوشش بیشتر برای فارسی)
-    $title_ids = $wpdb->get_col($wpdb->prepare(
-        "SELECT ID FROM {$wpdb->posts}
-         WHERE post_type IN ('product', 'product_variation')
-           AND post_status IN ('publish', 'private')
-           AND post_title LIKE %s
-         ORDER BY post_title ASC
-         LIMIT 40",
-        $like
-    ));
-    if (!empty($title_ids)) {
-        $product_ids = array_merge($product_ids, array_map('intval', $title_ids));
-    }
-
-    $product_ids = array_values(array_unique(array_filter($product_ids)));
+    // فقط نام محصول (post_title) — بدون توضیحات، محتوا و SKU
+    $product_ids = sc_pbs_search_product_ids_by_title($q, 40);
     $seen = [];
     $items = [];
 
@@ -1598,6 +1620,72 @@ function sc_ajax_product_stock_instant_order() {
 }
 
 /**
+ * جستجوی شناسه محصولات فقط بر اساس نام (post_title)
+ *
+ * @param string $q
+ * @param int    $limit
+ * @return int[]
+ */
+function sc_pbs_search_product_ids_by_title($q, $limit = 40) {
+    global $wpdb;
+    $q = trim((string) $q);
+    if ($q === '') {
+        return [];
+    }
+    $limit = max(1, min(200, (int) $limit));
+    $like = '%' . $wpdb->esc_like($q) . '%';
+    $ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT ID FROM {$wpdb->posts}
+         WHERE post_type IN ('product', 'product_variation')
+           AND post_status IN ('publish', 'private')
+           AND post_title LIKE %s
+         ORDER BY post_title ASC
+         LIMIT %d",
+        $like,
+        $limit
+    ));
+    return array_values(array_unique(array_filter(array_map('intval', (array) $ids))));
+}
+
+/**
+ * شناسه محصولات والد که نام‌شان (یا نام ورییشن‌شان) با عبارت مطابقت دارد
+ *
+ * @param string $q
+ * @return int[]
+ */
+function sc_pbs_search_parent_product_ids_by_title($q) {
+    global $wpdb;
+    $q = trim((string) $q);
+    if ($q === '') {
+        return [];
+    }
+    $like = '%' . $wpdb->esc_like($q) . '%';
+
+    $parent_ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT ID FROM {$wpdb->posts}
+         WHERE post_type = 'product'
+           AND post_status IN ('publish', 'private')
+           AND post_title LIKE %s
+         ORDER BY post_title ASC",
+        $like
+    ));
+
+    $variation_parents = $wpdb->get_col($wpdb->prepare(
+        "SELECT DISTINCT post_parent FROM {$wpdb->posts}
+         WHERE post_type = 'product_variation'
+           AND post_status IN ('publish', 'private')
+           AND post_parent > 0
+           AND post_title LIKE %s",
+        $like
+    ));
+
+    return array_values(array_unique(array_filter(array_merge(
+        array_map('intval', (array) $parent_ids),
+        array_map('intval', (array) $variation_parents)
+    ))));
+}
+
+/**
  * لیست محصولات انبار با موجودی شعبه‌ها
  *
  * @param array{search?:string,page?:int,per_page?:int,allowed_chapters?:string[]|null} $args
@@ -1613,34 +1701,20 @@ function sc_warehouse_get_product_stock_items($args = []) {
     $per_page = max(1, min(100, (int) ($args['per_page'] ?? 20)));
     $allowed = $args['allowed_chapters'] ?? null;
 
-    $query_args = [
-        'status' => ['publish', 'private'],
-        'limit' => -1,
-        'orderby' => 'title',
-        'order' => 'ASC',
-        'return' => 'ids',
-        'type' => ['simple', 'variable'],
-    ];
     if ($search !== '') {
-        $query_args['s'] = $search;
-    }
-
-    $parent_ids = wc_get_products($query_args);
-    if (!is_array($parent_ids)) {
-        $parent_ids = [];
-    }
-
-    // SKU search supplement
-    if ($search !== '' && function_exists('wc_get_product_id_by_sku')) {
-        $sku_id = wc_get_product_id_by_sku($search);
-        if ($sku_id) {
-            $p = wc_get_product($sku_id);
-            if ($p) {
-                $pid = $p->is_type('variation') ? (int) $p->get_parent_id() : (int) $sku_id;
-                if ($pid && !in_array($pid, $parent_ids, true)) {
-                    $parent_ids[] = $pid;
-                }
-            }
+        // فقط نام محصول — بدون توضیحات و SKU
+        $parent_ids = sc_pbs_search_parent_product_ids_by_title($search);
+    } else {
+        $parent_ids = wc_get_products([
+            'status' => ['publish', 'private'],
+            'limit' => -1,
+            'orderby' => 'title',
+            'order' => 'ASC',
+            'return' => 'ids',
+            'type' => ['simple', 'variable'],
+        ]);
+        if (!is_array($parent_ids)) {
+            $parent_ids = [];
         }
     }
 
@@ -1656,17 +1730,9 @@ function sc_warehouse_get_product_stock_items($args = []) {
                 if (!$variation) {
                     continue;
                 }
-                if ($search !== '') {
-                    $label = $product->get_name() . ' ' . $variation->get_name() . ' ' . $variation->get_sku();
-                    if (function_exists('mb_stripos')) {
-                        if (mb_stripos($label, $search) === false && mb_stripos($product->get_name(), $search) === false) {
-                            // keep if parent matched via WC search
-                        }
-                    }
-                }
                 $flat[] = sc_warehouse_format_stock_row($variation, $product, $allowed);
             }
-        } else {
+        } elseif ($product->is_type('simple')) {
             $flat[] = sc_warehouse_format_stock_row($product, null, $allowed);
         }
     }

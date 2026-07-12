@@ -114,6 +114,8 @@ $course_coach_branch_meta_map = (!empty($course->id) && function_exists('sc_get_
 $course_assistant_rows = (!empty($course->id) && function_exists('sc_get_course_assistant_coaches'))
     ? sc_get_course_assistant_coaches((int) $course->id)
     : [];
+$assistant_salary_feature_enabled = function_exists('sc_is_pro_feature_assistant_coach_salary_enabled')
+    && sc_is_pro_feature_assistant_coach_salary_enabled();
 $private_session_options = [];
 if (!empty($course->id) && $course_type === 'private' && $private_variable_coach_pricing && !empty($course_packages)) {
     foreach ($course_packages as $pkg) {
@@ -469,7 +471,8 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                             <p class="sc-course-field__hint">با ذخیره دوره، این انتخاب در «دوره‌های» همان مربی هم به‌صورت خودکار فعال/غیرفعال می‌شود.</p>
                         </div>
 
-                        <div id="sc-course-assistants-box" class="sc-course-assistants-box">
+                        <div id="sc-course-assistants-box" class="sc-course-assistants-box"<?php echo empty($assistant_salary_feature_enabled) ? ' style="display:none;"' : ''; ?>>
+                            <?php if (!empty($assistant_salary_feature_enabled)) : ?>
                             <input type="hidden" name="course_assistant_assign_present" value="1">
                             <h4 class="sc-course-subtitle">کمک‌مربی‌ها (اختیاری)</h4>
                             <p class="sc-course-field__hint">
@@ -585,6 +588,7 @@ $sc_schedule_coach_ids_for_chapter = static function ($chapter_name) use ($sched
                                 <button type="button" class="button" id="sc-add-assistant-row">+ افزودن کمک‌مربی</button>
                             </p>
                             <p id="sc-course-assistants-error" class="sc-course-field__error" style="display:none;color:#d63638;"></p>
+                            <?php endif; ?>
                         </div>
 
                         <div id="sc-coach-branch-pricing-wrap" class="sc-course-panel__sub sc-private-course-row" style="margin-top:4px;<?php echo ($course_type === 'private') ? '' : 'display:none;'; ?>">

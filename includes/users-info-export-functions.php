@@ -1309,11 +1309,12 @@ function sc_users_export_to_pvc_zip($rows, $fields, $labels = null, $options = [
         $name_field = isset($name_options['full_name']) ? 'full_name' : array_key_first($name_options);
     }
 
+    // نام فایل فقط از فیلد انتخاب‌شده (مثلاً کد ملی) ساخته می‌شود؛ بدون پسوند نوع تصویر.
     $suffix_map = [
         'personal_photo' => '',
-        'id_card_photo' => '_id_card',
-        'sport_insurance_photo' => '_insurance',
-        'attendance_qr' => '_qr',
+        'id_card_photo' => '',
+        'sport_insurance_photo' => '',
+        'attendance_qr' => '',
     ];
 
     $temp_dir = trailingslashit(get_temp_dir()) . 'sc_pvc_' . wp_generate_password(12, false, false);

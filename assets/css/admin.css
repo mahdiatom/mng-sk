@@ -8746,6 +8746,27 @@ body.toplevel_page_sc-coach-management .sc-cm-table tbody tr:hover {
     background: #f5f2ff !important;
 }
 
+body[class*="_page_sc-coach-management"] .sc-cm-table tbody tr.sc-cm-row--assistant,
+body.toplevel_page_sc-coach-management .sc-cm-table tbody tr.sc-cm-row--assistant {
+    background: #fffbeb !important;
+}
+
+body[class*="_page_sc-coach-management"] .sc-cm-table tbody tr.sc-cm-row--assistant:hover,
+body.toplevel_page_sc-coach-management .sc-cm-table tbody tr.sc-cm-row--assistant:hover {
+    background: #fef3c7 !important;
+}
+
+body[class*="_page_sc-coach-management"] .sc-badge--soft,
+body.toplevel_page_sc-coach-management .sc-badge--soft {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 11px;
+    font-weight: 700;
+}
+
 body[class*="_page_sc-coach-management"] .sc-cm-amount,
 body.toplevel_page_sc-coach-management .sc-cm-amount {
     color: #166534;

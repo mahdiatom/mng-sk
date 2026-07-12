@@ -16,60 +16,11 @@ if (!defined('ABSPATH')) {
  */
  
 function sc_is_fixed_invoice_time() {
- 
     if (sc_get_invoice_mode() !== 'fixed_date') {
-        
         return true; // در حالت interval همیشه اجازه اجرا (بر اساس فاصله زمانی)
     }
-    if (!function_exists('gregorian_to_jalali')) {
-        return false;
-    }
 
-    
-    $now = current_time('timestamp');
-    $today = new DateTime();
-    $today->setTimestamp($now);
-    $today_j = gregorian_to_jalali(
-        (int)$today->format('Y'),
-        (int)$today->format('m'),
-        (int)$today->format('d')
-    );
-    $year_shamsi = $today_j[0];
-    $month_shamsi = (int)$today_j[1];
-    $day_shamsi = (int)$today_j[2];
-
-    $settlement_day = (int) sc_get_invoice_day_of_month();
-    $last_day_of_month = function_exists('jalali_days_in_month')
-        ? jalali_days_in_month($month_shamsi, $year_shamsi)
-        : ($month_shamsi <= 6 ? 31 : ($month_shamsi <= 11 ? 30 : 29));
-    $target_day = ($settlement_day > 0) ? min($settlement_day, $last_day_of_month) : $last_day_of_month;
-
-    if ($day_shamsi != $target_day) {
-        return false;
-    }
-    $current_hour = (int) date('G', $now);
-    $current_minute = (int) date('i', $now);
-    $target_hour = sc_get_invoice_hour();
-    $target_minute = sc_get_invoice_minute();
-    if ($current_hour < $target_hour) {
-        return false;
-    }
-    if ($current_hour == $target_hour && $current_minute < $target_minute) {
-        return false;
-    }
-    $last = sc_get_invoice_last_run();
-    if ($last) {
-        $last_dt = new DateTime($last);
-        $last_j = gregorian_to_jalali(
-            (int)$last_dt->format('Y'),
-            (int)$last_dt->format('m'),
-            (int)$last_dt->format('d')
-        );
-        if ($last_j[0] == $year_shamsi && (int)$last_j[1] == $month_shamsi) {
-            return false; // این ماه شمسی قبلاً اجرا شده
-        }
-    }
-    return true;
+    return !empty(sc_get_due_fixed_invoice_context());
 }
 
 
@@ -200,6 +151,92 @@ function sc_create_recurring_invoices() {
 }
 
 /**
+ * Build the configured invoice timestamp for a Jalali year/month.
+ */
+function sc_get_fixed_invoice_target_timestamp($jalali_year, $jalali_month) {
+    if (!function_exists('jalali_to_gregorian')) {
+        return 0;
+    }
+
+    $jalali_year = (int) $jalali_year;
+    $jalali_month = (int) $jalali_month;
+    $last_day = function_exists('jalali_days_in_month')
+        ? jalali_days_in_month($jalali_month, $jalali_year)
+        : ($jalali_month <= 6 ? 31 : ($jalali_month <= 11 ? 30 : 29));
+    $configured_day = (int) sc_get_invoice_day_of_month();
+    $target_day = $configured_day > 0 ? min($configured_day, $last_day) : $last_day;
+    $gregorian = jalali_to_gregorian($jalali_year, $jalali_month, $target_day);
+    $timezone = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone(date_default_timezone_get());
+    $target = new DateTimeImmutable(
+        sprintf(
+            '%04d-%02d-%02d %02d:%02d:00',
+            $gregorian[0],
+            $gregorian[1],
+            $gregorian[2],
+            sc_get_invoice_hour(),
+            sc_get_invoice_minute()
+        ),
+        $timezone
+    );
+
+    return $target->getTimestamp();
+}
+
+/**
+ * Return the latest billing period whose configured due time has passed.
+ *
+ * Before this month's due time, only the immediately previous missed period is
+ * eligible and only when fixed-date billing has a successful older run. This
+ * prevents a fresh installation from creating a retroactive invoice.
+ *
+ * @return array{period:string,due_timestamp:int}|array{}
+ */
+function sc_get_due_fixed_invoice_context() {
+    if (!function_exists('gregorian_to_jalali') || !function_exists('jalali_to_gregorian')) {
+        return [];
+    }
+
+    $timezone = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone(date_default_timezone_get());
+    $now = new DateTimeImmutable('now', $timezone);
+    $today_j = gregorian_to_jalali(
+        (int) $now->format('Y'),
+        (int) $now->format('m'),
+        (int) $now->format('d')
+    );
+    $current_year = (int) $today_j[0];
+    $current_month = (int) $today_j[1];
+    $current_target = sc_get_fixed_invoice_target_timestamp($current_year, $current_month);
+    $current_period = sprintf('%04d-%02d', $current_year, $current_month);
+
+    if ($current_target > 0 && $now->getTimestamp() >= $current_target) {
+        return [
+            'period' => $current_period,
+            'due_timestamp' => $current_target,
+        ];
+    }
+
+    $previous_year = $current_year;
+    $previous_month = $current_month - 1;
+    if ($previous_month < 1) {
+        $previous_month = 12;
+        $previous_year--;
+    }
+    $previous_period = sprintf('%04d-%02d', $previous_year, $previous_month);
+    $last_run_period = function_exists('sc_get_invoice_last_run_period')
+        ? sc_get_invoice_last_run_period()
+        : '';
+
+    if ($last_run_period !== '' && strcmp($last_run_period, $previous_period) < 0) {
+        return [
+            'period' => $previous_period,
+            'due_timestamp' => sc_get_fixed_invoice_target_timestamp($previous_year, $previous_month),
+        ];
+    }
+
+    return [];
+}
+
+/**
  * صورتحساب ماهانهٔ دوره در حالت تاریخ ثابت (تقویم شمسی)
  */
 function sc_create_fixed_date_monthly_invoices() {
@@ -215,11 +252,21 @@ function sc_create_fixed_date_monthly_invoices() {
     $courses_table = $wpdb->prefix . 'sc_courses';
     $members_table = $wpdb->prefix . 'sc_members';
 
-    $billing_period = function_exists('sc_get_current_jalali_billing_period_key')
-        ? sc_get_current_jalali_billing_period_key()
-        : '';
+    $due_context = sc_get_due_fixed_invoice_context();
+    $billing_period = isset($due_context['period']) ? (string) $due_context['period'] : '';
     if ($billing_period === '') {
-        error_log('SC Fixed-Date Invoices: Could not resolve Jalali billing period');
+        error_log('SC Fixed-Date Invoices: No due Jalali billing period');
+        return;
+    }
+    if (!function_exists('sc_invoices_support_billing_columns') || !sc_invoices_support_billing_columns()) {
+        error_log('SC Fixed-Date Invoices: Billing period columns are unavailable; retrying on a later cron run');
+        return;
+    }
+
+    $lock_name = 'sc_fixed_invoice_' . get_current_blog_id() . '_' . $billing_period;
+    $lock_acquired = (int) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 0)', $lock_name));
+    if ($lock_acquired !== 1) {
+        error_log("SC Fixed-Date Invoices: Another process is handling period {$billing_period}");
         return;
     }
 
@@ -247,6 +294,12 @@ function sc_create_fixed_date_monthly_invoices() {
              )
          )"
     );
+
+    if ($wpdb->last_error !== '') {
+        error_log('SC Fixed-Date Invoices: Candidate query failed: ' . $wpdb->last_error);
+        $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock_name));
+        return;
+    }
 
     error_log('SC Fixed-Date Invoices: Found ' . count($active_courses) . ' candidate enrollments for period ' . $billing_period);
 
@@ -317,8 +370,241 @@ function sc_create_fixed_date_monthly_invoices() {
         }
     }
 
-    sc_set_invoice_last_run();
+    if ($error_count === 0) {
+        sc_set_invoice_last_run($billing_period);
+    } else {
+        error_log("SC Fixed-Date Invoices: Period {$billing_period} remains open for retry");
+    }
+    $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock_name));
     error_log("SC Fixed-Date Invoices: Completed period {$billing_period} — Success: {$success_count}, Errors: {$error_count}");
+}
+
+/**
+ * Resolve the next fixed Jalali invoice date as a WordPress-local timestamp.
+ */
+function sc_get_next_fixed_invoice_timestamp() {
+    if (!function_exists('gregorian_to_jalali') || !function_exists('jalali_to_gregorian')) {
+        return 0;
+    }
+
+    $timezone = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone(date_default_timezone_get());
+    $now = new DateTimeImmutable('now', $timezone);
+    $today_j = gregorian_to_jalali(
+        (int) $now->format('Y'),
+        (int) $now->format('m'),
+        (int) $now->format('d')
+    );
+    $jy = (int) $today_j[0];
+    $jm = (int) $today_j[1];
+
+    for ($offset = 0; $offset <= 1; $offset++) {
+        $target_year = $jy;
+        $target_month = $jm + $offset;
+        if ($target_month > 12) {
+            $target_month -= 12;
+            $target_year++;
+        }
+
+        $target_timestamp = sc_get_fixed_invoice_target_timestamp($target_year, $target_month);
+        if ($target_timestamp > $now->getTimestamp()) {
+            return $target_timestamp;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * Store one reminder signature per enrollment without changing plugin tables.
+ */
+function sc_invoice_renewal_reminder_was_sent($member_course_id, $action, $signature) {
+    $option_name = 'sc_renewal_reminder_' . absint($member_course_id) . '_' . sanitize_key($action);
+    return (string) get_option($option_name, '') === (string) $signature;
+}
+
+function sc_mark_invoice_renewal_reminder_sent($member_course_id, $action, $signature) {
+    $option_name = 'sc_renewal_reminder_' . absint($member_course_id) . '_' . sanitize_key($action);
+    if (get_option($option_name, null) === null) {
+        add_option($option_name, (string) $signature, '', false);
+        return;
+    }
+    update_option($option_name, (string) $signature, false);
+}
+
+/**
+ * Send the configured renewal text through SMS, Bale and the user panel.
+ */
+function sc_dispatch_invoice_renewal_reminder($course, $action, array $variables) {
+    if (!function_exists('sc_get_sms_template') || !function_exists('sc_replace_sms_variables')) {
+        return;
+    }
+
+    $template = sc_get_sms_template($action, 'user');
+    if ($template === '') {
+        return;
+    }
+
+    $message = sc_replace_sms_variables($template, $variables);
+    $phone = isset($course->player_phone) ? (string) $course->player_phone : '';
+    $clean_phone = function_exists('sc_clean_mobile_number') ? sc_clean_mobile_number($phone) : trim($phone);
+    $sms_can_mirror_to_bale = $clean_phone !== ''
+        && (int) sc_get_setting('sms_master_enabled', '1') === 1
+        && sc_get_setting('sms_api_key', '') !== ''
+        && sc_get_setting('sms_sender', '') !== ''
+        && function_exists('sc_bale_mirror_sms_from_mobile');
+
+    if ($clean_phone !== '' && function_exists('sc_send_sms')) {
+        $pattern_code = function_exists('sc_get_sms_pattern') ? sc_get_sms_pattern($action, 'user') : null;
+        sc_send_sms(
+            $clean_phone,
+            $message,
+            !empty($pattern_code),
+            $pattern_code,
+            $variables,
+            $action
+        );
+    }
+
+    // sc_send_sms mirrors configured SMS messages to Bale. If SMS cannot mirror,
+    // send directly so Bale remains controlled by the same renewal switch.
+    if (!$sms_can_mirror_to_bale && function_exists('sc_bale_notify_user')) {
+        sc_bale_notify_user((int) $course->member_id, '', $message);
+    }
+
+    if (function_exists('sc_save_notification')) {
+        sc_save_notification([
+            'title' => 'یادآوری تمدید دوره',
+            'content' => $message,
+            'target_type' => 'specific',
+            'target_config' => [
+                'recipient_ids' => ['member_' . (int) $course->member_id],
+            ],
+            'notification_type' => 'system',
+            'send_sms' => 0,
+            'send_bale' => 0,
+        ]);
+    }
+}
+
+/**
+ * Send one pre-invoice renewal reminder per billing/session cycle.
+ */
+function sc_check_invoice_renewal_reminders() {
+    $mode = sc_get_invoice_mode();
+    $action = $mode === 'sessions_threshold' ? 'renewal_sessions' : 'renewal_date';
+    if (!function_exists('sc_is_sms_enabled_for') || !sc_is_sms_enabled_for($action, 'user')) {
+        return;
+    }
+
+    global $wpdb;
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+    $members_table = $wpdb->prefix . 'sc_members';
+    $invoices_table = $wpdb->prefix . 'sc_invoices';
+
+    $courses = $wpdb->get_results(
+        "SELECT mc.*, c.title AS course_title, m.user_id, m.first_name, m.last_name,
+                m.player_phone, m.disable_auto_invoice,
+                (SELECT i.id FROM {$invoices_table} i
+                 WHERE i.member_course_id = mc.id
+                 ORDER BY i.created_at DESC, i.id DESC LIMIT 1) AS latest_invoice_id,
+                (SELECT i.created_at FROM {$invoices_table} i
+                 WHERE i.member_course_id = mc.id
+                 ORDER BY i.created_at DESC, i.id DESC LIMIT 1) AS latest_invoice_created_at
+         FROM {$member_courses_table} mc
+         INNER JOIN {$courses_table} c ON c.id = mc.course_id
+         INNER JOIN {$members_table} m ON m.id = mc.member_id
+         WHERE mc.status = 'active'
+         AND c.deleted_at IS NULL
+         AND c.is_active = 1
+         AND m.is_active = 1
+         AND (
+             mc.course_status_flags IS NULL
+             OR mc.course_status_flags = ''
+             OR (
+                 mc.course_status_flags NOT LIKE '%paused%'
+                 AND mc.course_status_flags NOT LIKE '%completed%'
+                 AND mc.course_status_flags NOT LIKE '%canceled%'
+             )
+         )
+         AND NOT EXISTS (
+             SELECT 1 FROM {$invoices_table} pending_invoice
+             WHERE pending_invoice.member_course_id = mc.id
+             AND pending_invoice.status = 'pending'
+         )"
+    );
+
+    if (empty($courses)) {
+        return;
+    }
+
+    $timezone = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone(date_default_timezone_get());
+    $now = (new DateTimeImmutable('now', $timezone))->getTimestamp();
+    $fixed_due_timestamp = $mode === 'fixed_date' ? sc_get_next_fixed_invoice_timestamp() : 0;
+
+    foreach ($courses as $course) {
+        if ($mode !== 'sessions_threshold') {
+            if (!empty($course->disable_auto_invoice)) {
+                continue;
+            }
+            if (function_exists('sc_is_member_team') && sc_is_member_team((int) $course->member_id)) {
+                continue;
+            }
+        }
+
+        $user_name = trim((string) $course->first_name . ' ' . (string) $course->last_name);
+        $variables = [
+            'user_name' => $user_name !== '' ? $user_name : 'کاربر گرامی',
+            'course_name' => (string) $course->course_title,
+            'item_name' => (string) $course->course_title,
+        ];
+
+        if ($mode === 'sessions_threshold') {
+            $remaining = (int) $course->remaining_sessions;
+            $reminder_sessions = sc_get_invoice_renewal_reminder_sessions();
+            if ($remaining !== $reminder_sessions) {
+                continue;
+            }
+            $signature = 'sessions:' . (int) $course->latest_invoice_id . ':' . $reminder_sessions;
+            $variables['remaining_sessions'] = (string) $remaining;
+        } else {
+            if ($mode === 'interval') {
+                if (empty($course->latest_invoice_created_at)) {
+                    continue;
+                }
+                try {
+                    $last_invoice = new DateTimeImmutable((string) $course->latest_invoice_created_at, $timezone);
+                } catch (Exception $exception) {
+                    continue;
+                }
+                $due_timestamp = $last_invoice->getTimestamp() + (sc_get_invoice_interval_minutes() * MINUTE_IN_SECONDS);
+            } else {
+                $due_timestamp = $fixed_due_timestamp;
+            }
+
+            $reminder_days = sc_get_invoice_renewal_reminder_days();
+            if ($due_timestamp <= $now || $now < ($due_timestamp - ($reminder_days * DAY_IN_SECONDS))) {
+                continue;
+            }
+            $days_remaining = max(1, (int) ceil(($due_timestamp - $now) / DAY_IN_SECONDS));
+            $renewal_date = (new DateTimeImmutable('@' . $due_timestamp))
+                ->setTimezone($timezone)
+                ->format('Y-m-d');
+            if (function_exists('sc_date_shamsi_date_only')) {
+                $renewal_date = sc_date_shamsi_date_only($renewal_date);
+            }
+            $signature = $mode . ':' . $due_timestamp;
+            $variables['days_remaining'] = (string) $days_remaining;
+            $variables['renewal_date'] = (string) $renewal_date;
+        }
+
+        if (sc_invoice_renewal_reminder_was_sent((int) $course->id, $action, $signature)) {
+            continue;
+        }
+
+        sc_dispatch_invoice_renewal_reminder($course, $action, $variables);
+        sc_mark_invoice_renewal_reminder_sent((int) $course->id, $action, $signature);
+    }
 }
 
 /**
@@ -352,6 +638,8 @@ function sc_register_recurring_invoices_cron() {
  * Connect correct invoice generator to cron
  * (must NOT be inside init)
  */
+add_action('sc_every_minute_recurring_invoices_check', 'sc_check_invoice_renewal_reminders', 5);
+
 if (sc_get_invoice_mode() === 'sessions_threshold') {
 
     add_action('sc_every_minute_recurring_invoices_check', 'sc_create_threshold_invoices');

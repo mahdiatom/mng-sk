@@ -102,12 +102,23 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
 
     sc_update_setting('invoice_mode', $invoice_mode, 'invoice');
 
+    if (in_array($invoice_mode, ['interval', 'fixed_date'], true)) {
+        $renewal_reminder_days = isset($_POST['invoice_renewal_reminder_days'])
+            ? max(1, absint($normalize_digits(wp_unslash($_POST['invoice_renewal_reminder_days']))))
+            : 3;
+        sc_update_setting('invoice_renewal_reminder_days', $renewal_reminder_days, 'invoice');
+    }
+
     if ($invoice_mode === 'interval') {
         $invoice_interval_minutes = absint($_POST['invoice_interval_minutes']);
         sc_update_setting('invoice_interval_minutes', $invoice_interval_minutes, 'invoice');
     } elseif($invoice_mode === 'sessions_threshold'){
-         $sessions_count_threshold = isset($_POST['sessions_count_threshold']) ? $_POST['sessions_count_threshold'] : 1;
+         $sessions_count_threshold = isset($_POST['sessions_count_threshold']) ? max(1, absint($_POST['sessions_count_threshold'])) : 1;
+         $renewal_reminder_sessions = isset($_POST['invoice_renewal_reminder_sessions'])
+            ? max($sessions_count_threshold + 1, absint($_POST['invoice_renewal_reminder_sessions']))
+            : ($sessions_count_threshold + 1);
          sc_update_setting('sessions_count_threshold' , $sessions_count_threshold , 'invoice' ); 
+         sc_update_setting('invoice_renewal_reminder_sessions', $renewal_reminder_sessions, 'invoice');
     }
     else {
         $day_raw = isset($_POST['invoice_day_of_month']) ? $normalize_digits(wp_unslash($_POST['invoice_day_of_month'])) : '';
@@ -307,6 +318,21 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_reminder_admin_enabled', $sms_reminder_admin_enabled, 'sms');
         sc_update_setting('sms_reminder_admin_template', $sms_reminder_admin_template, 'sms');
         sc_update_setting('sms_reminder_admin_pattern', $sms_reminder_admin_pattern, 'sms');
+
+        // Renewal reminder before the next invoice
+        foreach (['renewal_date', 'renewal_sessions'] as $renewal_action) {
+            $renewal_prefix = 'sms_' . $renewal_action . '_user';
+            $renewal_enabled = isset($_POST[$renewal_prefix . '_enabled']) ? 1 : 0;
+            $renewal_template = isset($_POST[$renewal_prefix . '_template'])
+                ? sanitize_textarea_field(wp_unslash($_POST[$renewal_prefix . '_template']))
+                : '';
+            $renewal_pattern = isset($_POST[$renewal_prefix . '_pattern'])
+                ? absint($_POST[$renewal_prefix . '_pattern'])
+                : '';
+            sc_update_setting($renewal_prefix . '_enabled', $renewal_enabled, 'sms');
+            sc_update_setting($renewal_prefix . '_template', $renewal_template, 'sms');
+            sc_update_setting($renewal_prefix . '_pattern', $renewal_pattern, 'sms');
+        }
 
         // Absence SMS Settings
         $sms_absence_user_enabled = isset($_POST['sms_absence_user_enabled']) ? 1 : 0;
@@ -728,6 +754,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     $pro_feature_coaches = isset($_POST['pro_feature_coaches']) ? (int) $_POST['pro_feature_coaches'] : 0;
     $pro_feature_players_wallet = isset($_POST['pro_feature_players_wallet']) ? (int) $_POST['pro_feature_players_wallet'] : 0;
     $pro_feature_coaches_wallet_salary = isset($_POST['pro_feature_coaches_wallet_salary']) ? (int) $_POST['pro_feature_coaches_wallet_salary'] : 0;
+    $pro_feature_assistant_coach_salary = isset($_POST['pro_feature_assistant_coach_salary']) ? (int) $_POST['pro_feature_assistant_coach_salary'] : 0;
     $pro_feature_sms = isset($_POST['pro_feature_sms']) ? (int) $_POST['pro_feature_sms'] : 0;
     $pro_feature_shop = isset($_POST['pro_feature_shop']) ? (int) $_POST['pro_feature_shop'] : 0;
     $pro_feature_user_alerts = isset($_POST['pro_feature_user_alerts']) ? (int) $_POST['pro_feature_user_alerts'] : 0;
@@ -754,6 +781,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     sc_update_setting('pro_feature_coaches', $pro_feature_coaches, 'pro_features');
     sc_update_setting('pro_feature_players_wallet', $pro_feature_players_wallet, 'pro_features');
     sc_update_setting('pro_feature_coaches_wallet_salary', $pro_feature_coaches_wallet_salary, 'pro_features');
+    sc_update_setting('pro_feature_assistant_coach_salary', $pro_feature_assistant_coach_salary, 'pro_features');
     sc_update_setting('pro_feature_sms', $pro_feature_sms, 'pro_features');
     sc_update_setting('pro_feature_shop', $pro_feature_shop, 'pro_features');
     sc_update_setting('pro_feature_user_alerts', $pro_feature_user_alerts, 'pro_features');
@@ -1069,6 +1097,12 @@ $sms_reminder_user_pattern = sc_get_sms_setting('sms_reminder_user_pattern');
 $sms_reminder_admin_enabled = (int) sc_get_sms_setting('sms_reminder_admin_enabled');
 $sms_reminder_admin_template = sc_get_sms_setting('sms_reminder_admin_template');
 $sms_reminder_admin_pattern = sc_get_sms_setting('sms_reminder_admin_pattern');
+$sms_renewal_date_user_enabled = (int) sc_get_sms_setting('sms_renewal_date_user_enabled');
+$sms_renewal_date_user_template = sc_get_sms_setting('sms_renewal_date_user_template');
+$sms_renewal_date_user_pattern = sc_get_sms_setting('sms_renewal_date_user_pattern');
+$sms_renewal_sessions_user_enabled = (int) sc_get_sms_setting('sms_renewal_sessions_user_enabled');
+$sms_renewal_sessions_user_template = sc_get_sms_setting('sms_renewal_sessions_user_template');
+$sms_renewal_sessions_user_pattern = sc_get_sms_setting('sms_renewal_sessions_user_pattern');
 
 // Absence SMS Settings
 $sms_absence_user_enabled = (int) sc_get_sms_setting('sms_absence_user_enabled');
@@ -1193,6 +1227,7 @@ $pro_feature_notifications = (int) sc_get_setting('pro_feature_notifications', 0
 $pro_feature_coaches = (int) sc_get_setting('pro_feature_coaches', 0);
 $pro_feature_players_wallet = (int) sc_get_setting('pro_feature_players_wallet', 0);
 $pro_feature_coaches_wallet_salary = (int) sc_get_setting('pro_feature_coaches_wallet_salary', 0);
+$pro_feature_assistant_coach_salary = (int) sc_get_setting('pro_feature_assistant_coach_salary', 1);
 $pro_feature_sms = (int) sc_get_setting('pro_feature_sms', 0);
 $pro_feature_shop = (int) sc_get_setting('pro_feature_shop', 0);
 $pro_feature_user_alerts = (int) sc_get_setting('pro_feature_user_alerts', 1);
@@ -1560,7 +1595,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                                 value="<?php echo esc_attr(sc_get_invoice_hour()); ?>"
                                 placeholder="ساعت"
                                 style="width: 70px;">
-                            <p class="description">مثال: 23:10 یعنی ساعت ۱۱ شب و ۱۰ دقیقه</p>
+                            <p class="description">این ساعت، زودترین زمان صدور در روز تعیین‌شده است. اگر کرون در آن زمان اجرا نشود، در اجرای بعدی جبران خواهد شد.</p>
                         </td>
                     </tr>
                     <tr class="invoice-row sessions-row">
@@ -1576,6 +1611,28 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                                 
                                 
                             
+                        </td>
+                    </tr>
+                    <tr class="invoice-row renewal-days-row">
+                        <th>یادآوری قبل از صورتحساب</th>
+                        <td>
+                            <input type="number"
+                                name="invoice_renewal_reminder_days"
+                                min="1"
+                                max="365"
+                                value="<?php echo esc_attr(sc_get_invoice_renewal_reminder_days()); ?>">
+                            <p class="description">چند روز مانده به موعد ایجاد صورتحساب، پیام یادآوری تمدید ارسال شود.</p>
+                        </td>
+                    </tr>
+                    <tr class="invoice-row sessions-row">
+                        <th>یادآوری تمدید در تعداد جلسه</th>
+                        <td>
+                            <input type="number"
+                                name="invoice_renewal_reminder_sessions"
+                                min="<?php echo esc_attr(max(2, (int) $sessions_count_threshold + 1)); ?>"
+                                max="100"
+                                value="<?php echo esc_attr(max(sc_get_invoice_renewal_reminder_sessions(), (int) $sessions_count_threshold + 1)); ?>">
+                            <p class="description">وقتی تعداد جلسات باقی‌مانده دقیقاً به این عدد برسد، پیام ارسال می‌شود. این عدد باید از آستانه صدور صورتحساب بیشتر باشد.</p>
                         </td>
                     </tr>
 
@@ -2188,6 +2245,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="enrollment"> پیامک ثبت نام</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="course-capacity-waitlist"> پیامک خالی شدن ظرفیت دوره</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="reminder"> پیامک یادآوری پرداخت</label>
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="renewal-reminder"> یادآوری تمدید دوره</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="absence"> پیامک غیبت</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="absence-alert"> پیامک هشدار غیبت</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="birthday"> پیامک تولد</label>
@@ -2867,6 +2925,56 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                     </tr>
                 </table>
 
+                </div>
+                <div class="sc-sms-message-section" data-section="renewal-reminder">
+                <h3>یادآوری تمدید پیش از صدور صورتحساب</h3>
+                <p class="description">هر کلید، ارسال هم‌زمان پیامک، پیام ربات بله و اطلاعیه پنل کاربر را کنترل می‌کند.</p>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">حالت زمانی و تاریخ مشخص</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_renewal_date_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_renewal_date_user_enabled, 1); ?>>
+                                فعال کردن یادآوری تمدید
+                            </label>
+                            <br><br>
+                            <textarea name="sms_renewal_date_user_template"
+                                      rows="3"
+                                      class="large-text"><?php echo esc_textarea($sms_renewal_date_user_template); ?></textarea>
+                            <p class="description">متغیرها: %user_name%، %course_name%، %days_remaining%، %renewal_date%</p>
+                            <input type="number"
+                                   name="sms_renewal_date_user_pattern"
+                                   value="<?php echo esc_attr($sms_renewal_date_user_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">حالت تعداد جلسه</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_renewal_sessions_user_enabled"
+                                       value="1"
+                                       <?php checked($sms_renewal_sessions_user_enabled, 1); ?>>
+                                فعال کردن یادآوری تمدید
+                            </label>
+                            <br><br>
+                            <textarea name="sms_renewal_sessions_user_template"
+                                      rows="3"
+                                      class="large-text"><?php echo esc_textarea($sms_renewal_sessions_user_template); ?></textarea>
+                            <p class="description">متغیرها: %user_name%، %course_name%، %remaining_sessions%</p>
+                            <input type="number"
+                                   name="sms_renewal_sessions_user_pattern"
+                                   value="<?php echo esc_attr($sms_renewal_sessions_user_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                        </td>
+                    </tr>
+                </table>
                 </div>
                 <div class="sc-sms-message-section" data-section="absence">
                 <!-- Absence SMS Settings -->
@@ -4522,10 +4630,14 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         <th scope="row">نحوه واریز سهم کمک‌مربی</th>
                         <td>
                             <?php
+                            $assistant_salary_feature_on = function_exists('sc_is_pro_feature_assistant_coach_salary_enabled')
+                                && sc_is_pro_feature_assistant_coach_salary_enabled();
                             $assistant_salary_payout_mode = function_exists('sc_get_assistant_salary_payout_mode')
                                 ? sc_get_assistant_salary_payout_mode()
                                 : (string) sc_get_setting('assistant_salary_payout_mode', 'direct');
-                            ?>
+                            if (!$assistant_salary_feature_on) : ?>
+                                <p class="description">این بخش غیرفعال است. برای فعال‌سازی، در تب «امکانات پرو» گزینه «دستمزد کمک‌مربی» را روشن کنید.</p>
+                            <?php else : ?>
                             <fieldset>
                                 <label style="display:block;margin-bottom:8px;">
                                     <input type="radio" name="assistant_salary_payout_mode" value="direct" <?php checked($assistant_salary_payout_mode, 'direct'); ?>>
@@ -4537,6 +4649,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                                 </label>
                             </fieldset>
                             <p class="description">اگر برای یک کلاس کمک‌مربی تعریف نشده باشد، کل دستمزد فقط به مربی اصلی واریز می‌شود. کمک‌مربی امکان ثبت حضور و غیاب ندارد.</p>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 </table>
@@ -4877,6 +4990,17 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         <input type="checkbox" name="pro_feature_coaches_wallet_salary" value="1" <?php checked($pro_feature_coaches_wallet_salary, 1); ?>>
                         <span class="slider round"></span>
                     </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">دستمزد کمک‌مربی</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_assistant_coach_salary" value="0">
+                        <input type="checkbox" name="pro_feature_assistant_coach_salary" value="1" <?php checked($pro_feature_assistant_coach_salary, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                    <p class="description">با غیرفعال کردن، سهم کمک‌مربی محاسبه/واریز نمی‌شود و بخش کمک‌مربی در ویرایش دوره مخفی می‌شود. برای کار کردن باید «کیف پول مربیان و دستمزد» هم فعال باشد.</p>
                 </td>
             </tr>
             <tr>
@@ -5267,6 +5391,9 @@ jQuery(document).ready(function($) {
 document.addEventListener("DOMContentLoaded", function () {
 
     const select = document.getElementById("invoice_mode_select");
+    if (!select) {
+        return;
+    }
 
     function updateInvoiceFields() {
         const mode = select.value;
@@ -5278,15 +5405,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (mode === "interval") {
             document.querySelector(".interval-row").style.display = "table-row";
+            document.querySelector(".renewal-days-row").style.display = "table-row";
         }
 
         if (mode === "fixed_date") {
             document.querySelector(".fixed-date-row-day").style.display = "table-row";
             document.querySelector(".fixed-date-row-time").style.display = "table-row";
+            document.querySelector(".renewal-days-row").style.display = "table-row";
         }
 
         if (mode === "sessions_threshold") {
-            document.querySelector(".sessions-row").style.display = "table-row";
+            document.querySelectorAll(".sessions-row").forEach(el => {
+                el.style.display = "table-row";
+            });
         }
     }
 

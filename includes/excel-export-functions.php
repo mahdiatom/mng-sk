@@ -2321,18 +2321,19 @@ $courses_table = $wpdb->prefix . 'sc_courses';
 $filter_coach = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
 $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
 $filter_type = isset($_GET['filter_type']) ? sanitize_text_field($_GET['filter_type']) : 'all';
+$filter_role = isset($_GET['filter_role']) ? sanitize_text_field($_GET['filter_role']) : 'all';
+if (!in_array($filter_role, ['all', 'primary', 'assistant'], true)) {
+    $filter_role = 'all';
+}
 $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
 $filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
 $filter_date_from = $filter_date_from_shamsi; // برای WHERE به شمسی تبدیل می‌شود
 $filter_date_to   = $filter_date_to_shamsi;
-$today_shamsi_sal = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only(current_time('Y-m-d')) : '';
-if (!$today_shamsi_sal && function_exists('gregorian_to_jalali')) {
-    $g = explode('-', current_time('Y-m-d'));
-    $j = gregorian_to_jalali((int)$g[0], (int)$g[1], (int)$g[2]);
-    $today_shamsi_sal = $j[0] . '/' . str_pad($j[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($j[2], 2, '0', STR_PAD_LEFT);
-}
-$display_date_from_sal = $filter_date_from_shamsi !== '' ? $filter_date_from_shamsi : $today_shamsi_sal;
-$display_date_to_sal   = $filter_date_to_shamsi !== '' ? $filter_date_to_shamsi : $today_shamsi_sal;
+
+$assistant_table = function_exists('sc_course_assistant_coaches_table')
+    ? sc_course_assistant_coaches_table()
+    : ($wpdb->prefix . 'sc_course_assistant_coaches');
+$assistant_table_ready = function_exists('sc_course_assistant_coaches_table_ready') && sc_course_assistant_coaches_table_ready();
 
 // ساخت WHERE clause
 $where_conditions = ['1=1'];
@@ -2363,6 +2364,38 @@ if ($filter_date_to) {
     $date_to_gregorian = sc_shamsi_to_gregorian_date($filter_date_to);
     $where_conditions[] = "sr.attendance_date <= %s";
     $where_values[] = $date_to_gregorian;
+}
+
+if ($assistant_table_ready && $filter_role === 'assistant') {
+    $where_conditions[] = "sr.salary_type = 'percentage'
+        AND EXISTS (
+            SELECT 1 FROM `$assistant_table` a
+            WHERE a.course_id = sr.course_id
+              AND a.assistant_coach_id = sr.coach_id
+              AND (a.chapter_name = sr.chapter_name OR sr.chapter_name = '' OR a.chapter_name = '')
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM {$wpdb->prefix}sc_course_coaches cc
+            WHERE cc.course_id = sr.course_id
+              AND cc.coach_id = sr.coach_id
+              AND cc.chapter_name = sr.chapter_name
+        )";
+} elseif ($assistant_table_ready && $filter_role === 'primary') {
+    $where_conditions[] = "(
+        sr.salary_type = 'fixed'
+        OR NOT EXISTS (
+            SELECT 1 FROM `$assistant_table` a
+            WHERE a.course_id = sr.course_id
+              AND a.assistant_coach_id = sr.coach_id
+              AND (a.chapter_name = sr.chapter_name OR sr.chapter_name = '' OR a.chapter_name = '')
+        )
+        OR EXISTS (
+            SELECT 1 FROM {$wpdb->prefix}sc_course_coaches cc
+            WHERE cc.course_id = sr.course_id
+              AND cc.coach_id = sr.coach_id
+              AND cc.chapter_name = sr.chapter_name
+        )
+    )";
 }
 
 $where_clause = implode(' AND ', $where_conditions);
@@ -2407,6 +2440,8 @@ if (!empty($where_values)) {
             'شناسه',
             'تاریخ ',
             'نام مربی',
+            'نقش',
+            'مربی اصلی مرتبط',
             'دوره',
             'شعبه',
             'نوع تسویه حساب',
@@ -2456,6 +2491,23 @@ if (!empty($where_values)) {
 
        $full_name = trim(($t->first_name ?? '') . ' ' . ($t->last_name ?? ''));
         $sheet->setCellValueByColumnAndRow($col++, $row, $full_name !== '' ? $full_name : '-');
+
+        $role_meta = function_exists('sc_resolve_coach_salary_record_role')
+            ? sc_resolve_coach_salary_record_role(
+                (int) ($t->coach_id ?? 0),
+                (int) ($t->course_id ?? 0),
+                (string) ($t->chapter_name ?? ''),
+                (string) ($t->salary_type ?? 'percentage')
+            )
+            : ['role' => 'primary', 'label' => 'مربی اصلی', 'primary_coach_name' => ''];
+        $sheet->setCellValueByColumnAndRow($col++, $row, $role_meta['label'] ?? 'مربی اصلی');
+        $sheet->setCellValueByColumnAndRow(
+            $col++,
+            $row,
+            (!empty($role_meta['role']) && $role_meta['role'] === 'assistant' && !empty($role_meta['primary_coach_name']))
+                ? $role_meta['primary_coach_name']
+                : '-'
+        );
 
       // نام دوره 
         $sheet->setCellValueByColumnAndRow($col++, $row, $t->course_title ?? '-');

@@ -14,14 +14,35 @@
         }
     }
 
+    /**
+     * برای محصول متغیر تب فقط نمایشی است؛ فیلدهای ساده نباید submit شوند.
+     */
+    function syncProductTypeFields() {
+        var type = $('#product-type').val();
+        var isVariable = (type === 'variable');
+        var $simple = $('#sc_branch_stock_product_data .show_if_simple');
+        var $variable = $('#sc_branch_stock_product_data .show_if_variable');
+
+        $simple.find('input, select, textarea').prop('disabled', isVariable);
+        if (!isVariable) {
+            $simple.find('.sc-pbs-admin').each(function () {
+                syncEnableState($(this));
+            });
+        }
+        $variable.find('input, select, textarea').prop('disabled', false);
+    }
+
     $(document).on('change', '.sc-pbs-enable', function () {
         syncEnableState($(this).closest('.sc-pbs-admin'));
     });
+
+    $(document).on('change', '#product-type', syncProductTypeFields);
 
     $(function () {
         $('.sc-pbs-admin').each(function () {
             syncEnableState($(this));
         });
+        syncProductTypeFields();
     });
 
     // بعد از لود variationهای ووکامرس
@@ -29,5 +50,6 @@
         $('.sc-pbs-admin').each(function () {
             syncEnableState($(this));
         });
+        syncProductTypeFields();
     });
 })(jQuery);

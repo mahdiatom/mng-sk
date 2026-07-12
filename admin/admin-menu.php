@@ -2547,6 +2547,54 @@ function sc_admin_support_ticket_view_page() {
     include SC_TEMPLATES_ADMIN_DIR . 'admin-support-ticket-view.php';
 }
 
+/**
+ * Upload a coach profile image directly, without creating a Media Library item.
+ *
+ * @return array|null|WP_Error Uploaded file data, null when no file was selected.
+ */
+function sc_upload_coach_profile_image($file, $coach_id, $field_name) {
+    if (empty($file) || !isset($file['error']) || (int) $file['error'] === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+
+    if ((int) $file['error'] !== UPLOAD_ERR_OK || empty($file['tmp_name'])) {
+        return new WP_Error('sc_coach_upload_failed', 'خطا در دریافت فایل.');
+    }
+
+    if ((int) $file['size'] > 1024 * 1024) {
+        return new WP_Error('sc_coach_upload_too_large', 'حجم فایل بیش از حد مجاز است.');
+    }
+
+    $image_info = @getimagesize($file['tmp_name']);
+    $allowed_mime_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if ($image_info === false || empty($image_info['mime']) || !in_array($image_info['mime'], $allowed_mime_types, true)) {
+        return new WP_Error('sc_coach_upload_invalid_image', 'فایل انتخاب‌شده تصویر معتبر نیست.');
+    }
+
+    if (!function_exists('wp_handle_upload')) {
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+    }
+
+    $upload = wp_handle_upload($file, [
+        'test_form' => false,
+        'mimes' => [
+            'jpg|jpeg|jpe' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+        ],
+        'unique_filename_callback' => static function ($directory, $filename, $extension) use ($coach_id, $field_name) {
+            return sanitize_file_name('coach_' . $coach_id . '_' . $field_name . '_' . time() . $extension);
+        },
+    ]);
+
+    if (!$upload || isset($upload['error'])) {
+        return new WP_Error('sc_coach_upload_failed', isset($upload['error']) ? $upload['error'] : 'خطا در ذخیره فایل.');
+    }
+
+    return $upload;
+}
+
 function sc_admin_coach_my_profile_page() {
     sc_check_and_create_tables();
     if (!current_user_can('sc_view_coach_salary')) {
@@ -2564,7 +2612,10 @@ function sc_admin_coach_my_profile_page() {
         $last_name = isset($_POST['last_name']) ? trim(sanitize_text_field($_POST['last_name'])) : '';
         $national_id = isset($_POST['national_id']) ? trim(sanitize_text_field($_POST['national_id'])) : '';
         $mobile_phone = isset($_POST['mobile_phone']) ? trim(sanitize_text_field($_POST['mobile_phone'])) : '';
-        $existing_coach = $wpdb->get_row($wpdb->prepare("SELECT club_rules_accepted FROM $coaches_table WHERE id = %d", $coach_id));
+        $existing_coach = $wpdb->get_row($wpdb->prepare(
+            "SELECT club_rules_accepted, personal_photo, coaching_certificate_photo FROM $coaches_table WHERE id = %d",
+            $coach_id
+        ));
         $club_rules_already_accepted = $existing_coach ? (int) $existing_coach->club_rules_accepted === 1 : false;
         if (empty($first_name) || empty($last_name) || empty($national_id) || empty($mobile_phone)) {
             wp_safe_redirect(add_query_arg('sc_status', 'error', $redirect_url));
@@ -2581,6 +2632,32 @@ function sc_admin_coach_my_profile_page() {
         if ($coaching_certificate_expiry_date_shamsi && function_exists('sc_shamsi_to_gregorian_date')) {
             $coaching_certificate_expiry_date_gregorian = sc_shamsi_to_gregorian_date($coaching_certificate_expiry_date_shamsi);
         }
+
+        $personal_photo = $existing_coach && !empty($existing_coach->personal_photo) ? $existing_coach->personal_photo : null;
+        $certificate_photo = $existing_coach && !empty($existing_coach->coaching_certificate_photo) ? $existing_coach->coaching_certificate_photo : null;
+        $photo_uploads = [
+            'personal_photo_file' => 'personal_photo',
+            'coaching_certificate_photo_file' => 'coaching_certificate_photo',
+        ];
+        foreach ($photo_uploads as $file_field => $database_field) {
+            $upload = sc_upload_coach_profile_image(
+                isset($_FILES[$file_field]) ? $_FILES[$file_field] : null,
+                $coach_id,
+                $database_field
+            );
+            if (is_wp_error($upload)) {
+                wp_safe_redirect(add_query_arg('sc_status', 'upload_error', $redirect_url));
+                exit;
+            }
+            if (is_array($upload) && !empty($upload['url'])) {
+                if ($database_field === 'personal_photo') {
+                    $personal_photo = esc_url_raw($upload['url']);
+                } else {
+                    $certificate_photo = esc_url_raw($upload['url']);
+                }
+            }
+        }
+
         $data = [
             'first_name' => $first_name,
             'last_name' => $last_name,
@@ -2590,12 +2667,8 @@ function sc_admin_coach_my_profile_page() {
             'specialization' => isset($_POST['specialization']) && trim($_POST['specialization']) !== '' ? sanitize_text_field($_POST['specialization']) : null,
             'coaching_experience' => isset($_POST['coaching_experience']) && $_POST['coaching_experience'] !== '' ? absint($_POST['coaching_experience']) : null,
             'sports_history' => isset($_POST['sports_history']) && trim($_POST['sports_history']) !== '' ? sanitize_textarea_field($_POST['sports_history']) : null,
-            'personal_photo' => (isset($_POST['personal_photo']) && trim((string) $_POST['personal_photo']) !== '')
-                ? esc_url_raw(wp_unslash($_POST['personal_photo']))
-                : null,
-            'coaching_certificate_photo' => (isset($_POST['coaching_certificate_photo']) && trim((string) $_POST['coaching_certificate_photo']) !== '')
-                ? esc_url_raw(wp_unslash($_POST['coaching_certificate_photo']))
-                : null,
+            'personal_photo' => $personal_photo,
+            'coaching_certificate_photo' => $certificate_photo,
             'coaching_certificate_expiry_date_shamsi' => $coaching_certificate_expiry_date_shamsi,
             'coaching_certificate_expiry_date_gregorian' => $coaching_certificate_expiry_date_gregorian,
             'club_rules_accepted' => $club_rules_already_accepted ? 1 : 1,

@@ -332,7 +332,7 @@ function sc_ajax_qr_scan_snapshot_save() {
 }
 
 /**
- * Render thumb + view/download actions for report tables.
+ * Render view-only photo buttons for report tables (no thumbnail by default).
  */
 function sc_qr_scan_photo_render_cell($rear_file, $front_file = '') {
     $rear_url = $rear_file ? sc_qr_scan_photo_url_from_relative($rear_file) : '';
@@ -341,26 +341,12 @@ function sc_qr_scan_photo_render_cell($rear_file, $front_file = '') {
         echo '<span style="color:#9ca3af;">—</span>';
         return;
     }
-    echo '<div class="sc-qr-scan-photos">';
+    echo '<div class="sc-qr-scan-photos sc-qr-scan-photos--buttons">';
     if ($rear_url !== '') {
-        echo '<div class="sc-qr-scan-photo-item">';
-        echo '<a href="' . esc_url($rear_url) . '" class="sc-qr-scan-lightbox" data-title="دوربین اسکن" target="_blank" rel="noopener">';
-        echo '<img src="' . esc_url($rear_url) . '" alt="اسکن" class="sc-qr-scan-thumb" loading="lazy" width="72" height="54">';
-        echo '</a>';
-        echo '<div class="sc-qr-scan-photo-actions">';
-        echo '<a href="' . esc_url($rear_url) . '" class="sc-qr-scan-lightbox button button-small" data-title="دوربین اسکن">مشاهده</a> ';
-        echo '<a href="' . esc_url($rear_url) . '" class="button button-small" download>دانلود</a>';
-        echo '</div><small>اسکن</small></div>';
+        echo '<a href="' . esc_url($rear_url) . '" class="sc-qr-scan-lightbox button button-small" data-title="دوربین اسکن">مشاهده' . ($front_url !== '' ? ' اسکن' : '') . '</a>';
     }
     if ($front_url !== '') {
-        echo '<div class="sc-qr-scan-photo-item">';
-        echo '<a href="' . esc_url($front_url) . '" class="sc-qr-scan-lightbox" data-title="دوربین جلو" target="_blank" rel="noopener">';
-        echo '<img src="' . esc_url($front_url) . '" alt="جلو" class="sc-qr-scan-thumb" loading="lazy" width="72" height="54">';
-        echo '</a>';
-        echo '<div class="sc-qr-scan-photo-actions">';
-        echo '<a href="' . esc_url($front_url) . '" class="sc-qr-scan-lightbox button button-small" data-title="دوربین جلو">مشاهده</a> ';
-        echo '<a href="' . esc_url($front_url) . '" class="button button-small" download>دانلود</a>';
-        echo '</div><small>جلو</small></div>';
+        echo '<a href="' . esc_url($front_url) . '" class="sc-qr-scan-lightbox button button-small" data-title="دوربین جلو">مشاهده جلو</a>';
     }
     echo '</div>';
 }
@@ -382,9 +368,6 @@ function sc_qr_scan_photo_admin_lightbox_script() {
             <button type="button" id="sc-qr-lightbox-close" class="button" style="position:absolute;top:10px;left:10px;">بستن</button>
             <h3 id="sc-qr-lightbox-title" style="margin:0 0 12px;padding-left:70px;"></h3>
             <img id="sc-qr-lightbox-img" src="" alt="" style="max-width:100%;height:auto;display:block;margin:0 auto;border-radius:8px;">
-            <p style="margin:12px 0 0;text-align:center;">
-                <a id="sc-qr-lightbox-download" class="button button-primary" href="#" download>دانلود عکس</a>
-            </p>
         </div>
     </div>
     <script>
@@ -393,7 +376,6 @@ function sc_qr_scan_photo_admin_lightbox_script() {
         if (!box) return;
         var img = document.getElementById('sc-qr-lightbox-img');
         var title = document.getElementById('sc-qr-lightbox-title');
-        var dl = document.getElementById('sc-qr-lightbox-download');
         function close(){ box.style.display='none'; img.src=''; }
         document.getElementById('sc-qr-lightbox-close').addEventListener('click', close);
         box.addEventListener('click', function(e){ if (e.target === box) close(); });
@@ -405,18 +387,13 @@ function sc_qr_scan_photo_admin_lightbox_script() {
             if (!href) return;
             title.textContent = a.getAttribute('data-title') || 'عکس اسکن';
             img.src = href;
-            dl.href = href;
             box.style.display = 'flex';
         });
     })();
     </script>
     <style>
-    .sc-qr-scan-photos{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start}
-    .sc-qr-scan-photo-item{text-align:center;max-width:90px}
-    .sc-qr-scan-photo-item small{display:block;color:#6b7280;margin-top:2px}
-    .sc-qr-scan-thumb{width:72px;height:54px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;display:block;margin:0 auto}
-    .sc-qr-scan-photo-actions{display:flex;flex-direction:column;gap:2px;margin-top:4px}
-    .sc-qr-scan-photo-actions .button{padding:0 6px!important;min-height:24px;line-height:22px;font-size:11px}
+    .sc-qr-scan-photos{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+    .sc-qr-scan-photos--buttons .button{min-height:28px;line-height:26px;padding:0 10px;font-size:12px}
     </style>
     <?php
 }

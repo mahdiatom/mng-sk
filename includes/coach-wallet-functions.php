@@ -161,6 +161,9 @@ function sc_deduct_coach_wallet($coach_id, $amount, $description = '') {
  * Count attendance records belonging to a specific coach/branch in a course/date.
  * شمارش حضور/غیاب بازیکن‌های اختصاص‌یافته به یک مربی در یک شعبه/دوره/تاریخ
  *
+ * برای دوره‌های قدیمی با گروه‌بندی: اگر chapter/coach_id روی member_courses خالی/ناسازگار باشد
+ * ولی گروه بازیکن به همین مربی/شعبه در sc_course_groups وصل باشد، باز هم شمرده می‌شود.
+ *
  * @param string      $chapter_name شعبه (خالی = کل دوره، برای سازگاری قدیمی)
  * @param string|null $group_name   null = بدون فیلتر گروه؛ '' = فقط بدون گروه؛ نام = همان گروه
  */
@@ -181,12 +184,13 @@ function sc_get_coach_attendance_count_for_salary($coach_id, $course_id, $attend
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
     $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
     $coaches_table = $wpdb->prefix . 'sc_coaches';
+    $groups_table = $wpdb->prefix . 'sc_course_groups';
+    $has_groups_table = ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $groups_table)) === $groups_table);
 
     $status_where = $present_only ? " AND a.status = 'present' " : '';
-    $coach_scope_where = 'mc.coach_id = %d';
-    $chapter_where = '';
     $group_where = '';
     $prepare_args = [$course_id, $attendance_date];
+    $scope_sql = '';
 
     if ($chapter_name !== '') {
         $single_coach_for_chapter = (int) $wpdb->get_var($wpdb->prepare(
@@ -197,17 +201,51 @@ function sc_get_coach_attendance_count_for_salary($coach_id, $course_id, $attend
             $course_id,
             $chapter_name
         ));
+        $is_sole_coach = ($single_coach_for_chapter > 0 && $single_coach_for_chapter === $coach_id);
 
-        if ($single_coach_for_chapter > 0 && $single_coach_for_chapter === $coach_id) {
-            $coach_scope_where = '(mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0)';
-            $chapter_where = " AND (mc.chapter = %s OR mc.chapter IS NULL OR mc.chapter = '')";
+        if ($is_sole_coach) {
+            $direct_match = '(
+                (mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0)
+                AND (mc.chapter = %s OR mc.chapter IS NULL OR mc.chapter = \'\')
+            )';
         } else {
-            $coach_scope_where = 'mc.coach_id = %d';
-            $chapter_where = ' AND mc.chapter = %s';
+            $direct_match = '(mc.coach_id = %d AND mc.chapter = %s)';
         }
-
         $prepare_args[] = $coach_id;
         $prepare_args[] = $chapter_name;
+
+        $via_group_match = '';
+        if ($has_groups_table) {
+            // ثبت‌نام‌های قدیمی: فقط group_name پر است؛ chapter/coach از تعریف گروه خوانده می‌شود
+            if ($is_sole_coach) {
+                $via_group_match = " OR (
+                    mc.group_name IS NOT NULL AND mc.group_name != ''
+                    AND EXISTS (
+                        SELECT 1 FROM $groups_table g
+                        WHERE g.course_id = %d
+                          AND g.group_name = mc.group_name
+                          AND (g.chapter_name = %s OR g.chapter_name = '')
+                          AND (g.coach_id = %d OR g.coach_id = 0)
+                    )
+                )";
+            } else {
+                $via_group_match = " OR (
+                    mc.group_name IS NOT NULL AND mc.group_name != ''
+                    AND EXISTS (
+                        SELECT 1 FROM $groups_table g
+                        WHERE g.course_id = %d
+                          AND g.group_name = mc.group_name
+                          AND g.chapter_name = %s
+                          AND g.coach_id = %d
+                    )
+                )";
+            }
+            $prepare_args[] = $course_id;
+            $prepare_args[] = $chapter_name;
+            $prepare_args[] = $coach_id;
+        }
+
+        $scope_sql = " AND ( $direct_match $via_group_match ) ";
     } else {
         $single_active_coach_id = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT CASE WHEN COUNT(DISTINCT cc.coach_id) = 1 THEN MIN(cc.coach_id) ELSE 0 END
@@ -218,9 +256,10 @@ function sc_get_coach_attendance_count_for_salary($coach_id, $course_id, $attend
         ));
 
         if ($single_active_coach_id > 0 && $single_active_coach_id === $coach_id) {
-            $coach_scope_where = '(mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0)';
+            $scope_sql = ' AND (mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0) ';
+        } else {
+            $scope_sql = ' AND mc.coach_id = %d ';
         }
-
         $prepare_args[] = $coach_id;
     }
 
@@ -241,8 +280,7 @@ function sc_get_coach_attendance_count_for_salary($coach_id, $course_id, $attend
             AND mc.course_id = a.course_id
          WHERE a.course_id = %d
            AND a.attendance_date = %s
-           AND $coach_scope_where
-           $chapter_where
+           $scope_sql
            $group_where
            AND mc.status = 'active'
            AND (
@@ -316,6 +354,11 @@ function sc_refresh_coach_percentage_salary_for_course_date($course_id, $attenda
 
     if (!$course_id || $attendance_date === '') {
         return $results;
+    }
+
+    // قبل از محاسبه: chapter/coach ثبت‌نام‌های گروه‌دار را از تعریف گروه همگام کن
+    if (function_exists('sc_sync_member_courses_from_course_groups')) {
+        sc_sync_member_courses_from_course_groups($course_id);
     }
 
     global $wpdb;

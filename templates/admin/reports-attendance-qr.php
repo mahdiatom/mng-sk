@@ -13,6 +13,40 @@ $member_courses_table = $wpdb->prefix . 'sc_member_courses';
 $coaches_table = $wpdb->prefix . 'sc_coaches';
 $users_table = $wpdb->users;
 
+// حذف تکی
+if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['attendance_id'])) {
+    $delete_id = absint($_GET['attendance_id']);
+    check_admin_referer('sc_delete_qr_attendance_' . $delete_id);
+    if (function_exists('sc_attendance_qr_delete_report_records')) {
+        $del = sc_attendance_qr_delete_report_records([$delete_id]);
+        if ($del['deleted'] > 0) {
+            echo '<div class="notice notice-success is-dismissible"><p>رکورد ثبت QR حذف شد.</p></div>';
+        } else {
+            echo '<div class="notice notice-error is-dismissible"><p>حذف رکورد ناموفق بود.</p></div>';
+        }
+    }
+}
+
+// حذف دسته‌جمعی
+if (
+    isset($_POST['bulk_action'], $_POST['attendance_ids'])
+    && is_array($_POST['attendance_ids'])
+    && sanitize_key(wp_unslash($_POST['bulk_action'])) === 'delete'
+    && check_admin_referer('sc_bulk_qr_attendance_nonce')
+) {
+    $bulk_ids = array_map('absint', wp_unslash($_POST['attendance_ids']));
+    if (function_exists('sc_attendance_qr_delete_report_records')) {
+        $del = sc_attendance_qr_delete_report_records($bulk_ids);
+        if ($del['deleted'] > 0) {
+            echo '<div class="notice notice-success is-dismissible"><p>'
+                . esc_html(sprintf('%d رکورد ثبت QR حذف شد.', $del['deleted']))
+                . '</p></div>';
+        } else {
+            echo '<div class="notice notice-error is-dismissible"><p>هیچ رکوردی حذف نشد.</p></div>';
+        }
+    }
+}
+
 if (!function_exists('sc_attendance_where_coach_member_scope_list')) {
     function sc_attendance_where_coach_member_scope_list($coach_id) {
         global $wpdb;
@@ -428,9 +462,24 @@ $clear_url = admin_url('admin.php?page=sc-reports-attendance-qr');
         <?php if (empty($records)) : ?>
             <div class="sc-reports-empty">هیچ رکورد QR یافت نشد.</div>
         <?php else : ?>
+            <form method="post" id="sc-qr-attendance-report-form">
+                <?php wp_nonce_field('sc_bulk_qr_attendance_nonce'); ?>
+                <div class="tablenav top">
+                    <div class="alignleft actions bulkactions">
+                        <label for="bulk-action-selector-top" class="screen-reader-text">عملیات دسته‌جمعی</label>
+                        <select name="bulk_action" id="bulk-action-selector-top">
+                            <option value="">عملیات دسته‌جمعی...</option>
+                            <option value="delete">حذف رکورد</option>
+                        </select>
+                        <input type="submit" class="button action" id="doaction" value="اجرا">
+                    </div>
+                </div>
             <table class="wp-list-table widefat fixed striped sc-attendance-qr-report-table">
                 <thead>
                     <tr>
+                        <td class="manage-column column-cb check-column">
+                            <input type="checkbox" id="sc-qr-cb-select-all">
+                        </td>
                         <th class="column-row">ردیف</th>
                         <th>تاریخ جلسه</th>
                         <th>زمان ثبت</th>
@@ -439,6 +488,7 @@ $clear_url = admin_url('admin.php?page=sc-reports-attendance-qr');
                         <th>ثبت‌کننده</th>
                         <th>وضعیت</th>
                         <th>عکس اسکن</th>
+                        <th>عملیات</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -469,8 +519,39 @@ $clear_url = admin_url('admin.php?page=sc-reports-attendance-qr');
                             $status_label = 'غیبت مجاز';
                             $status_class = 'sc-badge--warning';
                         }
+
+                        $delete_url = wp_nonce_url(
+                            add_query_arg([
+                                'page' => 'sc-reports-attendance-qr',
+                                'action' => 'delete',
+                                'attendance_id' => (int) $row->id,
+                            ], admin_url('admin.php')),
+                            'sc_delete_qr_attendance_' . (int) $row->id
+                        );
+                        // Preserve filters after delete
+                        if ($filter_course > 0) {
+                            $delete_url = add_query_arg('filter_course', $filter_course, $delete_url);
+                        }
+                        if ($filter_member > 0) {
+                            $delete_url = add_query_arg('filter_member', $filter_member, $delete_url);
+                        }
+                        if ($filter_coach > 0) {
+                            $delete_url = add_query_arg('filter_coach', $filter_coach, $delete_url);
+                        }
+                        if ($filter_status !== 'all') {
+                            $delete_url = add_query_arg('filter_status', $filter_status, $delete_url);
+                        }
+                        if ($filter_date_from_shamsi !== '') {
+                            $delete_url = add_query_arg('filter_date_from_shamsi', $filter_date_from_shamsi, $delete_url);
+                        }
+                        if ($filter_date_to_shamsi !== '') {
+                            $delete_url = add_query_arg('filter_date_to_shamsi', $filter_date_to_shamsi, $delete_url);
+                        }
                     ?>
                         <tr>
+                            <th scope="row" class="check-column">
+                                <input type="checkbox" name="attendance_ids[]" value="<?php echo (int) $row->id; ?>" class="sc-qr-cb-item">
+                            </th>
                             <td class="column-row"><?php echo (int) $row_number; ?></td>
                             <td>
                                 <strong><?php echo esc_html(sc_date_shamsi_date_only($row->attendance_date)); ?></strong>
@@ -510,10 +591,16 @@ $clear_url = admin_url('admin.php?page=sc-reports-attendance-qr');
                                 }
                                 ?>
                             </td>
+                            <td>
+                                <a href="<?php echo esc_url($delete_url); ?>"
+                                   class="button button-small button_delete_attendance sc-qr-delete-one"
+                                   data-confirm="این رکورد ثبت QR حذف شود؟">حذف</a>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            </form>
 
             <?php if ($total_pages > 1) : ?>
                 <div class="tablenav bottom sc_paginate">
@@ -578,6 +665,35 @@ jQuery(function ($) {
             $panel.removeAttr('hidden');
             $toggle.attr('aria-expanded', 'true');
             $label.text($label.data('label-open'));
+        }
+    });
+
+    $('#sc-qr-cb-select-all').on('change', function () {
+        $('.sc-qr-cb-item').prop('checked', this.checked);
+    });
+
+    $('#sc-qr-attendance-report-form').on('submit', function (e) {
+        var action = $('#bulk-action-selector-top').val();
+        if (action === 'delete') {
+            var checked = $('.sc-qr-cb-item:checked').length;
+            if (!checked) {
+                e.preventDefault();
+                alert('حداقل یک رکورد را انتخاب کنید.');
+                return;
+            }
+            if (!window.confirm('رکوردهای انتخاب‌شده حذف شوند؟ فقط ثبت حضور QR حذف می‌شود.')) {
+                e.preventDefault();
+            }
+        } else if (!action) {
+            e.preventDefault();
+            alert('یک عملیات را انتخاب کنید.');
+        }
+    });
+
+    $(document).on('click', '.sc-qr-delete-one', function (e) {
+        var msg = $(this).data('confirm') || 'این رکورد حذف شود؟';
+        if (!window.confirm(msg)) {
+            e.preventDefault();
         }
     });
 });

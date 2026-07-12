@@ -700,6 +700,14 @@ function sc_get_sms_settings_defaults() {
         'کاربر گرامی %user_name%، مهلت پرداخت %item_name% (%amount% تومان) به پایان رسیده است.',
         'یادآوری پرداخت: %user_name% - %item_name% - %amount% تومان'
     ));
+    $defaults = array_merge($defaults, $user_only(
+        'sms_renewal_date',
+        'کاربر گرامی %user_name%، تنها %days_remaining% روز تا زمان تمدید دوره %course_name% در تاریخ %renewal_date% باقی مانده است.'
+    ));
+    $defaults = array_merge($defaults, $user_only(
+        'sms_renewal_sessions',
+        'کاربر گرامی %user_name%، از دوره %course_name% فقط %remaining_sessions% جلسه باقی مانده است. زمان تمدید دوره نزدیک است.'
+    ));
     $defaults = array_merge($defaults, $pair(
         'sms_absence',
         'کاربر گرامی %user_name%، غیبت شما در %item_name% مورخ %date% ثبت شد.',

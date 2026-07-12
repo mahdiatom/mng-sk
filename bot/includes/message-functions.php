@@ -490,3 +490,30 @@ function sc_bale_get_target_members($target_type, $target_config, $only_connecte
         return !empty($r['has_chat_id']);
     }));
 }
+
+/**
+ * حذف رکورد(های) تاریخچه پیام ربات بله.
+ *
+ * @param int[] $ids
+ * @return array{deleted:int, failed:int}
+ */
+function sc_bale_bot_messages_delete(array $ids) {
+    global $wpdb;
+    $ids = array_values(array_unique(array_filter(array_map('absint', $ids))));
+    $result = ['deleted' => 0, 'failed' => 0];
+    if (!$ids) {
+        return $result;
+    }
+
+    $table = $wpdb->prefix . 'sc_bot_messages';
+    foreach ($ids as $id) {
+        $deleted = $wpdb->delete($table, ['id' => $id], ['%d']);
+        if ($deleted) {
+            $result['deleted']++;
+        } else {
+            $result['failed']++;
+        }
+    }
+
+    return $result;
+}

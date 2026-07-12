@@ -730,6 +730,21 @@ function sc_backfill_member_courses_chapter_coach_assignment() {
 }
 
 /**
+ * Backfill chapter/coach on member_courses from course groups (legacy grouped courses).
+ */
+add_action('admin_init', 'sc_backfill_member_courses_from_course_groups');
+function sc_backfill_member_courses_from_course_groups() {
+    if (get_option('sc_member_courses_from_groups_backfill_v1', '0') === '1') {
+        return;
+    }
+    if (!function_exists('sc_sync_member_courses_from_course_groups')) {
+        return;
+    }
+    sc_sync_member_courses_from_course_groups(0);
+    update_option('sc_member_courses_from_groups_backfill_v1', '1');
+}
+
+/**
  * ============================
  * Add price_per_session column to courses table if not exists
  * ============================

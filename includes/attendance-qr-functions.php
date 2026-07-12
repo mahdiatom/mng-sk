@@ -2508,3 +2508,53 @@ function sc_ajax_attendance_qr_list() {
         'can_manage' => sc_attendance_qr_user_can_manage_codes(),
     ]);
 }
+
+/**
+ * حذف رکورد(های) حضور ثبت‌شده با QR — فقط خود رکورد (+ فایل عکس اسکن).
+ *
+ * @param int[] $ids
+ * @return array{deleted:int, failed:int}
+ */
+function sc_attendance_qr_delete_report_records(array $ids) {
+    global $wpdb;
+    $ids = array_values(array_unique(array_filter(array_map('absint', $ids))));
+    $result = ['deleted' => 0, 'failed' => 0];
+    if (!$ids) {
+        return $result;
+    }
+
+    if (function_exists('sc_qr_scan_photo_ensure_columns')) {
+        sc_qr_scan_photo_ensure_columns();
+    }
+
+    $table = $wpdb->prefix . 'sc_attendances';
+    $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+    $sql = "SELECT id, scan_photo, scan_photo_front
+         FROM `$table`
+         WHERE id IN ($placeholders) AND record_method = %s";
+    $args = array_merge($ids, ['qr']);
+    $rows = $wpdb->get_results($wpdb->prepare($sql, ...$args));
+
+    if (empty($rows)) {
+        $result['failed'] = count($ids);
+        return $result;
+    }
+
+    foreach ($rows as $row) {
+        $id = (int) $row->id;
+        if (!empty($row->scan_photo) && function_exists('sc_qr_scan_photo_delete_file')) {
+            sc_qr_scan_photo_delete_file($row->scan_photo);
+        }
+        if (!empty($row->scan_photo_front) && function_exists('sc_qr_scan_photo_delete_file')) {
+            sc_qr_scan_photo_delete_file($row->scan_photo_front);
+        }
+        $deleted = $wpdb->delete($table, ['id' => $id, 'record_method' => 'qr'], ['%d', '%s']);
+        if ($deleted) {
+            $result['deleted']++;
+        } else {
+            $result['failed']++;
+        }
+    }
+
+    return $result;
+}

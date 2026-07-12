@@ -391,6 +391,70 @@ function sc_save_course_groups_from_post($course_id, $has_grouping = false) {
             ['%d']
         );
     }
+
+    // همگام‌سازی chapter/coach ثبت‌نام‌ها از تعریف گروه (دوره‌های قدیمی)
+    if (function_exists('sc_sync_member_courses_from_course_groups')) {
+        sc_sync_member_courses_from_course_groups($course_id);
+    }
+}
+
+/**
+ * همگام‌سازی chapter و coach_id روی member_courses از روی تعریف گروه‌های دوره.
+ * برای دوره‌های قدیمی که فقط group_name پر شده و شعبه/مربی خالی مانده است.
+ *
+ * @param int $course_id 0 = همه دوره‌ها
+ * @return int تعداد ردیف‌های به‌روزشده (تقریبی)
+ */
+function sc_sync_member_courses_from_course_groups($course_id = 0) {
+    global $wpdb;
+
+    $course_id = absint($course_id);
+    if (!sc_course_groups_table_ready() || !sc_course_groups_has_branch_columns()) {
+        return 0;
+    }
+
+    $mc = $wpdb->prefix . 'sc_member_courses';
+    $groups = $wpdb->prefix . 'sc_course_groups';
+    $mc_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $mc));
+    if ($mc_exists !== $mc) {
+        return 0;
+    }
+
+    $group_col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$mc` LIKE %s", 'group_name'));
+    if (empty($group_col)) {
+        return 0;
+    }
+
+    $course_sql = $course_id > 0 ? $wpdb->prepare(' AND mc.course_id = %d ', $course_id) : '';
+    $now = current_time('mysql');
+
+    // فقط وقتی گروه شعبه/مربی دارد و ثبت‌نام ناقص است (یا با گروه ناسازگار است) پر/اصلاح کن
+    $updated = $wpdb->query(
+        "UPDATE `$mc` mc
+         INNER JOIN `$groups` g
+             ON g.course_id = mc.course_id
+            AND g.group_name = mc.group_name
+         SET
+            mc.chapter = CASE
+                WHEN g.chapter_name != '' THEN g.chapter_name
+                ELSE mc.chapter
+            END,
+            mc.coach_id = CASE
+                WHEN g.coach_id > 0 THEN g.coach_id
+                ELSE mc.coach_id
+            END,
+            mc.updated_at = '{$now}'
+         WHERE mc.group_name IS NOT NULL
+           AND mc.group_name != ''
+           AND (
+                (g.chapter_name != '' AND (mc.chapter IS NULL OR mc.chapter = '' OR mc.chapter != g.chapter_name))
+                OR
+                (g.coach_id > 0 AND (mc.coach_id IS NULL OR mc.coach_id = 0 OR mc.coach_id != g.coach_id))
+           )
+           {$course_sql}"
+    );
+
+    return is_numeric($updated) ? (int) $updated : 0;
 }
 
 /**

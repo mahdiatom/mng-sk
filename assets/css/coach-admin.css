@@ -632,3 +632,315 @@
     font-size: 1.25rem;
   }
 }
+
+/* ==========================================================================
+   اطلاعات من / ویرایش اطلاعات من — هم‌سبک با ویرایش اطلاعات بازیکن
+   ========================================================================== */
+
+body.toplevel_page_sc-coach-my-profile #wpcontent {
+  background: #ece9f5;
+}
+
+.wrap.sc-coach-my-profile-page {
+  --sc-panel-primary: #6d34ff;
+  --sc-panel-primary-hover: #4a1fb8;
+  background: #f4f2fa !important;
+  border-radius: 14px;
+  border: 1px solid rgba(109, 52, 255, 0.08);
+  box-shadow: 0 4px 24px rgba(74, 31, 184, 0.05);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.wrap.sc-coach-my-profile-page > .wp-heading-inline {
+  color: #1e1b2e;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.wrap.sc-coach-my-profile-page > .page-title-action {
+  border-radius: 10px !important;
+  border-color: rgba(109, 52, 255, 0.28) !important;
+  color: #4a1fb8 !important;
+  background: rgba(109, 52, 255, 0.06) !important;
+  font-weight: 700;
+}
+
+.wrap.sc-coach-my-profile-page > .page-title-action:hover {
+  background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+
+.sc-coach-my-profile-subtitle {
+  margin: 10px 0 18px;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.sc-coach-my-profile-page .sc-coach-profile-hero {
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.sc-coach-my-profile-page .form-table.sc_form-table,
+.sc-coach-my-profile-page .form-table.sc_form-table.sc-coach-my-profile-view-table {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.sc-coach-my-profile-page .form-table.sc_form-table > tbody {
+  display: grid;
+  gap: 14px;
+}
+
+.sc-coach-my-profile-page .form-table.sc_form-table > tbody > tr {
+  display: block;
+  margin: 0;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+  border: 1px solid rgba(109, 52, 255, 0.12);
+  box-shadow: 0 8px 28px rgba(74, 31, 184, 0.07), 0 2px 8px rgba(15, 23, 42, 0.04);
+  box-sizing: border-box;
+}
+
+.sc-coach-my-profile-page .form-table.sc_form-table > tbody > tr > th,
+.sc-coach-my-profile-page .form-table.sc_form-table > tbody > tr > td {
+  display: block;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.sc-coach-my-profile-page .form-table.sc_form-table > tbody > tr > th {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4b5563;
+}
+
+.sc-coach-my-profile-page .form-table.sc_form-table > tbody > tr > th label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #4b5563;
+}
+
+.sc-coach-my-profile-page .form-table.sc_form-table .required {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.sc-coach-my-profile-page .form-table.sc_form-table > tbody > tr > td {
+  font-size: 14px;
+  color: #1e1b2e;
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+.sc-coach-my-profile-page form input.regular-text,
+.sc-coach-my-profile-page form input[type="number"],
+.sc-coach-my-profile-page form input[type="text"],
+.sc-coach-my-profile-page form input[type="password"],
+.sc-coach-my-profile-page form select.regular-text,
+.sc-coach-my-profile-page form textarea.large-text {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-height: 40px;
+  border-radius: 10px !important;
+  border: 1px solid #e5e7eb !important;
+  background: #fff !important;
+  padding: 8px 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sc-coach-my-profile-page form input:disabled {
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+  border-style: dashed !important;
+  cursor: not-allowed;
+}
+
+.sc-coach-my-profile-page form textarea.large-text {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.sc-coach-my-profile-page form input:focus,
+.sc-coach-my-profile-page form select:focus,
+.sc-coach-my-profile-page form textarea:focus {
+  border-color: #6d34ff !important;
+  box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12) !important;
+  outline: none;
+}
+
+.sc-coach-my-profile-page form .description,
+.sc-coach-my-profile-page .description {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.sc-coach-my-profile-page .sc-coach-direct-upload {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sc-coach-my-profile-page .sc-coach-direct-upload__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.sc-coach-my-profile-page .sc-upload-btn {
+  margin-top: 0;
+  border-radius: 10px !important;
+  border: 1px dashed rgba(109, 52, 255, 0.4) !important;
+  background: rgba(109, 52, 255, 0.06) !important;
+  color: #4a1fb8 !important;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 16px;
+}
+
+.sc-coach-my-profile-page .sc-upload-btn:hover {
+  background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}
+
+.sc-coach-my-profile-page .img_photo_prev {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid #e8e5f5;
+  background: #fff;
+  display: inline-block;
+}
+
+.sc-coach-my-profile-page .img_photo_prev[hidden] {
+  display: none !important;
+}
+
+.sc-coach-my-profile-page .img_photo_prev img {
+  border-radius: 8px;
+  max-width: 180px;
+  height: auto;
+  display: block;
+}
+
+.sc-coach-my-profile-extra-card {
+  margin: 16px 0;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+  border: 1px solid rgba(109, 52, 255, 0.12);
+  box-shadow: 0 8px 28px rgba(74, 31, 184, 0.07), 0 2px 8px rgba(15, 23, 42, 0.04);
+  box-sizing: border-box;
+}
+
+.sc-coach-my-profile-extra-card h3 {
+  margin: 0 0 10px;
+  color: #1e1b2e;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.sc-coach-my-profile-rules label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #e8e5f5;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+.sc-coach-my-profile-page .sc-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sc-coach-my-profile-page .sc-badge--soft {
+  background: rgba(109, 52, 255, 0.1);
+  color: #4a1fb8;
+}
+
+.sc-coach-my-profile-page .sc-badge--danger {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.sc-coach-my-profile-page .submit {
+  margin: 18px 0 8px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.sc-coach-my-profile-page .submit .button-primary {
+  min-width: 190px;
+  height: 44px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+  border-color: transparent !important;
+  box-shadow: 0 8px 24px rgba(109, 52, 255, 0.28);
+}
+
+.sc-coach-my-profile-page .submit .button-primary:hover {
+  background: linear-gradient(135deg, #5b28e8 0%, #3d1899 100%) !important;
+}
+
+.sc-coach-my-profile-page .submit .button:not(.button-primary) {
+  min-height: 44px;
+  border-radius: 12px !important;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (max-width: 782px) {
+  .wrap.sc-coach-my-profile-page {
+    padding: 14px 12px 28px;
+  }
+  .sc-coach-my-profile-page .submit {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sc-coach-my-profile-page .submit .button-primary,
+  .sc-coach-my-profile-page .submit .button {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+}

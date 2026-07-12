@@ -12,11 +12,19 @@ global $wpdb;
 $coaches_table = $wpdb->prefix . 'sc_coaches';
 $salary_records_table = $wpdb->prefix . 'sc_coach_salary_records';
 $courses_table = $wpdb->prefix . 'sc_courses';
+$assistant_table = function_exists('sc_course_assistant_coaches_table')
+    ? sc_course_assistant_coaches_table()
+    : ($wpdb->prefix . 'sc_course_assistant_coaches');
+$assistant_table_ready = function_exists('sc_course_assistant_coaches_table_ready') && sc_course_assistant_coaches_table_ready();
 
 // دریافت فیلترها — تاریخ فقط از GET، بدون اعمال پیش‌فرض در فیلتر
 $filter_coach = isset($_GET['filter_coach']) ? absint($_GET['filter_coach']) : 0;
 $filter_course = isset($_GET['filter_course']) ? absint($_GET['filter_course']) : 0;
 $filter_type = isset($_GET['filter_type']) ? sanitize_text_field($_GET['filter_type']) : 'all';
+$filter_role = isset($_GET['filter_role']) ? sanitize_text_field($_GET['filter_role']) : 'all';
+if (!in_array($filter_role, ['all', 'primary', 'assistant'], true)) {
+    $filter_role = 'all';
+}
 $filter_date_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field($_GET['filter_date_from_shamsi']) : '';
 $filter_date_to_shamsi   = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field($_GET['filter_date_to_shamsi']) : '';
 $filter_date_from = $filter_date_from_shamsi; // برای WHERE به شمسی تبدیل می‌شود
@@ -61,6 +69,39 @@ if ($filter_date_to) {
     $where_values[] = $date_to_gregorian;
 }
 
+// فیلتر نقش: کمک‌مربی = در جدول کمک‌مربی است و مربی اصلی همان شعبه نیست
+if ($assistant_table_ready && $filter_role === 'assistant') {
+    $where_conditions[] = "sr.salary_type = 'percentage'
+        AND EXISTS (
+            SELECT 1 FROM `$assistant_table` a
+            WHERE a.course_id = sr.course_id
+              AND a.assistant_coach_id = sr.coach_id
+              AND (a.chapter_name = sr.chapter_name OR sr.chapter_name = '' OR a.chapter_name = '')
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM {$wpdb->prefix}sc_course_coaches cc
+            WHERE cc.course_id = sr.course_id
+              AND cc.coach_id = sr.coach_id
+              AND cc.chapter_name = sr.chapter_name
+        )";
+} elseif ($assistant_table_ready && $filter_role === 'primary') {
+    $where_conditions[] = "(
+        sr.salary_type = 'fixed'
+        OR NOT EXISTS (
+            SELECT 1 FROM `$assistant_table` a
+            WHERE a.course_id = sr.course_id
+              AND a.assistant_coach_id = sr.coach_id
+              AND (a.chapter_name = sr.chapter_name OR sr.chapter_name = '' OR a.chapter_name = '')
+        )
+        OR EXISTS (
+            SELECT 1 FROM {$wpdb->prefix}sc_course_coaches cc
+            WHERE cc.course_id = sr.course_id
+              AND cc.coach_id = sr.coach_id
+              AND cc.chapter_name = sr.chapter_name
+        )
+    )";
+}
+
 $where_clause = implode(' AND ', $where_conditions);
 
 $per_page = 20;
@@ -86,6 +127,20 @@ $query = "SELECT sr.*, c.first_name, c.last_name, c.settlement_type, co.title as
 $query_values = array_merge($where_values, [$per_page, $offset]);
 $salary_records = $wpdb->get_results($wpdb->prepare($query, $query_values));
 
+foreach ((array) $salary_records as $record) {
+    $role_meta = function_exists('sc_resolve_coach_salary_record_role')
+        ? sc_resolve_coach_salary_record_role(
+            (int) $record->coach_id,
+            (int) ($record->course_id ?? 0),
+            (string) ($record->chapter_name ?? ''),
+            (string) ($record->salary_type ?? 'percentage')
+        )
+        : ['role' => 'primary', 'label' => 'مربی اصلی', 'primary_coach_id' => 0, 'primary_coach_name' => ''];
+    $record->salary_role = $role_meta['role'];
+    $record->salary_role_label = $role_meta['label'];
+    $record->primary_coach_name = $role_meta['primary_coach_name'];
+}
+
 // دریافت لیست مربیان و دوره‌ها برای فیلتر
 $coaches = $wpdb->get_results(
     "SELECT id, first_name, last_name FROM $coaches_table WHERE is_active = 1 ORDER BY last_name ASC, first_name ASC"
@@ -105,6 +160,9 @@ if ($filter_course > 0) {
 if ($filter_type !== 'all') {
     $active_filters_count++;
 }
+if ($filter_role !== 'all') {
+    $active_filters_count++;
+}
 if ($filter_date_from_shamsi !== '' || $filter_date_to_shamsi !== '') {
     $active_filters_count++;
 }
@@ -119,6 +177,9 @@ if ($filter_course > 0) {
 }
 if ($filter_type !== 'all') {
     $export_url = add_query_arg('filter_type', $filter_type, $export_url);
+}
+if ($filter_role !== 'all') {
+    $export_url = add_query_arg('filter_role', $filter_role, $export_url);
 }
 if (!empty($filter_date_from_shamsi)) {
     $export_url = add_query_arg('filter_date_from_shamsi', $filter_date_from_shamsi, $export_url);
@@ -184,6 +245,14 @@ $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                         <option value="fixed" <?php selected($filter_type, 'fixed'); ?>>ثابت</option>
                     </select>
                 </div>
+                <div class="sc-filter-field">
+                    <label class="sc-filter-label" for="filter_role">نقش</label>
+                    <select name="filter_role" id="filter_role" class="sc-filter-control">
+                        <option value="all" <?php selected($filter_role, 'all'); ?>>همه</option>
+                        <option value="primary" <?php selected($filter_role, 'primary'); ?>>مربی اصلی</option>
+                        <option value="assistant" <?php selected($filter_role, 'assistant'); ?>>کمک‌مربی</option>
+                    </select>
+                </div>
                 <div class="sc-filter-field sc-filter-date">
                     <label class="sc-filter-label">بازه تاریخ (شمسی)</label>
                     <div class="sc-cm-date-range">
@@ -219,6 +288,7 @@ $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                 <th>ID</th>
                 <th>تاریخ</th>
                 <th>مربی</th>
+                <th>نقش</th>
                 <th>دوره</th>
                 <th>شعبه</th>
                 <th>نوع</th>
@@ -232,12 +302,15 @@ $export_url = wp_nonce_url($export_url, 'sc_export_excel');
         <tbody>
             <?php if (empty($salary_records)) : ?>
                 <tr>
-                    <td colspan="12" class="sc-cm-empty">هیچ رکورد دستمزدی یافت نشد.</td>
+                    <td colspan="13" class="sc-cm-empty">هیچ رکورد دستمزدی یافت نشد.</td>
                 </tr>
             <?php else : ?>
                 <?php $row_number = $offset + 1; ?>
                 <?php foreach ($salary_records as $record) : ?>
-                    <tr>
+                    <?php
+                    $is_assistant_record = isset($record->salary_role) && $record->salary_role === 'assistant';
+                    ?>
+                    <tr<?php echo $is_assistant_record ? ' class="sc-cm-row--assistant"' : ''; ?>>
                         <td data-label="ردیف"><?php echo (int) $row_number++; ?></td>
                         <td data-label="ID"><code><?php echo esc_html($record->id ?? '-'); ?></code></td>
                         <td data-label="تاریخ"><?php echo esc_html(sc_date_shamsi_date_only($record->attendance_date)); ?></td>
@@ -250,6 +323,16 @@ $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                                     : ($record->settlement_type === 'both' ? 'ثابت + درصدی' : 'درصدی');
                                 ?>
                             </span>
+                        </td>
+                        <td data-label="نقش">
+                            <?php if ($is_assistant_record) : ?>
+                                <span class="sc-badge sc-badge--soft">کمک‌مربی</span>
+                                <?php if (!empty($record->primary_coach_name)) : ?>
+                                    <span class="sc-cm-meta">سهم از مربی: <?php echo esc_html($record->primary_coach_name); ?></span>
+                                <?php endif; ?>
+                            <?php else : ?>
+                                <span class="sc-badge sc-badge--success"><?php echo esc_html($record->salary_role_label ?: 'مربی اصلی'); ?></span>
+                            <?php endif; ?>
                         </td>
                         <td data-label="دوره">
                             <?php
@@ -279,7 +362,7 @@ $export_url = wp_nonce_url($export_url, 'sc_export_excel');
         </tbody>
         <tfoot>
             <tr>
-                <th colspan="11">مجموع:</th>
+                <th colspan="12">مجموع:</th>
                 <th><strong class="sc-cm-amount"><?php echo number_format($total_salary, 0, '.', ','); ?></strong> تومان</th>
             </tr>
         </tfoot>
@@ -298,6 +381,9 @@ $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                 }
                 if ($filter_type !== 'all') {
                     $pagination_args['filter_type'] = $filter_type;
+                }
+                if ($filter_role !== 'all') {
+                    $pagination_args['filter_role'] = $filter_role;
                 }
                 if (!empty($filter_date_from_shamsi)) {
                     $pagination_args['filter_date_from_shamsi'] = $filter_date_from_shamsi;

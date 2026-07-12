@@ -115,6 +115,20 @@ function sc_get_invoice_interval_minutes() {
 }
 
 /**
+ * Number of days before an interval/fixed-date invoice to send the renewal reminder.
+ */
+function sc_get_invoice_renewal_reminder_days() {
+    return max(1, (int) sc_get_setting('invoice_renewal_reminder_days', '3'));
+}
+
+/**
+ * Exact remaining-session count at which the renewal reminder is sent.
+ */
+function sc_get_invoice_renewal_reminder_sessions() {
+    return max(1, (int) sc_get_setting('invoice_renewal_reminder_sessions', '2'));
+}
+
+/**
  * Calculate penalty for an invoice
  */
 function sc_calculate_penalty($invoice_id) {
@@ -309,8 +323,36 @@ function sc_get_invoice_last_run() {
     return sc_get_setting('invoice_last_run', null);
 }
 
-function sc_set_invoice_last_run() {
+function sc_get_invoice_last_run_period() {
+    $period = (string) sc_get_setting('invoice_last_run_period', '');
+    if ($period !== '') {
+        return $period;
+    }
+
+    $last_run = sc_get_invoice_last_run();
+    if ($last_run && function_exists('gregorian_to_jalali')) {
+        try {
+            $timezone = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone(date_default_timezone_get());
+            $last_date = new DateTimeImmutable((string) $last_run, $timezone);
+            $jalali = gregorian_to_jalali(
+                (int) $last_date->format('Y'),
+                (int) $last_date->format('m'),
+                (int) $last_date->format('d')
+            );
+            return sprintf('%04d-%02d', (int) $jalali[0], (int) $jalali[1]);
+        } catch (Exception $exception) {
+            return '';
+        }
+    }
+
+    return '';
+}
+
+function sc_set_invoice_last_run($billing_period = '') {
     sc_update_setting('invoice_last_run', current_time('mysql'), 'invoice');
+    if ($billing_period !== '') {
+        sc_update_setting('invoice_last_run_period', sanitize_text_field($billing_period), 'invoice');
+    }
 }
 
 /**
@@ -342,6 +384,18 @@ function sc_is_pro_feature_coaches_enabled() {
  */
 function sc_is_pro_feature_coaches_wallet_salary_enabled() {
     return (int) sc_get_setting('pro_feature_coaches_wallet_salary', '0') === 1;
+}
+
+/**
+ * Check if Pro feature: Assistant coach salary is enabled
+ * بررسی فعال بودن امکانات پرو: دستمزد کمک‌مربی
+ * وابسته به فعال بودن کیف پول/دستمزد مربیان.
+ */
+function sc_is_pro_feature_assistant_coach_salary_enabled() {
+    if (!sc_is_pro_feature_coaches_wallet_salary_enabled()) {
+        return false;
+    }
+    return (int) sc_get_setting('pro_feature_assistant_coach_salary', '1') === 1;
 }
 
 /**
