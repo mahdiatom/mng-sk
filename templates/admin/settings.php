@@ -872,6 +872,30 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         }
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات درباره مجموعه شد.</p></div>';
     }
+    elseif ($current_tab === 'sales_invoice') {
+        $si_name = isset($_POST['sc_sales_invoice_issuer_name']) ? sanitize_text_field(wp_unslash($_POST['sc_sales_invoice_issuer_name'])) : '';
+        $si_logo = isset($_POST['sc_sales_invoice_logo_url']) ? esc_url_raw(wp_unslash($_POST['sc_sales_invoice_logo_url'])) : '';
+        $si_phone = isset($_POST['sc_sales_invoice_phone']) ? sanitize_text_field(wp_unslash($_POST['sc_sales_invoice_phone'])) : '';
+        $si_address = isset($_POST['sc_sales_invoice_address']) ? sanitize_textarea_field(wp_unslash($_POST['sc_sales_invoice_address'])) : '';
+        $si_economic = isset($_POST['sc_sales_invoice_economic_code']) ? sanitize_text_field(wp_unslash($_POST['sc_sales_invoice_economic_code'])) : '';
+        $si_national = isset($_POST['sc_sales_invoice_national_id']) ? sanitize_text_field(wp_unslash($_POST['sc_sales_invoice_national_id'])) : '';
+        $si_postal = isset($_POST['sc_sales_invoice_postal_code']) ? sanitize_text_field(wp_unslash($_POST['sc_sales_invoice_postal_code'])) : '';
+        $si_footer = isset($_POST['sc_sales_invoice_footer_note']) ? sanitize_textarea_field(wp_unslash($_POST['sc_sales_invoice_footer_note'])) : '';
+
+        sc_update_setting('sc_sales_invoice_issuer_name', $si_name, 'sales_invoice');
+        sc_update_setting('sc_sales_invoice_logo_url', $si_logo, 'sales_invoice');
+        sc_update_setting('sc_sales_invoice_phone', $si_phone, 'sales_invoice');
+        sc_update_setting('sc_sales_invoice_address', $si_address, 'sales_invoice');
+        sc_update_setting('sc_sales_invoice_economic_code', $si_economic, 'sales_invoice');
+        sc_update_setting('sc_sales_invoice_national_id', $si_national, 'sales_invoice');
+        sc_update_setting('sc_sales_invoice_postal_code', $si_postal, 'sales_invoice');
+        sc_update_setting('sc_sales_invoice_footer_note', $si_footer, 'sales_invoice');
+
+        if (function_exists('sc_log_activity')) {
+            sc_log_activity('updated', 'settings', 0, 'تنظیمات تب فاکتور فروش ذخیره شد', null, ['tab' => 'sales_invoice']);
+        }
+        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات فاکتور فروش ذخیره شد.</p></div>';
+    }
     elseif ($current_tab === 'bale_bot') {
         $sc_token_club          = isset($_POST['sc_token_club']) ? sanitize_text_field($_POST['sc_token_club']) : '';
         $sc_botname_club        = isset($_POST['sc_botname_club']) ? sanitize_text_field($_POST['sc_botname_club']) : '';
@@ -1279,6 +1303,15 @@ $sc_name_club      = sc_get_setting('sc_name_club', '');
 $sc_club_logo_url      = sc_get_setting('sc_club_logo_url', '');
 $sc_phone_club      = sc_get_setting('sc_phone_club', '');
 
+$sc_sales_invoice_issuer_name = sc_get_setting('sc_sales_invoice_issuer_name', '');
+$sc_sales_invoice_logo_url = sc_get_setting('sc_sales_invoice_logo_url', '');
+$sc_sales_invoice_phone = sc_get_setting('sc_sales_invoice_phone', '');
+$sc_sales_invoice_address = sc_get_setting('sc_sales_invoice_address', '');
+$sc_sales_invoice_economic_code = sc_get_setting('sc_sales_invoice_economic_code', '');
+$sc_sales_invoice_national_id = sc_get_setting('sc_sales_invoice_national_id', '');
+$sc_sales_invoice_postal_code = sc_get_setting('sc_sales_invoice_postal_code', '');
+$sc_sales_invoice_footer_note = sc_get_setting('sc_sales_invoice_footer_note', '');
+
 $sc_header_search_placeholder = sc_get_setting('sc_header_search_placeholder', 'جستجو در خدمات، صفحات و فروشگاه…');
 $sc_footer_text_line1 = sc_get_setting('sc_footer_text_line1', '{year} تمامی حقوق برای سیستم هوشمند باشگاه اتم کلاب محفوظ است.');
 $sc_footer_text_line2 = sc_get_setting('sc_footer_text_line2', 'طراحی شده توسط اتم کلاب');
@@ -1344,6 +1377,10 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=about'); ?>"
            class="nav-tab <?php echo $current_tab === 'about' ? 'nav-tab-active' : ''; ?>">
             درباره  مجموعه
+        </a>
+        <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=sales_invoice'); ?>"
+           class="nav-tab <?php echo $current_tab === 'sales_invoice' ? 'nav-tab-active' : ''; ?>">
+            فاکتور فروش
         </a>
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=honors'); ?>"
            class="nav-tab <?php echo $current_tab === 'honors' ? 'nav-tab-active' : ''; ?>">
@@ -1920,6 +1957,93 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 </p>
             </form>
          
+        <?php elseif ($current_tab === 'sales_invoice') :
+            $si_name_val = $sc_sales_invoice_issuer_name !== '' ? $sc_sales_invoice_issuer_name : $sc_name_club;
+            $si_logo_val = $sc_sales_invoice_logo_url !== '' ? $sc_sales_invoice_logo_url : $sc_club_logo_url;
+            $si_phone_val = $sc_sales_invoice_phone !== '' ? $sc_sales_invoice_phone : $sc_phone_club;
+            ?>
+            <form method="POST" action="">
+                <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
+                <h3>اطلاعات صادرکننده فاکتور فروش</h3>
+                <p class="description" style="margin-bottom:16px;">این اطلاعات در خروجی چاپ/PDF فاکتور فروش نمایش داده می‌شود. اگر خالی بماند، از تنظیمات «درباره مجموعه» استفاده می‌شود.</p>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="sc_sales_invoice_issuer_name">نام باشگاه / صادرکننده</label></th>
+                        <td>
+                            <input type="text" name="sc_sales_invoice_issuer_name" id="sc_sales_invoice_issuer_name"
+                                   value="<?php echo esc_attr($si_name_val); ?>"
+                                   class="regular-text" placeholder="نام مجموعه روی فاکتور">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_sales_invoice_logo_url">لوگو</label></th>
+                        <td>
+                            <div class="sc-lr-media-wrap">
+                                <input type="hidden" name="sc_sales_invoice_logo_url" id="sc_sales_invoice_logo_url"
+                                       value="<?php echo esc_attr($si_logo_val); ?>">
+                                <button type="button" class="button" id="sc_sales_invoice_logo_upload">انتخاب تصویر</button>
+                                <button type="button" class="button" id="sc_sales_invoice_logo_remove" <?php echo empty($si_logo_val) ? ' style="display:none;"' : ''; ?>>حذف</button>
+                                <div class="sc-lr-media-preview" id="sc_sales_invoice_logo_preview" style="margin-top:8px;">
+                                    <?php if (!empty($si_logo_val)) : ?>
+                                        <img src="<?php echo esc_url($si_logo_val); ?>" alt="" style="max-width:200px;height:auto;border:1px solid #ddd;border-radius:4px;">
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <p class="description">لوگوی بالای فاکتور فروش</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_sales_invoice_phone">شماره تماس</label></th>
+                        <td>
+                            <input type="text" name="sc_sales_invoice_phone" id="sc_sales_invoice_phone"
+                                   value="<?php echo esc_attr($si_phone_val); ?>"
+                                   class="regular-text" placeholder="مثلاً 021xxxxxxx">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_sales_invoice_address">آدرس</label></th>
+                        <td>
+                            <textarea name="sc_sales_invoice_address" id="sc_sales_invoice_address" rows="3" class="large-text"
+                                      placeholder="آدرس کامل باشگاه"><?php echo esc_textarea($sc_sales_invoice_address); ?></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_sales_invoice_economic_code">کد اقتصادی</label></th>
+                        <td>
+                            <input type="text" name="sc_sales_invoice_economic_code" id="sc_sales_invoice_economic_code"
+                                   value="<?php echo esc_attr($sc_sales_invoice_economic_code); ?>"
+                                   class="regular-text">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_sales_invoice_national_id">شناسه ملی</label></th>
+                        <td>
+                            <input type="text" name="sc_sales_invoice_national_id" id="sc_sales_invoice_national_id"
+                                   value="<?php echo esc_attr($sc_sales_invoice_national_id); ?>"
+                                   class="regular-text">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_sales_invoice_postal_code">کد پستی</label></th>
+                        <td>
+                            <input type="text" name="sc_sales_invoice_postal_code" id="sc_sales_invoice_postal_code"
+                                   value="<?php echo esc_attr($sc_sales_invoice_postal_code); ?>"
+                                   class="regular-text">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc_sales_invoice_footer_note">یادداشت پایین فاکتور</label></th>
+                        <td>
+                            <textarea name="sc_sales_invoice_footer_note" id="sc_sales_invoice_footer_note" rows="2" class="large-text"
+                                      placeholder="مثلاً: این فاکتور صرفاً جهت اعلام فروش صادر شده است."><?php echo esc_textarea($sc_sales_invoice_footer_note); ?></textarea>
+                        </td>
+                    </tr>
+                </table>
+                <p class="submit">
+                    <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات فاکتور فروش">
+                </p>
+            </form>
+
         <?php elseif ($current_tab === 'bale_bot') : ?>
             <?php include SC_TEMPLATES_ADMIN_DIR . 'settings-tab-bale-bot.php'; ?>
 
@@ -5292,6 +5416,25 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 $('#sc_club_logo_remove').on('click', function() {
                     $('#sc_club_logo_url').val('');
                     $('#sc_club_logo_preview').empty();
+                    $(this).hide();
+                });
+
+                var salesInvoiceLogoUploader;
+                $('#sc_sales_invoice_logo_upload').on('click', function(e) {
+                    e.preventDefault();
+                    if (salesInvoiceLogoUploader) { salesInvoiceLogoUploader.open(); return; }
+                    salesInvoiceLogoUploader = wp.media({ title: 'لوگوی فاکتور فروش', button: { text: 'استفاده از این تصویر' }, multiple: false, library: { type: 'image' } });
+                    salesInvoiceLogoUploader.on('select', function() {
+                        var att = salesInvoiceLogoUploader.state().get('selection').first().toJSON();
+                        $('#sc_sales_invoice_logo_url').val(att.url);
+                        $('#sc_sales_invoice_logo_preview').html('<img src="' + att.url + '" alt="" style="max-width:200px;height:auto;border:1px solid #ddd;border-radius:4px;">');
+                        $('#sc_sales_invoice_logo_remove').show();
+                    });
+                    salesInvoiceLogoUploader.open();
+                });
+                $('#sc_sales_invoice_logo_remove').on('click', function() {
+                    $('#sc_sales_invoice_logo_url').val('');
+                    $('#sc_sales_invoice_logo_preview').empty();
                     $(this).hide();
                 });
                  

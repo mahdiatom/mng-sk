@@ -243,6 +243,7 @@ class orders_List_Table extends WP_List_Table {
             'mark_completed' => 'تغییر وضعیت به: ارسال و تایید',
             'mark_cancelled' => 'تغییر وضعیت به: لغو شده',
             'mark_failed' => 'تغییر وضعیت به: ناموفق',
+            'sales_invoice' => 'فاکتور فروش',
             'delete' => 'حذف'
             
 
@@ -294,6 +295,12 @@ class orders_List_Table extends WP_List_Table {
             case 'mark_failed':
                 $new_status = 'wc-failed';
                 break;
+            case 'sales_invoice':
+                if (function_exists('sc_sales_invoice_render_pdf_for_wc_orders')) {
+                    sc_sales_invoice_render_pdf_for_wc_orders($invoice_ids);
+                }
+                wp_die(esc_html__('امکان صدور فاکتور فروش در حال حاضر در دسترس نیست.', 'sportclub-manager'));
+                exit;
             case 'delete':
                 foreach ($invoice_ids as $invoice_id) {
                     $deleted = false;

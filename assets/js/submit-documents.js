@@ -12,20 +12,71 @@
     var ajaxurl = scDocuments.ajaxurl;
     var isLocked = !!scDocuments.isLocked;
     var lockedMessage = scDocuments.lockedMessage || 'امکان ویرایش اطلاعات وجود ندارد.';
+    var birthDateInvalidMessage = scDocuments.birthDateInvalidMessage || 'لطفاً تاریخ تولد خود را وارد کنید.';
+    var todayShamsi = scDocuments.todayShamsi || '';
+
+    function scShowPluginAlert(message, options) {
+        options = options || {};
+        if (typeof window.scConfirm === 'function') {
+            return window.scConfirm({
+                type: options.type || 'warning',
+                title: options.title || 'توجه',
+                message: message,
+                confirmText: options.confirmText || 'باشه',
+                hideCancel: true
+            });
+        }
+        if (typeof wc_add_notice === 'function') {
+            wc_add_notice(message, 'error');
+            if (typeof wc_refresh_notices === 'function') {
+                wc_refresh_notices();
+            }
+            return Promise.resolve(true);
+        }
+        window.alert(message);
+        return Promise.resolve(true);
+    }
+
+    function scCalculateAgeYears(birthDateShamsi) {
+        if (!birthDateShamsi || !todayShamsi) {
+            return null;
+        }
+        var birthParts = String(birthDateShamsi).split('/');
+        var todayParts = String(todayShamsi).split('/');
+        if (birthParts.length !== 3 || todayParts.length !== 3) {
+            return null;
+        }
+        var birthYear = parseInt(birthParts[0], 10);
+        var birthMonth = parseInt(birthParts[1], 10);
+        var birthDay = parseInt(birthParts[2], 10);
+        var todayYear = parseInt(todayParts[0], 10);
+        var todayMonth = parseInt(todayParts[1], 10);
+        var todayDay = parseInt(todayParts[2], 10);
+        if (!birthYear || !birthMonth || !birthDay || !todayYear || !todayMonth || !todayDay) {
+            return null;
+        }
+        var age = todayYear - birthYear;
+        if (todayMonth < birthMonth || (todayMonth === birthMonth && todayDay < birthDay)) {
+            age--;
+        }
+        return age;
+    }
+
+    function scIsBirthDateAgeValid() {
+        var birthDate = ($form.find('#birth_date_shamsi').val() || '').trim();
+        if (!birthDate) {
+            return false;
+        }
+        var age = scCalculateAgeYears(birthDate);
+        return age !== null && age >= 1;
+    }
 
     if (isLocked) {
         $form.find('input, select, textarea, button').not('[type="hidden"]').prop('disabled', true);
         $form.find('.sc-btn-remove-image').hide();
         $form.on('submit', function(e) {
             e.preventDefault();
-            if (typeof wc_add_notice === 'function') {
-                wc_add_notice(lockedMessage, 'error');
-                if (typeof wc_refresh_notices === 'function') {
-                    wc_refresh_notices();
-                }
-            } else {
-                alert(lockedMessage);
-            }
+            scShowPluginAlert(lockedMessage, { type: 'warning', title: 'توجه' });
             return false;
         });
         return;
@@ -107,6 +158,14 @@
     $form.on('submit', function(e) {
         e.preventDefault();
 
+        if (!scIsBirthDateAgeValid()) {
+            scShowPluginAlert(birthDateInvalidMessage, {
+                type: 'warning',
+                title: 'تاریخ تولد نامعتبر'
+            });
+            return false;
+        }
+
         var $btn = $form.find('button[type="submit"]');
         var btnText = $btn.text();
         $btn.prop('disabled', true).text('در حال ذخیره...');
@@ -131,33 +190,21 @@
         })
         .done(function(res) {
             if (res.success) {
-                if (typeof wc_add_notice === 'function') {
-                    wc_add_notice(res.data && res.data.message ? res.data.message : 'اطلاعات ذخیره شد.', 'success');
-                } else {
-                    alert(res.data && res.data.message ? res.data.message : 'اطلاعات با موفقیت ذخیره شد.');
-                }
+                scShowPluginAlert(
+                    res.data && res.data.message ? res.data.message : 'اطلاعات ذخیره شد.',
+                    { type: 'success', title: 'موفق', confirmText: 'باشه' }
+                );
                 $form.find('.sc-upload-progress').removeClass('sc-uploading sc-upload-error').addClass('sc-upload-done').find('.sc-upload-text').text('آپلود شد');
-                if (typeof wc_refresh_notices === 'function') {
-                    wc_refresh_notices();
-                }
             } else {
                 var msg = (res.data && res.data.message) ? res.data.message : 'خطا در ذخیره اطلاعات.';
-                if (typeof wc_add_notice === 'function') {
-                    wc_add_notice(msg, 'error');
-                    wc_refresh_notices();
-                } else {
-                    alert(msg);
-                }
+                scShowPluginAlert(msg, { type: 'warning', title: 'خطا' });
             }
         })
         .fail(function() {
-            var msg = 'خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.';
-            if (typeof wc_add_notice === 'function') {
-                wc_add_notice(msg, 'error');
-                wc_refresh_notices();
-            } else {
-                alert(msg);
-            }
+            scShowPluginAlert('خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.', {
+                type: 'warning',
+                title: 'خطا'
+            });
         })
         .always(function() {
             $btn.prop('disabled', false).text(btnText);

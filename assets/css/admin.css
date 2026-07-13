@@ -115,6 +115,10 @@ input , textarea {
 
     
 }
+input[type=text]{
+       border: 1px solid #fdfdfd !important;
+        border-radius: 10px !important;
+}
 select{
     border: 1px solid #dfdfdf !important;
     padding: 5px 23px !important;
@@ -702,6 +706,8 @@ p.sk-modal-content p {
 }
 input.persian-date-input{
     height:40px ;
+        border: 1px solid #fdfdfd;
+        border-radius: 10px;
    
 }
 .sc-filter-form input.persian-date-input{
@@ -949,6 +955,8 @@ tbody tr td{
 }
 .form_fillter_attendance_tab1 .sc-filter-date .persian-date-input{
     height: 40px;
+       border: 1px solid #fdfdfd !important;
+        border-radius: 10px !important;
 }
 
 .filter_event_list{

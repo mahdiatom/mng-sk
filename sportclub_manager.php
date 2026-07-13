@@ -3,7 +3,7 @@
  * Plugin Name:       سامانه مدیریت باشگاه اتم کلاب
  * Plugin URI:        https://atomwp.ir
  * Description:       یک سیستم جامع برای مدیریت اعضا، دوره‌های ورزشی، پرداخت‌ها و حضور و غیاب باشگاه با قابلیت یکپارچگی کامل با ووکامرس.
- * Version:           1.5.21
+ * Version:           1.5.22
  * Author:            مهدی باباشاهی
  * Author URI:        https://atomwp.ir
  * License:           GPL2
@@ -88,6 +88,7 @@ require_once SC_INCLUDES_DIR . 'header-search-functions.php'; // جستجوی ه
 require_once SC_INCLUDES_DIR . 'course-billing-functions.php'; // Course billing / proration (fixed_date)
 require_once SC_INCLUDES_DIR . 'recurring-invoices-functions.php'; // Recurring invoices functions
 require_once SC_INCLUDES_DIR . 'invoices-bulk-background.php'; // پردازش پس‌زمینهٔ عملیات دسته‌جمعی صورت‌حساب‌ها
+require_once SC_INCLUDES_DIR . 'sales-invoice-pdf-functions.php'; // فاکتور فروش (چاپ/PDF)
 require_once SC_INCLUDES_DIR . 'excel-export-functions.php'; // Excel export functions
 require_once SC_INCLUDES_DIR . 'bi-analytics-functions.php'; // BI / analytics reports
 require_once SC_INCLUDES_DIR . 'users-info-export-functions.php'; // Users info export (PDF/Excel)
@@ -2109,12 +2110,22 @@ function sc_public_enqueue_assets() {
     }
 
     if ($sc_is_panel && function_exists('sc_panel_active_tab_is') && sc_panel_active_tab_is('sc-submit-documents')) {
-        wp_enqueue_script('sc-submit-documents-js', SC_ASSETS_URL . 'js/submit-documents.js', array('jquery'), time(), true);
+        wp_enqueue_script('sc-submit-documents-js', SC_ASSETS_URL . 'js/submit-documents.js', array('jquery', 'sc-confirm-js'), time(), true);
         $player_info_locked = function_exists('sc_player_info_is_editing_locked') && sc_player_info_is_editing_locked();
+        $today_shamsi = '';
+        if (function_exists('gregorian_to_jalali')) {
+            $today = getdate(time());
+            $jalali = gregorian_to_jalali($today['year'], $today['mon'], $today['mday']);
+            $today_shamsi = $jalali[0] . '/' .
+                str_pad((string) $jalali[1], 2, '0', STR_PAD_LEFT) . '/' .
+                str_pad((string) $jalali[2], 2, '0', STR_PAD_LEFT);
+        }
         wp_localize_script('sc-submit-documents-js', 'scDocuments', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
             'isLocked' => $player_info_locked,
             'lockedMessage' => function_exists('sc_get_player_info_locked_message') ? sc_get_player_info_locked_message() : '',
+            'todayShamsi' => $today_shamsi,
+            'birthDateInvalidMessage' => 'لطفاً تاریخ تولد خود را وارد کنید.',
         ));
     }
     if ($sc_is_panel) {

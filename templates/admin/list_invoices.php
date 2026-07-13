@@ -299,6 +299,7 @@ public function column_order_number($item) {
             'mark_cancelled' => 'تغییر وضعیت به: لغو شده',
             'mark_failed' => 'تغییر وضعیت به: ناموفق',
             'mark_card_to_card' => 'پرداخت کارت به کارت',
+            'sales_invoice' => 'فاکتور فروش',
             'delete' => 'حذف',
             'remove_penalty' => 'حذف جریمه'
 
@@ -313,7 +314,7 @@ public function column_order_number($item) {
         }
 
         // دریافت ID های انتخاب شده
-        $invoice_ids = isset($_GET[$this->_args['singular']]) ? (array) $_GET[$this->_args['singular']] : [];
+        $invoice_ids = isset($_REQUEST[$this->_args['singular']]) ? (array) wp_unslash($_REQUEST[$this->_args['singular']]) : [];
         $invoice_ids = array_map('absint', $invoice_ids);
         
         if (empty($invoice_ids)) {
@@ -347,6 +348,12 @@ public function column_order_number($item) {
             case 'mark_failed':
                 $new_status = 'failed';
                 break;
+            case 'sales_invoice':
+                if (function_exists('sc_sales_invoice_render_pdf_for_sc_invoices')) {
+                    sc_sales_invoice_render_pdf_for_sc_invoices($invoice_ids);
+                }
+                wp_die(esc_html__('امکان صدور فاکتور فروش در حال حاضر در دسترس نیست.', 'sportclub-manager'));
+                exit;
             case 'delete':
                 // حذف صورت حساب‌ها
                 foreach ($invoice_ids as $invoice_id) {

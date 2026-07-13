@@ -1551,7 +1551,7 @@ a.details_info_user_pannel {
     align-items: center;
     gap: 6px;
     padding: 8px 16px;
-=
+
     border-radius: 10px;
     font-size: 13px;
     font-weight: 600;
@@ -3522,7 +3522,10 @@ ease !important;
         height: auto !important;
         border-radius: 10px !important;
     }
-
+.sc-invoices-filter-reset{
+    background: transparent !important;
+    color: black;
+}
     .sc-invoices-empty {
         background: #fff3cd;
         border: 1px solid #ffc107;

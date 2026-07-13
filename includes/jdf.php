@@ -178,42 +178,70 @@ if (!function_exists('sc_calculate_age')) {
      * @return string سن به صورت "XX سال"
      */
     function sc_calculate_age($birth_date_shamsi) {
-        if (empty($birth_date_shamsi) || $birth_date_shamsi === '0000-00-00') {
+        $age = sc_calculate_age_years($birth_date_shamsi);
+        if ($age === null || $age < 0) {
             return '-';
         }
-        
-        // تبدیل تاریخ شمسی به آرایه
+
+        return $age . ' سال';
+    }
+}
+
+if (!function_exists('sc_calculate_age_years')) {
+    /**
+     * سن عددی بر اساس تاریخ تولد شمسی
+     * @param string $birth_date_shamsi تاریخ تولد شمسی (مثل 1400/02/15)
+     * @return int|null سن به سال؛ در صورت نامعتبر بودن null
+     */
+    function sc_calculate_age_years($birth_date_shamsi) {
+        if (empty($birth_date_shamsi) || $birth_date_shamsi === '0000-00-00') {
+            return null;
+        }
+
         $birth_parts = explode('/', $birth_date_shamsi);
         if (count($birth_parts) !== 3) {
-            return '-';
+            return null;
         }
-        
-        $birth_year = (int)$birth_parts[0];
-        $birth_month = (int)$birth_parts[1];
-        $birth_day = (int)$birth_parts[2];
-        
-        // تاریخ امروز به شمسی
-        $today_timestamp = time();
-        $today_date = getdate($today_timestamp);
+
+        $birth_year = (int) $birth_parts[0];
+        $birth_month = (int) $birth_parts[1];
+        $birth_day = (int) $birth_parts[2];
+        if ($birth_year < 1 || $birth_month < 1 || $birth_day < 1) {
+            return null;
+        }
+
+        $today_date = getdate(time());
         $today_jalali = gregorian_to_jalali($today_date['year'], $today_date['mon'], $today_date['mday']);
-        
-        $current_year = $today_jalali[0];
-        $current_month = $today_jalali[1];
-        $current_day = $today_jalali[2];
-        
-        // محاسبه سن
-        $age = $current_year - $birth_year;
-        
-        // اگر هنوز سالگرد تولد نرسیده، یک سال کم کن
-        if ($current_month < $birth_month || ($current_month == $birth_month && $current_day < $birth_day)) {
+
+        $age = (int) $today_jalali[0] - $birth_year;
+        if ((int) $today_jalali[1] < $birth_month
+            || ((int) $today_jalali[1] === $birth_month && (int) $today_jalali[2] < $birth_day)
+        ) {
             $age--;
         }
-        
-        if ($age < 0) {
-            return '-';
+
+        return $age;
+    }
+}
+
+if (!function_exists('sc_validate_player_birth_date_age')) {
+    /**
+     * بررسی حداقل سن ۱ سال برای تاریخ تولد بازیکن
+     * @param string|null $birth_date_shamsi
+     * @return string|null پیام خطا یا null در صورت معتبر بودن
+     */
+    function sc_validate_player_birth_date_age($birth_date_shamsi) {
+        $birth_date_shamsi = is_string($birth_date_shamsi) ? trim($birth_date_shamsi) : '';
+        if ($birth_date_shamsi === '') {
+            return 'لطفاً تاریخ تولد خود را وارد کنید.';
         }
-        
-        return $age . ' سال';
+
+        $age = function_exists('sc_calculate_age_years') ? sc_calculate_age_years($birth_date_shamsi) : null;
+        if ($age === null || $age < 1) {
+            return 'لطفاً تاریخ تولد خود را وارد کنید.';
+        }
+
+        return null;
     }
 }
 

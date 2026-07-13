@@ -4892,6 +4892,15 @@ function sc_handle_documents_submission() {
         }
         return;
     }
+
+    $birth_date_for_age = isset($_POST['birth_date_shamsi']) ? sanitize_text_field(wp_unslash($_POST['birth_date_shamsi'])) : '';
+    $birth_age_error = function_exists('sc_validate_player_birth_date_age')
+        ? sc_validate_player_birth_date_age($birth_date_for_age)
+        : null;
+    if ($birth_age_error) {
+        wc_add_notice($birth_age_error, 'error');
+        return;
+    }
     
     // آماده‌سازی داده‌ها
     $data = [
@@ -5365,6 +5374,14 @@ function sc_ajax_submit_documents() {
     $required_errors = sc_player_info_validate_required_fields($_POST, $_FILES, $existing_for_validation);
     if (!empty($required_errors)) {
         wp_send_json_error(['message' => implode(' | ', $required_errors)]);
+    }
+
+    $birth_date_for_age = isset($_POST['birth_date_shamsi']) ? sanitize_text_field(wp_unslash($_POST['birth_date_shamsi'])) : '';
+    $birth_age_error = function_exists('sc_validate_player_birth_date_age')
+        ? sc_validate_player_birth_date_age($birth_date_for_age)
+        : null;
+    if ($birth_age_error) {
+        wp_send_json_error(['message' => $birth_age_error]);
     }
 
     $data = [

@@ -251,7 +251,8 @@ button[name="save_honors"],
   .sc-thankyou-header,
   .sc-order-pay-submit,
   .sc-order-pay-page #place_order,
-  .woo_panel_mini .count_unread_notif_mini 
+  .woo_panel_mini .count_unread_notif_mini ,
+  .sc-panel-faq-item__toggle
 
  {
  

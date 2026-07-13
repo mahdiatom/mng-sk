@@ -435,6 +435,7 @@ body.sc-attendance-qr-fullscreen .sc-attendance-qr-panel.is-scanning-active #sc-
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    display: none !important;
 }
 
 .sc-player-qr-card__btn {
