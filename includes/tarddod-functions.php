@@ -25,7 +25,17 @@ function sc_tarddod_records_table() {
 /**
  * @return bool
  */
+function sc_tarddod_is_feature_enabled() {
+    return !function_exists('sc_is_pro_feature_tarddod_enabled') || sc_is_pro_feature_tarddod_enabled();
+}
+
+/**
+ * @return bool
+ */
 function sc_tarddod_can_manage() {
+    if (!sc_tarddod_is_feature_enabled()) {
+        return false;
+    }
     return sc_tarddod_user_can_manage();
 }
 
@@ -70,6 +80,15 @@ function sc_tarddod_block_unauthorized_pages() {
     $tarddod_pages = ['sc-tarddod-register', 'sc-tarddod-records', 'sc-tarddod-sessions', 'sc-tarddod-session-add'];
     if (!in_array($page, $tarddod_pages, true)) {
         return;
+    }
+    if (!sc_tarddod_is_feature_enabled()) {
+        wp_die(
+            '<div style="max-width:560px;margin:40px auto;padding:24px;font-family:Tahoma,sans-serif;direction:rtl;text-align:right;">'
+            . '<h2>امکان غیرفعال است</h2>'
+            . '<p>امکان ثبت تردد در تنظیمات امکانات پرو غیرفعال شده است.</p></div>',
+            'امکان غیرفعال',
+            ['response' => 403, 'back_link' => true]
+        );
     }
     if (sc_tarddod_user_can_manage()) {
         return;

@@ -604,6 +604,33 @@ function sc_attendance_qr_is_enabled() {
 }
 
 /**
+ * مسدود کردن صفحات مدیریت QR وقتی امکانات پرو غیرفعال است
+ */
+add_action('admin_init', 'sc_attendance_qr_block_disabled_pages');
+function sc_attendance_qr_block_disabled_pages() {
+    if (!is_admin() || empty($_GET['page'])) {
+        return;
+    }
+    $page = sanitize_text_field(wp_unslash($_GET['page']));
+    $qr_pages = ['sc-member-qr-codes', 'sc-reports-attendance-qr'];
+    if (!in_array($page, $qr_pages, true)) {
+        return;
+    }
+    $attendance_ok = !function_exists('sc_is_pro_feature_attendance_enabled') || sc_is_pro_feature_attendance_enabled();
+    $qr_ok = !function_exists('sc_is_pro_feature_attendance_qr_enabled') || sc_is_pro_feature_attendance_qr_enabled();
+    if ($attendance_ok && $qr_ok) {
+        return;
+    }
+    wp_die(
+        '<div style="max-width:560px;margin:40px auto;padding:24px;font-family:Tahoma,sans-serif;direction:rtl;text-align:right;">'
+        . '<h2>امکان غیرفعال است</h2>'
+        . '<p>امکان اسکن QR حضور و غیاب در تنظیمات امکانات پرو غیرفعال شده است.</p></div>',
+        'امکان غیرفعال',
+        ['response' => 403, 'back_link' => true]
+    );
+}
+
+/**
  * @param array $members
  * @return array<string,array{id:int,name:string}>
  */

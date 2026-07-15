@@ -3,6 +3,14 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+$sc_tax_pro = !function_exists('sc_is_pro_feature_tax_enabled') || sc_is_pro_feature_tax_enabled();
+$sc_membership_pro = !function_exists('sc_is_pro_feature_membership_enabled') || sc_is_pro_feature_membership_enabled();
+
+if (!$sc_tax_pro && !$sc_membership_pro) {
+    echo '<div class="notice notice-warning"><p>امکانات مالیات و عضویت در تنظیمات امکانات پرو غیرفعال هستند.</p></div>';
+    return;
+}
+
 $tax_fee_enabled = (int) sc_get_setting('tax_fee_enabled', '0');
 $tax_fee_mode = sc_get_tax_fee_mode();
 $tax_fee_value = sc_get_tax_fee_value();
@@ -22,6 +30,7 @@ $registration_fee_description = sc_get_registration_fee_description();
 <form method="POST" action="">
     <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce'); ?>
 
+    <?php if ($sc_tax_pro) : ?>
     <h2 class="title">مالیات و ارزش افزوده</h2>
     <p class="description">این هزینه به مبلغ فاکتورها (قبل از جریمه تأخیر) اضافه می‌شود.</p>
 
@@ -84,9 +93,13 @@ $registration_fee_description = sc_get_registration_fee_description();
             </td>
         </tr>
     </table>
+    <?php endif; ?>
 
+    <?php if ($sc_tax_pro && $sc_membership_pro) : ?>
     <hr>
+    <?php endif; ?>
 
+    <?php if ($sc_membership_pro) : ?>
     <h2 class="title">هزینه ثبت‌نام (عضویت)</h2>
     <p class="description">با فعال بودن، کاربر جدید باید یک‌بار هزینه ثبت‌نام را پرداخت کند تا پنل برایش باز شود. پرداخت مستقیم از درگاه انجام می‌شود.</p>
 
@@ -122,11 +135,13 @@ $registration_fee_description = sc_get_registration_fee_description();
             </td>
         </tr>
     </table>
+    <?php endif; ?>
 
     <p class="submit">
         <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات">
     </p>
 </form>
+<?php if ($sc_membership_pro) : ?>
 <script>
 (function () {
     var amountInput = document.getElementById('registration_fee_amount');
@@ -138,3 +153,4 @@ $registration_fee_description = sc_get_registration_fee_description();
     });
 })();
 </script>
+<?php endif; ?>

@@ -11,6 +11,9 @@ if (!defined('ABSPATH')) {
  * ------------------------------------------------------------------------- */
 
 function sc_is_tax_fee_enabled() {
+    if (function_exists('sc_is_pro_feature_tax_enabled') && !sc_is_pro_feature_tax_enabled()) {
+        return false;
+    }
     return (int) sc_get_setting('tax_fee_enabled', '0') === 1;
 }
 
@@ -106,6 +109,9 @@ function sc_tax_fee_applies_to($context) {
 }
 
 function sc_is_registration_fee_enabled() {
+    if (function_exists('sc_is_pro_feature_membership_enabled') && !sc_is_pro_feature_membership_enabled()) {
+        return false;
+    }
     return (int) sc_get_setting('registration_fee_enabled', '0') === 1;
 }
 

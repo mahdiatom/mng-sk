@@ -66,27 +66,37 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات جریمه با موفقیت ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'billing_fees') {
-        sc_update_setting('tax_fee_enabled', isset($_POST['tax_fee_enabled']) ? 1 : 0, 'billing_fees');
-        sc_update_setting('tax_fee_mode', isset($_POST['tax_fee_mode']) && $_POST['tax_fee_mode'] === 'fixed' ? 'fixed' : 'percent', 'billing_fees');
-        sc_update_setting('tax_fee_value', max(0, floatval($_POST['tax_fee_value'] ?? 0)), 'billing_fees');
-        sc_update_setting('tax_fee_title', sanitize_text_field(wp_unslash($_POST['tax_fee_title'] ?? '')), 'billing_fees');
-        sc_update_setting('tax_fee_description', sanitize_textarea_field(wp_unslash($_POST['tax_fee_description'] ?? '')), 'billing_fees');
-        sc_update_setting('tax_fee_apply_course', isset($_POST['tax_fee_apply_course']) ? 1 : 0, 'billing_fees');
-        sc_update_setting('tax_fee_apply_event', isset($_POST['tax_fee_apply_event']) ? 1 : 0, 'billing_fees');
-        sc_update_setting('tax_fee_apply_wallet', isset($_POST['tax_fee_apply_wallet']) ? 1 : 0, 'billing_fees');
-        sc_update_setting('tax_fee_apply_shop', isset($_POST['tax_fee_apply_shop']) ? 1 : 0, 'billing_fees');
-        sc_update_setting('tax_fee_show_pay_breakdown', isset($_POST['tax_fee_show_pay_breakdown']) ? 1 : 0, 'billing_fees');
-        sc_update_setting('registration_fee_enabled', isset($_POST['registration_fee_enabled']) ? 1 : 0, 'billing_fees');
-        sc_update_setting('registration_fee_title', sanitize_text_field(wp_unslash($_POST['registration_fee_title'] ?? '')), 'billing_fees');
-        $reg_raw = isset($_POST['registration_fee_amount_raw']) && $_POST['registration_fee_amount_raw'] !== ''
-            ? $_POST['registration_fee_amount_raw']
-            : ($_POST['registration_fee_amount'] ?? '');
-        sc_update_setting('registration_fee_amount', max(0, floatval(str_replace(',', '', (string) $reg_raw))), 'billing_fees');
-        sc_update_setting('registration_fee_description', sanitize_textarea_field(wp_unslash($_POST['registration_fee_description'] ?? '')), 'billing_fees');
-        if (function_exists('sc_log_activity')) {
-            sc_log_activity('updated', 'settings', 0, 'تنظیمات مالیات و هزینه ثبت‌نام ذخیره شد', null, ['tab' => 'billing_fees']);
+        $sc_tax_pro = !function_exists('sc_is_pro_feature_tax_enabled') || sc_is_pro_feature_tax_enabled();
+        $sc_membership_pro = !function_exists('sc_is_pro_feature_membership_enabled') || sc_is_pro_feature_membership_enabled();
+        if (!$sc_tax_pro && !$sc_membership_pro) {
+            echo '<div class="notice notice-error is-dismissible"><p>امکانات مالیات و عضویت در تنظیمات امکانات پرو غیرفعال هستند.</p></div>';
+        } else {
+            if ($sc_tax_pro) {
+                sc_update_setting('tax_fee_enabled', isset($_POST['tax_fee_enabled']) ? 1 : 0, 'billing_fees');
+                sc_update_setting('tax_fee_mode', isset($_POST['tax_fee_mode']) && $_POST['tax_fee_mode'] === 'fixed' ? 'fixed' : 'percent', 'billing_fees');
+                sc_update_setting('tax_fee_value', max(0, floatval($_POST['tax_fee_value'] ?? 0)), 'billing_fees');
+                sc_update_setting('tax_fee_title', sanitize_text_field(wp_unslash($_POST['tax_fee_title'] ?? '')), 'billing_fees');
+                sc_update_setting('tax_fee_description', sanitize_textarea_field(wp_unslash($_POST['tax_fee_description'] ?? '')), 'billing_fees');
+                sc_update_setting('tax_fee_apply_course', isset($_POST['tax_fee_apply_course']) ? 1 : 0, 'billing_fees');
+                sc_update_setting('tax_fee_apply_event', isset($_POST['tax_fee_apply_event']) ? 1 : 0, 'billing_fees');
+                sc_update_setting('tax_fee_apply_wallet', isset($_POST['tax_fee_apply_wallet']) ? 1 : 0, 'billing_fees');
+                sc_update_setting('tax_fee_apply_shop', isset($_POST['tax_fee_apply_shop']) ? 1 : 0, 'billing_fees');
+                sc_update_setting('tax_fee_show_pay_breakdown', isset($_POST['tax_fee_show_pay_breakdown']) ? 1 : 0, 'billing_fees');
+            }
+            if ($sc_membership_pro) {
+                sc_update_setting('registration_fee_enabled', isset($_POST['registration_fee_enabled']) ? 1 : 0, 'billing_fees');
+                sc_update_setting('registration_fee_title', sanitize_text_field(wp_unslash($_POST['registration_fee_title'] ?? '')), 'billing_fees');
+                $reg_raw = isset($_POST['registration_fee_amount_raw']) && $_POST['registration_fee_amount_raw'] !== ''
+                    ? $_POST['registration_fee_amount_raw']
+                    : ($_POST['registration_fee_amount'] ?? '');
+                sc_update_setting('registration_fee_amount', max(0, floatval(str_replace(',', '', (string) $reg_raw))), 'billing_fees');
+                sc_update_setting('registration_fee_description', sanitize_textarea_field(wp_unslash($_POST['registration_fee_description'] ?? '')), 'billing_fees');
+            }
+            if (function_exists('sc_log_activity')) {
+                sc_log_activity('updated', 'settings', 0, 'تنظیمات مالیات و هزینه ثبت‌نام ذخیره شد', null, ['tab' => 'billing_fees']);
+            }
+            echo '<div class="notice notice-success is-dismissible"><p>تنظیمات مالیات و هزینه ثبت‌نام ذخیره شد.</p></div>';
         }
-        echo '<div class="notice notice-success is-dismissible"><p>تنظیمات مالیات و هزینه ثبت‌نام ذخیره شد.</p></div>';
     }
     elseif ($current_tab === 'invoice') {
     $pro_create_invoice_player_team = isset($_POST['pro_create_invoice_player_team']) ? 1 : 0;
@@ -551,6 +561,9 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         echo '<div class="notice notice-success is-dismissible"><p>تنظیمات کیف پول با موفقیت ذخیره شد.</p></div>';
     }
     elseif($current_tab === 'attendance'){
+        if (function_exists('sc_is_pro_feature_attendance_enabled') && !sc_is_pro_feature_attendance_enabled()) {
+            echo '<div class="notice notice-error is-dismissible"><p>امکان حضور و غیاب در تنظیمات امکانات پرو غیرفعال است.</p></div>';
+        } else {
         $deduction_wallet_enabled = isset($_POST['deduction_wallet']) ? 1 : 0;
         $attendance_debt_block_enabled = isset($_POST['attendance_debt_block_enabled']) ? 1 : 0;
    
@@ -634,6 +647,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب حضور و غیاب ذخیره شد', null, ['tab' => 'attendance']);
         }
                 echo '<div class="notice notice-success is-dismissible"><p>تنظیمات حضور و غیاب با موفقیت ذخیره شد.</p></div>';
+        }
     }
     elseif ($current_tab === 'player_info') {
         $allowed_verification_modes = ['off', 'all', 'team'];
@@ -763,6 +777,9 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     $pro_feature_certificates = isset($_POST['pro_feature_certificates']) ? (int) $_POST['pro_feature_certificates'] : 0;
     $pro_feature_attendance = isset($_POST['pro_feature_attendance']) ? (int) $_POST['pro_feature_attendance'] : 0;
     $pro_feature_attendance_qr = isset($_POST['pro_feature_attendance_qr']) ? (int) $_POST['pro_feature_attendance_qr'] : 0;
+    $pro_feature_tarddod = isset($_POST['pro_feature_tarddod']) ? (int) $_POST['pro_feature_tarddod'] : 0;
+    $pro_feature_membership = isset($_POST['pro_feature_membership']) ? (int) $_POST['pro_feature_membership'] : 0;
+    $pro_feature_tax = isset($_POST['pro_feature_tax']) ? (int) $_POST['pro_feature_tax'] : 0;
     $pro_feature_courses = isset($_POST['pro_feature_courses']) ? (int) $_POST['pro_feature_courses'] : 0;
     $pro_feature_events = isset($_POST['pro_feature_events']) ? (int) $_POST['pro_feature_events'] : 0;
     $pro_feature_private_notes = isset($_POST['pro_feature_private_notes']) ? (int) $_POST['pro_feature_private_notes'] : 0;
@@ -790,6 +807,9 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     sc_update_setting('pro_feature_certificates', $pro_feature_certificates, 'pro_features');
     sc_update_setting('pro_feature_attendance', $pro_feature_attendance, 'pro_features');
     sc_update_setting('pro_feature_attendance_qr', $pro_feature_attendance_qr, 'pro_features');
+    sc_update_setting('pro_feature_tarddod', $pro_feature_tarddod, 'pro_features');
+    sc_update_setting('pro_feature_membership', $pro_feature_membership, 'pro_features');
+    sc_update_setting('pro_feature_tax', $pro_feature_tax, 'pro_features');
     sc_update_setting('pro_feature_courses', $pro_feature_courses, 'pro_features');
     sc_update_setting('pro_feature_events', $pro_feature_events, 'pro_features');
     sc_update_setting('pro_feature_private_notes', $pro_feature_private_notes, 'pro_features');
@@ -1260,6 +1280,9 @@ $pro_feature_bulk_actions = (int) sc_get_setting('pro_feature_bulk_actions', 1);
 $pro_feature_certificates = (int) sc_get_setting('pro_feature_certificates', 1);
 $pro_feature_attendance = (int) sc_get_setting('pro_feature_attendance', 1);
 $pro_feature_attendance_qr = (int) sc_get_setting('pro_feature_attendance_qr', 1);
+$pro_feature_tarddod = (int) sc_get_setting('pro_feature_tarddod', 1);
+$pro_feature_membership = (int) sc_get_setting('pro_feature_membership', 1);
+$pro_feature_tax = (int) sc_get_setting('pro_feature_tax', 1);
 $pro_feature_courses = (int) sc_get_setting('pro_feature_courses', 1);
 $pro_feature_events = (int) sc_get_setting('pro_feature_events', 1);
 $pro_feature_private_notes = (int) sc_get_setting('pro_feature_private_notes', 1);
@@ -1358,10 +1381,16 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
            class="nav-tab <?php echo $current_tab === 'invoice' ? 'nav-tab-active' : ''; ?>">
             صورتحساب
         </a>
+        <?php
+        $sc_show_billing_fees_tab = (function_exists('sc_is_pro_feature_tax_enabled') && sc_is_pro_feature_tax_enabled())
+            || (function_exists('sc_is_pro_feature_membership_enabled') && sc_is_pro_feature_membership_enabled());
+        if ($sc_show_billing_fees_tab) :
+        ?>
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=billing_fees'); ?>"
            class="nav-tab <?php echo $current_tab === 'billing_fees' ? 'nav-tab-active' : ''; ?>">
             مالیات و عضویت
         </a>
+        <?php endif; ?>
         <?php
         if(sc_is_pro_feature_sms_enabled()){ ?>
 
@@ -1413,13 +1442,17 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
         </a>
              <?php }
      
-         if (function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled()) {
+         if (function_exists('sc_is_pro_feature_attendance_enabled') && sc_is_pro_feature_attendance_enabled()) {
  ?>
 
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=attendance'); ?>"
             class="nav-tab <?php echo $current_tab === 'attendance' ? 'nav-tab-active' : ''; ?>">
                حضور و غیاب
         </a>
+             <?php }
+
+         if (function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled()) {
+ ?>
 
      
         <a href="<?php echo admin_url('admin.php?page=sc_setting&tab=coach_salary'); ?>"
@@ -3969,7 +4002,11 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
             </form>
 
         <?php endif; 
-        if ($current_tab === 'attendance') : ?>
+        if ($current_tab === 'attendance') :
+            if (function_exists('sc_is_pro_feature_attendance_enabled') && !sc_is_pro_feature_attendance_enabled()) :
+                echo '<div class="notice notice-warning"><p>امکان حضور و غیاب در تنظیمات امکانات پرو غیرفعال است.</p></div>';
+            else :
+        ?>
             <form method="POST" action="">
                 <?php wp_nonce_field('sc_settings_nonce', 'sc_settings_nonce');
                 $deduction_wallet_enabled = sc_get_setting('deduction_wallet_enabled'); 
@@ -4327,7 +4364,9 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 </p>
             </form>
 
-        <?php endif; 
+        <?php
+            endif;
+        endif; 
         if ($current_tab === 'player_info') :
             $player_verification_mode = function_exists('sc_get_player_verification_mode')
                 ? sc_get_player_verification_mode()
@@ -5206,6 +5245,39 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         <span class="slider round"></span>
                     </label>
                     <p class="description">QR اختصاصی بازیکن، اسکن دوربین در ثبت حضور، کارت QR در پیشخوان و خروجی اطلاعات کاربر</p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">تردد</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_tarddod" value="0">
+                        <input type="checkbox" name="pro_feature_tarddod" value="1" <?php checked($pro_feature_tarddod, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                    <p class="description">منوی ثبت تردد، جلسات و لیست ترددها</p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">عضویت</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_membership" value="0">
+                        <input type="checkbox" name="pro_feature_membership" value="1" <?php checked($pro_feature_membership, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                    <p class="description">هزینه ثبت‌نام (عضویت) در تنظیمات مالیات و عضویت</p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">مالیات</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_tax" value="0">
+                        <input type="checkbox" name="pro_feature_tax" value="1" <?php checked($pro_feature_tax, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                    <p class="description">مالیات و ارزش افزوده روی فاکتورها</p>
                 </td>
             </tr>
             <tr>

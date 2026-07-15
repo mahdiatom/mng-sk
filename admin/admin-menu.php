@@ -283,7 +283,9 @@ function sc_register_admin_menu() {
         );
     }
 
-    if (function_exists('sc_user_has_club_manager_role') && (sc_user_has_club_manager_role() || current_user_can('manage_options'))) {
+    if (function_exists('sc_user_has_club_manager_role') && (sc_user_has_club_manager_role() || current_user_can('manage_options'))
+        && function_exists('sc_is_pro_feature_attendance_enabled') && sc_is_pro_feature_attendance_enabled()
+        && function_exists('sc_is_pro_feature_attendance_qr_enabled') && sc_is_pro_feature_attendance_qr_enabled()) {
         add_submenu_page(
             'sc-members',
             'مدیریت کدهای QR',
@@ -333,15 +335,19 @@ function sc_register_admin_menu() {
             'sc_admin_attendance_session_cancellations_page'
         );
 
-        add_submenu_page(
-            'sc-attendance-add',
-            'گزارش ثبت QR',
-            'گزارش QR حضور',
-            'sc_manage_attendance_or_admin',
-            'sc-reports-attendance-qr',
-            'sc_admin_reports_attendance_qr_page'
-        );
+        if (function_exists('sc_is_pro_feature_attendance_qr_enabled') && sc_is_pro_feature_attendance_qr_enabled()) {
+            add_submenu_page(
+                'sc-attendance-add',
+                'گزارش ثبت QR',
+                'گزارش QR حضور',
+                'sc_manage_attendance_or_admin',
+                'sc-reports-attendance-qr',
+                'sc_admin_reports_attendance_qr_page'
+            );
+        }
+    }
 
+    if (function_exists('sc_is_pro_feature_tarddod_enabled') && sc_is_pro_feature_tarddod_enabled()) {
         add_menu_page(
             'ثبت تردد',
             'ثبت تردد',
@@ -1319,14 +1325,16 @@ function sc_register_admin_menu() {
                 'sc-attendance-logs',
                 'sc_admin_attendance_logs'
             );
-            add_submenu_page(
-                'sc-reports',
-                'گزارش ثبت QR',
-                'گزارش QR حضور',
-                'manage_options',
-                'sc-reports-attendance-qr',
-                'sc_admin_reports_attendance_qr_page'
-            );
+            if (function_exists('sc_is_pro_feature_attendance_qr_enabled') && sc_is_pro_feature_attendance_qr_enabled()) {
+                add_submenu_page(
+                    'sc-reports',
+                    'گزارش ثبت QR',
+                    'گزارش QR حضور',
+                    'manage_options',
+                    'sc-reports-attendance-qr',
+                    'sc_admin_reports_attendance_qr_page'
+                );
+            }
         }
     }
 
@@ -2830,6 +2838,12 @@ function sc_admin_attendance_logs() {
 }
 
 function sc_admin_reports_attendance_qr_page() {
+    if (function_exists('sc_is_pro_feature_attendance_enabled') && !sc_is_pro_feature_attendance_enabled()) {
+        wp_die('امکان حضور و غیاب در تنظیمات امکانات پرو غیرفعال است.');
+    }
+    if (function_exists('sc_is_pro_feature_attendance_qr_enabled') && !sc_is_pro_feature_attendance_qr_enabled()) {
+        wp_die('امکان اسکن QR در تنظیمات امکانات پرو غیرفعال است.');
+    }
     if (!function_exists('sc_user_can_manage_attendance') || !sc_user_can_manage_attendance()) {
         wp_die('شما دسترسی لازم را ندارید.');
     }
@@ -2838,6 +2852,12 @@ function sc_admin_reports_attendance_qr_page() {
 }
 
 function sc_admin_member_qr_codes_page() {
+    if (function_exists('sc_is_pro_feature_attendance_enabled') && !sc_is_pro_feature_attendance_enabled()) {
+        wp_die('امکان حضور و غیاب در تنظیمات امکانات پرو غیرفعال است.');
+    }
+    if (function_exists('sc_is_pro_feature_attendance_qr_enabled') && !sc_is_pro_feature_attendance_qr_enabled()) {
+        wp_die('امکان اسکن QR در تنظیمات امکانات پرو غیرفعال است.');
+    }
     if (!function_exists('sc_attendance_qr_user_can_manage_codes') || !sc_attendance_qr_user_can_manage_codes()) {
         wp_die('شما دسترسی لازم را ندارید.');
     }
@@ -2846,6 +2866,9 @@ function sc_admin_member_qr_codes_page() {
 }
 
 function sc_admin_tarddod_register_page() {
+    if (function_exists('sc_is_pro_feature_tarddod_enabled') && !sc_is_pro_feature_tarddod_enabled()) {
+        wp_die('امکان ثبت تردد در تنظیمات امکانات پرو غیرفعال است.');
+    }
     if (!function_exists('sc_tarddod_user_can_manage') || !sc_tarddod_user_can_manage()) {
         wp_die('شما دسترسی لازم را ندارید.');
     }

@@ -440,6 +440,27 @@ function sc_is_pro_feature_attendance_qr_enabled() {
     return (int) sc_get_setting('pro_feature_attendance_qr', '1') === 1;
 }
 
+/**
+ * امکانات پرو: ثبت تردد
+ */
+function sc_is_pro_feature_tarddod_enabled() {
+    return (int) sc_get_setting('pro_feature_tarddod', '1') === 1;
+}
+
+/**
+ * امکانات پرو: عضویت (هزینه ثبت‌نام)
+ */
+function sc_is_pro_feature_membership_enabled() {
+    return (int) sc_get_setting('pro_feature_membership', '1') === 1;
+}
+
+/**
+ * امکانات پرو: مالیات و ارزش افزوده
+ */
+function sc_is_pro_feature_tax_enabled() {
+    return (int) sc_get_setting('pro_feature_tax', '1') === 1;
+}
+
 function sc_is_pro_feature_courses_enabled() {
     return (int) sc_get_setting('pro_feature_courses', '1') === 1;
 }
