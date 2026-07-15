@@ -1142,6 +1142,57 @@ function club_cleanup_roles() {
     }
 }
 
+/**
+ * تعمیر یک‌باره: کاربران عضو (sc_members) که نقش وردپرس خالی («هیچکدام») دارند → بازیکن
+ * معمولاً به‌خاطر set_role('customer') + حذف نقش customer در club_cleanup_roles.
+ */
+add_action('init', 'sc_repair_member_users_without_player_role', 25);
+function sc_repair_member_users_without_player_role() {
+    if (get_option('sc_repaired_member_player_roles_v1')) {
+        return;
+    }
+
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $members_table)) !== $members_table) {
+        update_option('sc_repaired_member_player_roles_v1', 1, false);
+        return;
+    }
+
+    $user_ids = $wpdb->get_col(
+        "SELECT DISTINCT user_id FROM {$members_table} WHERE user_id IS NOT NULL AND user_id > 0"
+    );
+    if (empty($user_ids)) {
+        update_option('sc_repaired_member_player_roles_v1', 1, false);
+        return;
+    }
+
+    $player_role = function_exists('sc_login_register_player_role')
+        ? sc_login_register_player_role()
+        : 'subscriber';
+    $staff_roles = array_merge(
+        ['administrator', 'coach', 'accountantt', 'shop_manager', 'secretary'],
+        function_exists('sc_get_club_manager_role_slugs') ? sc_get_club_manager_role_slugs() : []
+    );
+
+    foreach ($user_ids as $uid) {
+        $user = get_userdata((int) $uid);
+        if (!$user) {
+            continue;
+        }
+        $roles = array_values((array) $user->roles);
+        if (array_intersect($roles, $staff_roles)) {
+            continue;
+        }
+        // فقط نقش خالی («هیچکدام») را به بازیکن تبدیل کن
+        if (empty($roles)) {
+            $user->set_role($player_role);
+        }
+    }
+
+    update_option('sc_repaired_member_player_roles_v1', 1, false);
+}
+
 add_filter('woocommerce_admin_disabled', 'club_disable_wc_admin_for_coach');
 
 function club_disable_wc_admin_for_coach( $disabled ) {

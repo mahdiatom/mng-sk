@@ -4340,9 +4340,13 @@ function callback_add_member_sufix(){
                             $new_user_id = wp_create_user($username, $password, $email);
                             
                             if (!is_wp_error($new_user_id)) {
-                                // تنظیم نقش کاربر (customer برای WooCommerce)
-                                $user = new WP_User($new_user_id);
-                                $user->set_role('customer');
+                                // نقش بازیکن (subscriber) — customer توسط club_cleanup_roles حذف می‌شود و «هیچکدام» می‌ماند
+                                if (function_exists('sc_login_register_assign_player_role')) {
+                                    sc_login_register_assign_player_role($new_user_id);
+                                } else {
+                                    $user = new WP_User($new_user_id);
+                                    $user->set_role('subscriber');
+                                }
                                 
                                 // تنظیم اطلاعات کاربر
                                 wp_update_user([
@@ -4538,9 +4542,13 @@ function callback_add_member_sufix(){
                     $user_id = wp_create_user($username, $password, $email);
                     
                     if (!is_wp_error($user_id)) {
-                        // تنظیم نقش کاربر (customer برای WooCommerce)
-                        $user = new WP_User($user_id);
-                        $user->set_role('customer');
+                        // نقش بازیکن (subscriber) — customer توسط club_cleanup_roles حذف می‌شود و «هیچکدام» می‌ماند
+                        if (function_exists('sc_login_register_assign_player_role')) {
+                            sc_login_register_assign_player_role($user_id);
+                        } else {
+                            $user = new WP_User($user_id);
+                            $user->set_role('subscriber');
+                        }
                         
                         // تنظیم اطلاعات کاربر
                         wp_update_user([

@@ -111,36 +111,42 @@ if (
     ) {
         $message = 'کمک‌مربی امکان ثبت حضور و غیاب ندارد. فقط مربی اصلی می‌تواند حضور و غیاب را ثبت کند.';
         $message_type = 'error';
-    } elseif (
-        $current_is_coach_user
-        && $current_coach_id_for_assignment > 0
-        && function_exists('sc_validate_coach_attendance_date_access')
-    ) {
-        $coach_date_access = sc_validate_coach_attendance_date_access(
-            $current_coach_id_for_assignment,
-            $course_id,
-            $attendance_date,
-            $chapter_name,
-            $group_name
-        );
-        if (empty($coach_date_access['allowed'])) {
-            $message = isset($coach_date_access['message']) ? (string) $coach_date_access['message'] : 'در این تاریخ امکان ثبت حضور و غیاب برای مربی وجود ندارد.';
-            $message_type = 'error';
-        }
     } else {
-        // دریافت لیست حضور/غیاب ارسالی
-        if ($is_recorded_batch) {
-            $attendances = isset($_POST['attendance_recorded']) ? (array) $_POST['attendance_recorded'] : [];
-        } else {
-            $attendances = isset($_POST['attendance_pending']) ? (array) $_POST['attendance_pending'] : [];
+        // اعتبارسنجی تاریخ مربی باید فقط در صورت خطا متوقف کند؛ در حالت مجاز باید به ذخیره برسد.
+        $coach_date_blocked = false;
+        if (
+            $current_is_coach_user
+            && $current_coach_id_for_assignment > 0
+            && function_exists('sc_validate_coach_attendance_date_access')
+        ) {
+            $coach_date_access = sc_validate_coach_attendance_date_access(
+                $current_coach_id_for_assignment,
+                $course_id,
+                $attendance_date,
+                $chapter_name,
+                $group_name
+            );
+            if (empty($coach_date_access['allowed'])) {
+                $message = isset($coach_date_access['message']) ? (string) $coach_date_access['message'] : 'در این تاریخ امکان ثبت حضور و غیاب برای مربی وجود ندارد.';
+                $message_type = 'error';
+                $coach_date_blocked = true;
+            }
         }
-        
-        if (empty($attendances)) {
-            $message = $is_recorded_batch
-                ? 'هیچ موردی برای بروزرسانی انتخاب نشده است.'
-                : 'هیچ موردی برای ثبت جدید انتخاب نشده است.';
-            $message_type = 'error';
-        } else {
+
+        if (!$coach_date_blocked) {
+            // دریافت لیست حضور/غیاب ارسالی
+            if ($is_recorded_batch) {
+                $attendances = isset($_POST['attendance_recorded']) ? (array) $_POST['attendance_recorded'] : [];
+            } else {
+                $attendances = isset($_POST['attendance_pending']) ? (array) $_POST['attendance_pending'] : [];
+            }
+
+            if (empty($attendances)) {
+                $message = $is_recorded_batch
+                    ? 'هیچ موردی برای بروزرسانی انتخاب نشده است.'
+                    : 'هیچ موردی برای ثبت جدید انتخاب نشده است.';
+                $message_type = 'error';
+            } else {
             $courses_table = $wpdb->prefix . 'sc_courses';
             $course_row = $wpdb->get_row($wpdb->prepare(
                 "SELECT title, price_per_session, course_type FROM $courses_table WHERE id = %d LIMIT 1",
@@ -426,6 +432,7 @@ if (
                 }
                 $message_type = 'error';
             }
+        }
         }
     }
     

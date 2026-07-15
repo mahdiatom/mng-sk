@@ -511,6 +511,7 @@ function sc_login_register_player_role() {
 
 /**
  * اطمینان از نقش بازیکن برای کاربر وردپرس
+ * همیشه subscriber (بازیکن) ست می‌شود تا نقش خالی («هیچکدام») یا نقش‌های حذف‌شده مثل customer باقی نماند.
  */
 function sc_login_register_assign_player_role($user_id) {
     $user_id = (int) $user_id;
@@ -519,9 +520,7 @@ function sc_login_register_assign_player_role($user_id) {
     if (!$user) {
         return false;
     }
-    if (!in_array($role, (array) $user->roles, true)) {
-        $user->set_role($role);
-    }
+    $user->set_role($role);
     return true;
 }
 
