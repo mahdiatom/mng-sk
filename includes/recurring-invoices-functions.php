@@ -63,7 +63,9 @@ function sc_create_recurring_invoices() {
 
     error_log("SC Recurring Invoices: Using MINUTE interval: $interval_minutes minutes");
 
-    $active_courses = $wpdb->get_results($wpdb->prepare(
+    // فقط اگر برای این ثبت‌نام هنوز هیچ فاکتوری نباشد.
+    // قبلاً با گذشت interval دوباره فاکتور می‌ساخت حتی اگر فاکتور قبلی «تایید پرداخت» شده بود.
+    $active_courses = $wpdb->get_results(
         "SELECT mc.*, c.price, c.title as course_title, m.user_id, m.disable_auto_invoice
          FROM $member_courses_table mc
          INNER JOIN $courses_table c ON mc.course_id = c.id
@@ -81,25 +83,12 @@ function sc_create_recurring_invoices() {
                  AND mc.course_status_flags NOT LIKE '%%canceled%%'
              )
          )
-         AND (
-             NOT EXISTS (
-                 SELECT 1 FROM $invoices_table i
-                 WHERE i.member_course_id = mc.id
-             )
-             OR
-             EXISTS (
-                 SELECT 1 FROM $invoices_table i
-                 WHERE i.member_course_id = mc.id
-                 AND TIMESTAMPDIFF(MINUTE, i.created_at, NOW()) >= %d
-                 AND i.created_at = (
-                     SELECT MAX(i2.created_at)
-                     FROM $invoices_table i2
-                     WHERE i2.member_course_id = mc.id
-                 )
-             )
-         )",
-        $interval_minutes
-    ));
+         AND NOT EXISTS (
+             SELECT 1 FROM $invoices_table i
+             WHERE i.member_course_id = mc.id
+                OR (i.member_id = mc.member_id AND i.course_id = mc.course_id)
+         )"
+    );
 
     error_log('SC Recurring Invoices: Found ' . count($active_courses) . ' courses that need invoices');
 
@@ -820,6 +809,7 @@ function sc_create_threshold_invoices() {
     // active هستند
     // paused/completed/canceled نیستند
     // threshold_invoiced != 1 (یعنی قبلاً فاکتور threshold نگرفته‌اند)
+    // و هنوز هیچ فاکتوری برای این ثبت‌نام ندارند (مثلاً از اقدامات سریع)
     $courses = $wpdb->get_results("
         SELECT mc.*, c.price, c.title AS course_title, m.user_id , mc.remaining_sessions , m.player_phone 
         FROM $member_courses_table mc
@@ -835,6 +825,11 @@ function sc_create_threshold_invoices() {
         AND c.is_active = 1
         AND m.is_active = 1
         AND (mc.threshold_invoiced IS NULL OR mc.threshold_invoiced = 0)
+        AND NOT EXISTS (
+            SELECT 1 FROM $invoices_table i
+            WHERE i.member_course_id = mc.id
+               OR (i.member_id = mc.member_id AND i.course_id = mc.course_id)
+        )
     ");
 
     if (empty($courses)) {

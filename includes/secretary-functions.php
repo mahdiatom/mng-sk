@@ -1493,7 +1493,7 @@ function sc_secretary_course_has_weekly_schedule_in_chapter($course_id, $chapter
 }
 
 /**
- * دوره‌های قابل انتخاب در اقدامات سریع برای یک شعبه (دارای برنامه هفتگی فعال).
+ * دوره‌های قابل انتخاب در اقدامات سریع برای یک شعبه (فعال و متصل به شعبه).
  *
  * @return object[]
  */
@@ -1539,35 +1539,272 @@ function sc_secretary_get_quick_action_courses($chapter = '') {
               AND TRIM(cc.chapter_name) IN ({$placeholders})
             ORDER BY c.title ASC";
     $rows = $wpdb->get_results($wpdb->prepare($sql, $chapters));
-    $courses = is_array($rows) ? $rows : [];
+    return is_array($rows) ? $rows : [];
+}
 
-    if ($chapter === '') {
-        $weekly_ids = sc_secretary_get_branch_weekly_schedule_course_ids();
-        if (empty($weekly_ids)) {
-            return $courses;
-        }
-        $weekly_map = array_fill_keys($weekly_ids, true);
-        return array_values(array_filter($courses, static function ($row) use ($weekly_map) {
-            return isset($weekly_map[(int) $row->id]);
-        }));
+/**
+ * شعبه‌های فعال یک دوره که در محدوده دسترسی اقدامات سریع هستند.
+ *
+ * @return string[]
+ */
+function sc_secretary_get_quick_action_chapters_for_course($course_id) {
+    $course_id = absint($course_id);
+    if ($course_id < 1) {
+        return [];
     }
 
-    return array_values(array_filter($courses, static function ($row) use ($chapter) {
-        return sc_secretary_course_has_weekly_schedule_in_chapter((int) $row->id, $chapter);
-    }));
+    $course_chapters = function_exists('sc_get_course_chapters')
+        ? sc_get_course_chapters($course_id)
+        : [];
+    if (empty($course_chapters)) {
+        return [];
+    }
+
+    $allowed = sc_quick_actions_get_chapters();
+    if (empty($allowed)) {
+        // مدیر سامانه بدون محدودیت شعبه: همه شعبه‌های دوره
+        if (!sc_quick_actions_is_branch_scoped() && sc_user_can_manage_secretaries()) {
+            return array_values($course_chapters);
+        }
+        return [];
+    }
+
+    $allowed_map = array_fill_keys(array_map('strval', $allowed), true);
+    $out = [];
+    foreach ($course_chapters as $ch) {
+        $ch = trim((string) $ch);
+        if ($ch !== '' && isset($allowed_map[$ch])) {
+            $out[] = $ch;
+        }
+    }
+
+    return $out;
+}
+
+/**
+ * گزینه‌های ثبت‌نام (مربی، گروه، پکیج، جلسات پیش‌فرض) برای اقدامات سریع.
+ *
+ * @return array{
+ *   has_grouping:bool,
+ *   coaches:array<int,array{id:int,label:string}>,
+ *   groups:array<int,array<string,mixed>>,
+ *   coach_required:bool,
+ *   has_packages:bool,
+ *   packages:array<int,array{sessions:int,price:float,label:string}>,
+ *   default_remaining_sessions:int,
+ *   default_total_sessions:int
+ * }
+ */
+function sc_secretary_get_quick_action_enrollment_options($course_id, $chapter) {
+    $course_id = absint($course_id);
+    $chapter = sanitize_text_field((string) $chapter);
+    $out = [
+        'has_grouping' => false,
+        'coaches' => [],
+        'groups' => [],
+        'coach_required' => false,
+        'has_packages' => false,
+        'packages' => [],
+        'default_remaining_sessions' => 0,
+        'default_total_sessions' => 0,
+    ];
+
+    if ($course_id < 1 || $chapter === '') {
+        return $out;
+    }
+
+    if (function_exists('sc_get_course_chapter_coaches')) {
+        $out['coaches'] = sc_get_course_chapter_coaches($course_id, $chapter);
+    }
+    $out['coach_required'] = count($out['coaches']) > 1;
+
+    if (function_exists('sc_course_has_grouping_enabled')) {
+        $out['has_grouping'] = sc_course_has_grouping_enabled($course_id);
+    }
+    if ($out['has_grouping'] && function_exists('sc_get_bulk_course_groups_map_entry')) {
+        $out['groups'] = sc_get_bulk_course_groups_map_entry($course_id);
+    }
+
+    global $wpdb;
+    $course = $wpdb->get_row($wpdb->prepare(
+        "SELECT sessions_count FROM {$wpdb->prefix}sc_courses WHERE id = %d LIMIT 1",
+        $course_id
+    ));
+    $course_sessions = ($course && !empty($course->sessions_count)) ? (int) $course->sessions_count : 0;
+
+    $has_packages = function_exists('sc_course_has_packages') && sc_course_has_packages($course_id);
+    $out['has_packages'] = $has_packages;
+    if ($has_packages && function_exists('sc_get_course_packages')) {
+        foreach (sc_get_course_packages($course_id) as $pkg) {
+            $sessions = (int) $pkg->sessions_count;
+            $price = (float) $pkg->price;
+            $out['packages'][] = [
+                'sessions' => $sessions,
+                'price' => $price,
+                'label' => $sessions . ' جلسه — ' . number_format_i18n($price) . ' تومان',
+            ];
+        }
+        if (!empty($out['packages'])) {
+            $out['default_remaining_sessions'] = (int) $out['packages'][0]['sessions'];
+            $out['default_total_sessions'] = (int) $out['packages'][0]['sessions'];
+        }
+    } else {
+        $out['default_remaining_sessions'] = $course_sessions;
+        $out['default_total_sessions'] = $course_sessions;
+    }
+
+    return $out;
+}
+
+/**
+ * گروه‌های قابل انتخاب برای شعبه و مربی در اقدامات سریع.
+ *
+ * @return array<int,array<string,mixed>>
+ */
+function sc_secretary_get_quick_action_groups_for_branch_coach($course_id, $chapter, $coach_id) {
+    $course_id = absint($course_id);
+    $chapter = sanitize_text_field((string) $chapter);
+    $coach_id = absint($coach_id);
+    if ($course_id < 1 || !function_exists('sc_course_has_grouping_enabled') || !sc_course_has_grouping_enabled($course_id)) {
+        return [];
+    }
+
+    $groups = function_exists('sc_get_bulk_course_groups_map_entry')
+        ? sc_get_bulk_course_groups_map_entry($course_id)
+        : [];
+    if (function_exists('sc_get_course_groups_for_branch') && $coach_id > 0) {
+        return sc_get_course_groups_for_branch($course_id, $chapter, $coach_id);
+    }
+
+    $filtered = [];
+    foreach ((array) $groups as $group) {
+        $item = function_exists('sc_format_course_group_item') ? sc_format_course_group_item($group) : (array) $group;
+        if (function_exists('sc_course_group_matches_branch') && !sc_course_group_matches_branch($group, $chapter, $coach_id)) {
+            continue;
+        }
+        $filtered[] = $item;
+    }
+
+    return $filtered;
+}
+
+/**
+ * اعتبارسنجی انتخاب مربی و گروه در اقدامات سریع.
+ *
+ * @return array{ok:bool,messages:array<int,array{type:string,text:string}>,coach_id:int,group_name:string}
+ */
+function sc_secretary_validate_quick_enrollment_assignment($course_id, $chapter, $coach_id, $group_name) {
+    $messages = [];
+    $course_id = absint($course_id);
+    $chapter = sanitize_text_field((string) $chapter);
+    $coach_id = absint($coach_id);
+    $group_name = sanitize_text_field((string) $group_name);
+    $resolved_coach = $coach_id;
+    $resolved_group = $group_name;
+
+    $coaches = function_exists('sc_get_course_chapter_coaches')
+        ? sc_get_course_chapter_coaches($course_id, $chapter)
+        : [];
+
+    if (count($coaches) > 1) {
+        if ($coach_id < 1) {
+            $messages[] = ['type' => 'error', 'text' => 'مربی را انتخاب کنید.'];
+        } elseif (!function_exists('sc_is_valid_course_chapter_coach') || !sc_is_valid_course_chapter_coach($course_id, $chapter, $coach_id)) {
+            $messages[] = ['type' => 'error', 'text' => 'مربی انتخاب‌شده برای این دوره و شعبه معتبر نیست.'];
+        } else {
+            $coach_label = '';
+            foreach ($coaches as $coach) {
+                if ((int) $coach['id'] === $coach_id) {
+                    $coach_label = (string) $coach['label'];
+                    break;
+                }
+            }
+            $messages[] = ['type' => 'success', 'text' => 'مربی: ' . ($coach_label !== '' ? $coach_label : ('#' . $coach_id))];
+        }
+    } elseif (count($coaches) === 1) {
+        $resolved_coach = (int) $coaches[0]['id'];
+        if ($coach_id > 0 && $coach_id !== $resolved_coach) {
+            $messages[] = ['type' => 'error', 'text' => 'مربی انتخاب‌شده برای این شعبه معتبر نیست.'];
+        } else {
+            $messages[] = ['type' => 'success', 'text' => 'مربی: ' . (string) $coaches[0]['label']];
+        }
+    } elseif ($coach_id > 0) {
+        if (!function_exists('sc_is_valid_course_chapter_coach') || !sc_is_valid_course_chapter_coach($course_id, $chapter, $coach_id)) {
+            $messages[] = ['type' => 'error', 'text' => 'مربی انتخاب‌شده برای این دوره و شعبه معتبر نیست.'];
+        }
+    } else {
+        $messages[] = ['type' => 'info', 'text' => 'ثبت‌نام بدون مربی انجام می‌شود.'];
+    }
+
+    $has_grouping = function_exists('sc_course_has_grouping_enabled') && sc_course_has_grouping_enabled($course_id);
+    if ($has_grouping) {
+        $branch_groups = sc_secretary_get_quick_action_groups_for_branch_coach($course_id, $chapter, $resolved_coach);
+        if (!empty($branch_groups)) {
+            if ($group_name === '') {
+                $messages[] = ['type' => 'error', 'text' => 'گروه را انتخاب کنید.'];
+            } elseif (!function_exists('sc_is_valid_course_group_name') || !sc_is_valid_course_group_name($course_id, $group_name)) {
+                $messages[] = ['type' => 'error', 'text' => 'گروه انتخاب‌شده معتبر نیست.'];
+            } else {
+                $valid_for_branch = false;
+                foreach ($branch_groups as $group) {
+                    $gname = isset($group['name']) ? (string) $group['name'] : '';
+                    if ($gname === $group_name) {
+                        $valid_for_branch = true;
+                        break;
+                    }
+                }
+                if (!$valid_for_branch) {
+                    $messages[] = ['type' => 'error', 'text' => 'این گروه برای شعبه و مربی انتخاب‌شده تعریف نشده است.'];
+                } else {
+                    $messages[] = ['type' => 'success', 'text' => 'گروه: ' . $group_name];
+                }
+            }
+        } elseif ($group_name !== '') {
+            if (!function_exists('sc_is_valid_course_group_name') || !sc_is_valid_course_group_name($course_id, $group_name)) {
+                $messages[] = ['type' => 'error', 'text' => 'گروه انتخاب‌شده معتبر نیست.'];
+            } else {
+                $messages[] = ['type' => 'success', 'text' => 'گروه: ' . $group_name];
+            }
+        } else {
+            $resolved_group = '';
+            $messages[] = ['type' => 'info', 'text' => 'ثبت‌نام بدون گروه انجام می‌شود.'];
+        }
+    } else {
+        $resolved_group = '';
+    }
+
+    $has_error = false;
+    foreach ($messages as $msg) {
+        if (($msg['type'] ?? '') === 'error') {
+            $has_error = true;
+            break;
+        }
+    }
+
+    return [
+        'ok' => !$has_error,
+        'messages' => $messages,
+        'coach_id' => $resolved_coach,
+        'group_name' => $resolved_group,
+    ];
 }
 
 /**
  * فعال‌سازی یا به‌روزرسانی ثبت‌نام یک دوره (بدون دست زدن به سایر دوره‌های بازیکن).
  *
+ * @param int|null        $remaining_sessions_override
+ * @param int|string|null $package_sessions پکیج انتخابی؛ 'custom' برای دلخواه
  * @return int|\WP_Error شناسه sc_member_courses
  */
-function sc_secretary_upsert_active_member_course($member_id, $course_id, $chapter, $coach_id = 0, $group_name = '') {
+function sc_secretary_upsert_active_member_course($member_id, $course_id, $chapter, $coach_id = 0, $group_name = '', $remaining_sessions_override = null, $package_sessions = null) {
     $member_id = absint($member_id);
     $course_id = absint($course_id);
     $chapter = sanitize_text_field((string) $chapter);
     $coach_id = absint($coach_id);
     $group_name = sanitize_text_field((string) $group_name);
+    $package_raw = is_string($package_sessions) ? trim((string) $package_sessions) : $package_sessions;
+    $is_custom_package = ($package_raw === 'custom');
+    $pkg_sel = (!$is_custom_package && $package_raw !== null && $package_raw !== '') ? absint($package_raw) : 0;
 
     if ($member_id < 1 || $course_id < 1 || $chapter === '') {
         return new WP_Error('sc_qa_bad_args', 'اطلاعات ثبت‌نام ناقص است.');
@@ -1585,20 +1822,41 @@ function sc_secretary_upsert_active_member_course($member_id, $course_id, $chapt
         return new WP_Error('sc_qa_no_course', 'دوره یافت نشد یا غیرفعال است.');
     }
 
-    $pkg_sel = 0;
-    if (function_exists('sc_course_has_packages') && sc_course_has_packages($course_id)) {
+    $has_packages = function_exists('sc_course_has_packages') && sc_course_has_packages($course_id);
+    if ($has_packages) {
         $pkgs = function_exists('sc_get_course_packages') ? sc_get_course_packages($course_id) : [];
-        if (!empty($pkgs[0]->sessions_count)) {
-            $pkg_sel = (int) $pkgs[0]->sessions_count;
-        }
-        if ($pkg_sel < 1) {
+        if (empty($pkgs)) {
             return new WP_Error('sc_qa_pkg', 'برای این دوره پکیج جلسه تعریف نشده است.');
+        }
+        if (!$is_custom_package) {
+            if ($pkg_sel < 1) {
+                $pkg_sel = !empty($pkgs[0]->sessions_count) ? (int) $pkgs[0]->sessions_count : 0;
+            }
+            if ($pkg_sel < 1 || !function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($course_id, $pkg_sel)) {
+                return new WP_Error('sc_qa_pkg', 'پکیج انتخاب‌شده معتبر نیست.');
+            }
         }
     }
 
-    $sf = function_exists('sc_member_course_session_fields_for_course')
-        ? sc_member_course_session_fields_for_course($course_id, $pkg_sel > 0 ? $pkg_sel : null)
-        : ['enrollment_sessions' => null, 'total_sessions' => 0, 'remaining_sessions' => 0];
+    if ($is_custom_package) {
+        $custom_n = ($remaining_sessions_override !== null && $remaining_sessions_override !== '')
+            ? max(0, (int) $remaining_sessions_override)
+            : 0;
+        $sf = [
+            'enrollment_sessions' => $custom_n > 0 ? $custom_n : null,
+            'total_sessions' => $custom_n,
+            'remaining_sessions' => $custom_n,
+        ];
+    } else {
+        $sf = function_exists('sc_member_course_session_fields_for_course')
+            ? sc_member_course_session_fields_for_course($course_id, $has_packages && $pkg_sel > 0 ? $pkg_sel : null)
+            : ['enrollment_sessions' => null, 'total_sessions' => 0, 'remaining_sessions' => 0];
+        if (!$has_packages && (int) $sf['remaining_sessions'] <= 0 && !empty($course->sessions_count)) {
+            $n = (int) $course->sessions_count;
+            $sf['total_sessions'] = $n;
+            $sf['remaining_sessions'] = $n;
+        }
+    }
 
     $existing_row = $wpdb->get_row($wpdb->prepare(
         "SELECT id, coach_id, chapter, group_name, status FROM {$mc_table} WHERE member_id = %d AND course_id = %d LIMIT 1",
@@ -1618,13 +1876,26 @@ function sc_secretary_upsert_active_member_course($member_id, $course_id, $chapt
         $assignment['group_name'] = $group_name !== '' ? $group_name : $existing_group;
     }
 
+    $total_sessions = (int) $sf['total_sessions'];
+    $remaining_sessions = (int) $sf['remaining_sessions'];
+    if ($remaining_sessions_override !== null && $remaining_sessions_override !== '') {
+        // فقط باقی‌مانده عوض می‌شود؛ تعداد جلسات (پیش‌فرض دوره/پکیج) ثابت می‌ماند
+        // حتی اگر باقی‌مانده بیشتر از پیش‌فرض باشد (استثنا)
+        $remaining_sessions = max(0, (int) $remaining_sessions_override);
+        if ($is_custom_package) {
+            // پکیج دلخواه: هر دو از عدد واردشده می‌آیند
+            $sf['enrollment_sessions'] = $remaining_sessions > 0 ? $remaining_sessions : null;
+            $total_sessions = $remaining_sessions;
+        }
+    }
+
     $active_fields = [
         'status' => 'active',
         'coach_id' => (int) $assignment['coach_id'],
         'chapter' => $assignment['chapter'] !== '' ? $assignment['chapter'] : null,
         'enrollment_date' => current_time('Y-m-d'),
-        'total_sessions' => (int) $sf['total_sessions'],
-        'remaining_sessions' => (int) $sf['remaining_sessions'],
+        'total_sessions' => $total_sessions,
+        'remaining_sessions' => $remaining_sessions,
         'updated_at' => current_time('mysql'),
     ];
     $fmt = ['%s', '%d', '%s', '%s', '%d', '%d', '%s'];
@@ -1645,6 +1916,17 @@ function sc_secretary_upsert_active_member_course($member_id, $course_id, $chapt
         if ($res === false) {
             return new WP_Error('sc_qa_db', 'خطا در به‌روزرسانی ثبت‌نام: ' . ($wpdb->last_error ?: 'نامشخص'));
         }
+        $wpdb->update(
+            $mc_table,
+            [
+                'remaining_sessions' => $remaining_sessions,
+                'total_sessions' => $total_sessions,
+                'updated_at' => current_time('mysql'),
+            ],
+            ['id' => (int) $existing_row->id],
+            ['%d', '%d', '%s'],
+            ['%d']
+        );
         return (int) $existing_row->id;
     }
 
@@ -1660,7 +1942,20 @@ function sc_secretary_upsert_active_member_course($member_id, $course_id, $chapt
         return new WP_Error('sc_qa_db', 'خطا در ایجاد ثبت‌نام: ' . ($wpdb->last_error ?: 'نامشخص'));
     }
 
-    return (int) $wpdb->insert_id;
+    $insert_id = (int) $wpdb->insert_id;
+    $wpdb->update(
+        $mc_table,
+        [
+            'remaining_sessions' => $remaining_sessions,
+            'total_sessions' => $total_sessions,
+            'updated_at' => current_time('mysql'),
+        ],
+        ['id' => $insert_id],
+        ['%d', '%d', '%s'],
+        ['%d']
+    );
+
+    return $insert_id;
 }
 
 /**
@@ -1684,6 +1979,13 @@ function sc_secretary_validate_quick_enroll($args) {
     $mobile = isset($args['mobile']) ? preg_replace('/\D/', '', (string) $args['mobile']) : '';
     $first_name = sanitize_text_field((string) ($args['first_name'] ?? ''));
     $last_name = sanitize_text_field((string) ($args['last_name'] ?? ''));
+    $coach_id = absint($args['coach_id'] ?? 0);
+    $group_name = sanitize_text_field((string) ($args['group_name'] ?? ''));
+    $remaining_sessions_raw = isset($args['remaining_sessions']) ? trim((string) $args['remaining_sessions']) : '';
+    $password = isset($args['password']) ? (string) $args['password'] : '';
+    $package_sessions_raw = isset($args['package_sessions']) ? trim((string) $args['package_sessions']) : '';
+    $is_custom_package = ($package_sessions_raw === 'custom');
+    $package_sessions = (!$is_custom_package && $package_sessions_raw !== '') ? absint($package_sessions_raw) : 0;
 
     if ($is_new_member) {
         if (!preg_match('/^09\d{9}$/', $mobile)) {
@@ -1699,6 +2001,14 @@ function sc_secretary_validate_quick_enroll($args) {
         if (username_exists($mobile) || email_exists($mobile . '@sportclub.local')) {
             $messages[] = ['type' => 'error', 'text' => 'این شماره قبلاً ثبت شده؛ از تب «بازیکن موجود» استفاده کنید.'];
         }
+        if ($password !== '' && strlen($password) < 6) {
+            $messages[] = ['type' => 'error', 'text' => 'رمز عبور باید حداقل ۶ کاراکتر باشد.'];
+        } elseif ($password !== '') {
+            $messages[] = ['type' => 'success', 'text' => 'رمز عبور سفارشی تنظیم شده است.'];
+        } else {
+            $messages[] = ['type' => 'info', 'text' => 'رمز عبور به‌صورت خودکار ایجاد می‌شود.'];
+        }
+        $messages[] = ['type' => 'info', 'text' => 'نقش کاربر: بازیکن (subscriber).'];
     } else {
         if ($member_id < 1) {
             $messages[] = ['type' => 'error', 'text' => 'بازیکن را از نتایج جستجو انتخاب کنید.'];
@@ -1746,7 +2056,7 @@ function sc_secretary_validate_quick_enroll($args) {
                 return (int) $row->id;
             }, sc_secretary_get_quick_action_courses($chapter));
             if (!in_array($course_id, $allowed_ids, true)) {
-                $messages[] = ['type' => 'error', 'text' => 'این دوره برای شعبه «' . $chapter . '» در برنامه هفتگی فعال نیست یا قابل ثبت‌نام نیست.'];
+                $messages[] = ['type' => 'error', 'text' => 'این دوره برای شعبه «' . $chapter . '» قابل ثبت‌نام نیست یا به شعبه شما متصل نیست.'];
             } else {
                 $ok_chapter = (int) $wpdb->get_var($wpdb->prepare(
                     "SELECT COUNT(*) FROM {$chapters_table} WHERE course_id = %d AND TRIM(chapter_name) = %s",
@@ -1758,7 +2068,10 @@ function sc_secretary_validate_quick_enroll($args) {
                 } else {
                     $messages[] = ['type' => 'success', 'text' => 'دوره: ' . $course->title];
                     if (!sc_secretary_course_has_weekly_schedule_in_chapter($course_id, $chapter)) {
-                        $messages[] = ['type' => 'error', 'text' => 'برای این دوره در شعبه انتخاب‌شده برنامه هفتگی ثبت نشده است.'];
+                        $messages[] = ['type' => 'warning', 'text' => 'هشدار: برای این دوره در شعبه انتخاب‌شده برنامه هفتگی تعریف نشده است. در صورت تایید نهایی، ثبت‌نام انجام می‌شود.'];
+                        if ($sound !== 'debt_warning') {
+                            $sound = 'debt_warning';
+                        }
                     } else {
                         $messages[] = ['type' => 'success', 'text' => 'برنامه هفتگی شعبه برای این دوره فعال است.'];
                     }
@@ -1767,22 +2080,40 @@ function sc_secretary_validate_quick_enroll($args) {
 
             if ($member_id > 0 && !$is_new_member) {
                 $mc_table = $wpdb->prefix . 'sc_member_courses';
+                $inv_table = $wpdb->prefix . 'sc_invoices';
                 $mc = $wpdb->get_row($wpdb->prepare(
                     "SELECT id, status, chapter, remaining_sessions, total_sessions FROM {$mc_table}
-                     WHERE member_id = %d AND course_id = %d LIMIT 1",
+                     WHERE member_id = %d AND course_id = %d AND status = %s
+                     ORDER BY id DESC LIMIT 1",
                     $member_id,
-                    $course_id
+                    $course_id,
+                    'active'
                 ));
-                if ($mc && (string) $mc->status === 'active') {
+                if ($mc) {
                     $chapter_label = trim((string) $mc->chapter) !== '' ? (string) $mc->chapter : '—';
                     $messages[] = [
                         'type' => 'error',
                         'text' => 'این بازیکن هم‌اکنون در دوره «' . $course->title . '» فعال است (شعبه: ' . $chapter_label . '). ثبت‌نام مجدد و صدور فاکتور جدید امکان‌پذیر نیست.',
                     ];
-                    $inv_table = $wpdb->prefix . 'sc_invoices';
+                }
+                $pending_inv_count = (int) $wpdb->get_var($wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$inv_table}
+                     WHERE member_id = %d AND course_id = %d
+                       AND status IN ('pending','under_review')",
+                    $member_id,
+                    $course_id
+                ));
+                if ($pending_inv_count > 0) {
+                    $messages[] = [
+                        'type' => 'error',
+                        'text' => 'برای این بازیکن در این دوره صورت‌حساب در انتظار پرداخت وجود دارد؛ فاکتور جدید ایجاد نمی‌شود.',
+                    ];
+                } elseif ($mc) {
                     $inv_count = (int) $wpdb->get_var($wpdb->prepare(
-                        "SELECT COUNT(*) FROM {$inv_table} WHERE member_course_id = %d",
-                        (int) $mc->id
+                        "SELECT COUNT(*) FROM {$inv_table}
+                         WHERE member_id = %d AND course_id = %d",
+                        $member_id,
+                        $course_id
                     ));
                     if ($inv_count > 0) {
                         $messages[] = [
@@ -1797,25 +2128,88 @@ function sc_secretary_validate_quick_enroll($args) {
                 $pkgs = function_exists('sc_get_course_packages') ? sc_get_course_packages($course_id) : [];
                 if (empty($pkgs)) {
                     $messages[] = ['type' => 'error', 'text' => 'برای دوره پکیجی، پکیج جلسه تعریف نشده است.'];
+                } elseif ($is_custom_package) {
+                    if ($remaining_sessions_raw === '' || !is_numeric($remaining_sessions_raw) || (int) $remaining_sessions_raw < 0) {
+                        $messages[] = ['type' => 'error', 'text' => 'برای پکیج دلخواه، تعداد جلسات باقی‌مانده را وارد کنید.'];
+                    } else {
+                        $messages[] = ['type' => 'success', 'text' => 'پکیج: دلخواه — ' . number_format_i18n((int) $remaining_sessions_raw) . ' جلسه'];
+                    }
+                } elseif ($package_sessions < 1) {
+                    $messages[] = ['type' => 'error', 'text' => 'پکیج قیمتی دوره را انتخاب کنید یا گزینه «دلخواه» را بزنید.'];
+                } elseif (!function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($course_id, $package_sessions)) {
+                    $messages[] = ['type' => 'error', 'text' => 'پکیج انتخاب‌شده معتبر نیست.'];
                 } else {
-                    $messages[] = ['type' => 'info', 'text' => 'پکیج پیش‌فرض: ' . (int) $pkgs[0]->sessions_count . ' جلسه'];
+                    $pkg = sc_get_course_package_by_sessions($course_id, $package_sessions);
+                    $messages[] = [
+                        'type' => 'success',
+                        'text' => 'پکیج: ' . (int) $pkg->sessions_count . ' جلسه — ' . number_format_i18n((float) $pkg->price) . ' تومان',
+                    ];
                 }
-            } elseif (function_exists('sc_member_course_session_fields_for_course')) {
-                $sf = sc_member_course_session_fields_for_course($course_id);
-                $messages[] = ['type' => 'info', 'text' => 'پس از فعال‌سازی، ' . (int) $sf['remaining_sessions'] . ' جلسه شارژ می‌شود.'];
             }
+
+            $default_remaining = 0;
+            if (function_exists('sc_course_has_packages') && sc_course_has_packages($course_id) && $package_sessions > 0) {
+                $default_remaining = $package_sessions;
+            } elseif (function_exists('sc_member_course_session_fields_for_course')) {
+                $sf = sc_member_course_session_fields_for_course($course_id, $package_sessions > 0 ? $package_sessions : null);
+                $default_remaining = (int) $sf['remaining_sessions'];
+                if ($default_remaining <= 0) {
+                    $course_sessions = (int) $wpdb->get_var($wpdb->prepare(
+                        "SELECT sessions_count FROM {$courses_table} WHERE id = %d LIMIT 1",
+                        $course_id
+                    ));
+                    $default_remaining = max(0, $course_sessions);
+                }
+            } else {
+                $course_sessions = (int) $wpdb->get_var($wpdb->prepare(
+                    "SELECT sessions_count FROM {$courses_table} WHERE id = %d LIMIT 1",
+                    $course_id
+                ));
+                $default_remaining = max(0, $course_sessions);
+            }
+
+            if ($remaining_sessions_raw !== '') {
+                if (!is_numeric($remaining_sessions_raw) || (int) $remaining_sessions_raw < 0) {
+                    $messages[] = ['type' => 'error', 'text' => 'تعداد جلسات باقی‌مانده باید عدد صحیح و بزرگ‌تر یا مساوی صفر باشد.'];
+                } else {
+                    $rem = (int) $remaining_sessions_raw;
+                    if ($is_custom_package) {
+                        $messages[] = [
+                            'type' => 'success',
+                            'text' => 'پکیج دلخواه: تعداد جلسات و باقی‌مانده = ' . number_format_i18n($rem),
+                        ];
+                    } else {
+                        $total_label = $default_remaining > 0 ? $default_remaining : $rem;
+                        $msg = 'تعداد جلسات: ' . number_format_i18n($total_label) . ' — باقی‌مانده: ' . number_format_i18n($rem);
+                        if ($default_remaining > 0 && $rem !== $default_remaining) {
+                            $msg .= ' (استثنا نسبت به پیش‌فرض)';
+                        }
+                        $messages[] = ['type' => 'success', 'text' => $msg];
+                    }
+                }
+            } elseif (!$is_custom_package) {
+                $messages[] = ['type' => 'info', 'text' => 'پس از فعال‌سازی، ' . number_format_i18n($default_remaining) . ' جلسه شارژ می‌شود.'];
+            }
+
+            $assignment_check = sc_secretary_validate_quick_enrollment_assignment($course_id, $chapter, $coach_id, $group_name);
+            $messages = array_merge($messages, $assignment_check['messages']);
         }
     }
 
     $has_error = false;
+    $has_warning = false;
     foreach ($messages as $msg) {
-        if (($msg['type'] ?? '') === 'error') {
+        $type = $msg['type'] ?? '';
+        if ($type === 'error') {
             $has_error = true;
             break;
         }
+        if ($type === 'warning') {
+            $has_warning = true;
+        }
     }
     if (!$has_error) {
-        $sound = 'success';
+        $sound = $has_warning ? 'debt_warning' : 'success';
     }
 
     return ['ok' => !$has_error, 'messages' => $messages, 'sound' => $sound];
@@ -1849,102 +2243,228 @@ function sc_secretary_quick_enroll($args) {
         $payment_status = 'pending';
     }
 
-    global $wpdb;
-    $mc_table = $wpdb->prefix . 'sc_member_courses';
-    $inv_table = $wpdb->prefix . 'sc_invoices';
-    $existing_mc = $wpdb->get_row($wpdb->prepare(
-        "SELECT id, status FROM {$mc_table} WHERE member_id = %d AND course_id = %d LIMIT 1",
-        $member_id,
-        $course_id
-    ));
-    if ($existing_mc && (string) $existing_mc->status === 'active') {
-        return [
-            'success' => false,
-            'message' => 'این بازیکن هم‌اکنون در این دوره فعال است؛ ثبت‌نام مجدد و صدور فاکتور جدید امکان‌پذیر نیست.',
-            'member_id' => $member_id,
-            'member_course_id' => (int) $existing_mc->id,
-        ];
+    if ($member_id < 1 || $course_id < 1) {
+        return ['success' => false, 'message' => 'اطلاعات ثبت‌نام ناقص است.'];
     }
-    if ($existing_mc) {
-        $existing_inv_count = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$inv_table} WHERE member_course_id = %d",
-            (int) $existing_mc->id
-        ));
-        if ($existing_inv_count > 0) {
+
+    // قفل اتمیک (add_option) برای جلوگیری از race/double-submit
+    $lock_option = 'sc_qa_enroll_lock_' . $member_id . '_' . $course_id;
+    if (!add_option($lock_option, (string) time(), '', 'no')) {
+        $lock_ts = (int) get_option($lock_option, 0);
+        if ($lock_ts > 0 && (time() - $lock_ts) < 90) {
             return [
                 'success' => false,
-                'message' => 'برای این بازیکن در این دوره قبلاً فاکتور صادر شده است؛ فاکتور جدید ایجاد نمی‌شود.',
+                'message' => 'درخواست ثبت‌نام قبلی هنوز در حال انجام است. لطفاً چند لحظه صبر کنید.',
                 'member_id' => $member_id,
-                'member_course_id' => (int) $existing_mc->id,
-                'invoice_id' => (int) $wpdb->get_var($wpdb->prepare(
-                    "SELECT id FROM {$inv_table} WHERE member_course_id = %d ORDER BY id DESC LIMIT 1",
-                    (int) $existing_mc->id
-                )),
+            ];
+        }
+        // قفل قدیمی؛ آزاد کن و دوباره بگیر
+        delete_option($lock_option);
+        if (!add_option($lock_option, (string) time(), '', 'no')) {
+            return [
+                'success' => false,
+                'message' => 'درخواست ثبت‌نام قبلی هنوز در حال انجام است. لطفاً چند لحظه صبر کنید.',
+                'member_id' => $member_id,
             ];
         }
     }
 
-    $mc_id = sc_secretary_upsert_active_member_course(
-        $member_id,
-        $course_id,
-        $chapter,
-        absint($args['coach_id'] ?? 0),
-        sanitize_text_field((string) ($args['group_name'] ?? ''))
-    );
-    if (is_wp_error($mc_id)) {
-        return ['success' => false, 'message' => $mc_id->get_error_message()];
-    }
+    try {
+        global $wpdb;
+        $mc_table = $wpdb->prefix . 'sc_member_courses';
+        $inv_table = $wpdb->prefix . 'sc_invoices';
 
-    $invoice_id = 0;
-    if (function_exists('sc_create_enrollment_invoice_for_member_course')) {
-        $inv = sc_create_enrollment_invoice_for_member_course($member_id, (int) $mc_id, [
-            'short_sessions_mode' => 'charge_remaining',
-        ]);
-        if (!empty($inv['invoice_id'])) {
-            $invoice_id = (int) $inv['invoice_id'];
-        }
-    }
-    if ($invoice_id < 1) {
-        $invoice_id = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$wpdb->prefix}sc_invoices WHERE member_course_id = %d ORDER BY id DESC LIMIT 1",
-            (int) $mc_id
+        // ۱) هر ثبت‌نام فعال برای همین عضو+دوره
+        $active_mc = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, chapter FROM {$mc_table}
+             WHERE member_id = %d AND course_id = %d AND status = %s
+             ORDER BY id DESC LIMIT 1",
+            $member_id,
+            $course_id,
+            'active'
         ));
-    }
-
-    if ($invoice_id > 0 && $payment_status !== 'pending') {
-        $status_res = sc_secretary_apply_invoice_payment_status($invoice_id, $payment_status);
-        if (is_wp_error($status_res)) {
+        if ($active_mc) {
             return [
                 'success' => false,
-                'message' => 'ثبت‌نام انجام شد اما به‌روزرسانی وضعیت فاکتور ناموفق بود: ' . $status_res->get_error_message(),
+                'message' => 'این بازیکن هم‌اکنون در این دوره فعال است؛ ثبت‌نام مجدد و صدور فاکتور جدید امکان‌پذیر نیست.',
+                'member_id' => $member_id,
+                'member_course_id' => (int) $active_mc->id,
+            ];
+        }
+
+        // ۲) صورت‌حساب باز (در انتظار / در حال بررسی) — فاکتور جدید ممنوع
+        $pending_invoice_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$inv_table}
+             WHERE member_id = %d AND course_id = %d
+               AND status IN ('pending','under_review')
+             ORDER BY id DESC LIMIT 1",
+            $member_id,
+            $course_id
+        ));
+        if ($pending_invoice_id > 0) {
+            return [
+                'success' => false,
+                'message' => 'برای این بازیکن در این دوره صورت‌حساب در انتظار پرداخت وجود دارد؛ فاکتور جدید ایجاد نمی‌شود.',
+                'member_id' => $member_id,
+                'invoice_id' => $pending_invoice_id,
+            ];
+        }
+
+        $assignment = sc_secretary_validate_quick_enrollment_assignment(
+            $course_id,
+            $chapter,
+            absint($args['coach_id'] ?? 0),
+            sanitize_text_field((string) ($args['group_name'] ?? ''))
+        );
+        if (empty($assignment['ok'])) {
+            $errors = array_filter(array_map(static function ($m) {
+                return ($m['type'] ?? '') === 'error' ? ($m['text'] ?? '') : '';
+            }, $assignment['messages']));
+            return ['success' => false, 'message' => $errors ? implode(' ', $errors) : 'انتخاب مربی/گروه معتبر نیست.'];
+        }
+
+        $remaining_override = null;
+        if (isset($args['remaining_sessions']) && trim((string) $args['remaining_sessions']) !== '') {
+            $remaining_override = max(0, (int) $args['remaining_sessions']);
+        }
+        $package_sessions = isset($args['package_sessions']) ? trim((string) $args['package_sessions']) : '';
+
+        // چک دوباره قبل از upsert
+        $still_active = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$mc_table} WHERE member_id = %d AND course_id = %d AND status = %s",
+            $member_id,
+            $course_id,
+            'active'
+        ));
+        if ($still_active > 0) {
+            return [
+                'success' => false,
+                'message' => 'این بازیکن هم‌اکنون در این دوره فعال است؛ ثبت‌نام مجدد و صدور فاکتور جدید امکان‌پذیر نیست.',
+                'member_id' => $member_id,
+            ];
+        }
+
+        $mc_id = sc_secretary_upsert_active_member_course(
+            $member_id,
+            $course_id,
+            $chapter,
+            (int) $assignment['coach_id'],
+            (string) $assignment['group_name'],
+            $remaining_override,
+            $package_sessions !== '' ? $package_sessions : null
+        );
+        if (is_wp_error($mc_id)) {
+            return ['success' => false, 'message' => $mc_id->get_error_message()];
+        }
+
+        // ۳) بعد از upsert: اگر فاکتور باز وجود دارد، فاکتور جدید نساز
+        $invoice_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$inv_table}
+             WHERE (member_course_id = %d OR (member_id = %d AND course_id = %d))
+               AND status IN ('pending','under_review')
+             ORDER BY id DESC LIMIT 1",
+            (int) $mc_id,
+            $member_id,
+            $course_id
+        ));
+        $created_new_invoice = false;
+        if ($invoice_id < 1 && function_exists('sc_create_enrollment_invoice_for_member_course')) {
+            $inv = sc_create_enrollment_invoice_for_member_course($member_id, (int) $mc_id, [
+                'short_sessions_mode' => 'charge_remaining',
+            ]);
+            if (!empty($inv['invoice_id'])) {
+                $invoice_id = (int) $inv['invoice_id'];
+                $created_new_invoice = true;
+            } elseif (!empty($inv['success']) && !empty($inv['deferred'])) {
+                $invoice_id = 0;
+            }
+        }
+
+        // وضعیت پرداخت انتخاب‌شده را روی فاکتور اعمال کن (حتی اگر از قبل pending بوده)
+        if ($invoice_id > 0 && $payment_status !== 'pending') {
+            $status_res = sc_secretary_apply_invoice_payment_status($invoice_id, $payment_status);
+            if (is_wp_error($status_res)) {
+                // اجبار به‌روزرسانی مستقیم در صورت شکست لایه بالاتر
+                $forced = $wpdb->update(
+                    $inv_table,
+                    [
+                        'status' => $payment_status,
+                        'payment_date' => current_time('mysql'),
+                        'updated_at' => current_time('mysql'),
+                    ],
+                    ['id' => $invoice_id],
+                    ['%s', '%s', '%s'],
+                    ['%d']
+                );
+                if ($forced === false) {
+                    return [
+                        'success' => false,
+                        'message' => 'ثبت‌نام انجام شد اما به‌روزرسانی وضعیت فاکتور ناموفق بود: ' . $status_res->get_error_message(),
+                        'member_id' => $member_id,
+                        'invoice_id' => $invoice_id,
+                        'member_course_id' => (int) $mc_id,
+                    ];
+                }
+            }
+            // تأیید نهایی وضعیت در دیتابیس
+            $final_status = (string) $wpdb->get_var($wpdb->prepare(
+                "SELECT status FROM {$inv_table} WHERE id = %d LIMIT 1",
+                $invoice_id
+            ));
+            if ($final_status !== $payment_status) {
+                $wpdb->update(
+                    $inv_table,
+                    [
+                        'status' => $payment_status,
+                        'payment_date' => current_time('mysql'),
+                        'updated_at' => current_time('mysql'),
+                    ],
+                    ['id' => $invoice_id],
+                    ['%s', '%s', '%s'],
+                    ['%d']
+                );
+            }
+        } elseif ($invoice_id > 0 && !$created_new_invoice && $payment_status === 'pending') {
+            // فاکتور pending قبلی وجود داشت؛ فاکتور جدید نساز
+            return [
+                'success' => false,
+                'message' => 'برای این بازیکن در این دوره صورت‌حساب در انتظار پرداخت وجود دارد؛ فاکتور جدید ایجاد نمی‌شود.',
                 'member_id' => $member_id,
                 'invoice_id' => $invoice_id,
                 'member_course_id' => (int) $mc_id,
             ];
         }
-    }
 
-    $status_labels = [
-        'pending' => 'در انتظار پرداخت',
-        'processing' => 'پرداخت شده',
-        'completed' => 'تایید پرداخت',
-    ];
-    $pay_label = $status_labels[$payment_status] ?? $payment_status;
-    $msg = 'ثبت‌نام با موفقیت انجام شد و بازیکن در دوره فعال شد.';
-    if ($invoice_id > 0) {
-        $msg .= ' فاکتور صادر شد';
-        $msg .= $payment_status === 'pending' ? ' (در انتظار پرداخت).' : ' (وضعیت: ' . $pay_label . ').';
-    } else {
-        $msg .= ' (فاکتور در این مرحله صادر نشد؛ ممکن است در ماه بعد ایجاد شود).';
-    }
+        $status_labels = [
+            'pending' => 'در انتظار پرداخت',
+            'processing' => 'پرداخت شده',
+            'completed' => 'تایید پرداخت',
+        ];
+        $pay_label = $status_labels[$payment_status] ?? $payment_status;
+        $msg = 'ثبت‌نام با موفقیت انجام شد و بازیکن در دوره فعال شد.';
+        if ($invoice_id > 0) {
+            $actual = (string) $wpdb->get_var($wpdb->prepare(
+                "SELECT status FROM {$inv_table} WHERE id = %d LIMIT 1",
+                $invoice_id
+            ));
+            $actual_label = $status_labels[$actual] ?? $actual;
+            $msg .= ' فاکتور صادر شد';
+            $msg .= ' (وضعیت: ' . $actual_label . ').';
+        } else {
+            $msg .= ' (فاکتور در این مرحله صادر نشد؛ ممکن است در ماه بعد ایجاد شود).';
+        }
 
-    return [
-        'success' => true,
-        'message' => $msg,
-        'member_id' => $member_id,
-        'invoice_id' => $invoice_id,
-        'member_course_id' => (int) $mc_id,
-    ];
+        return [
+            'success' => true,
+            'message' => $msg,
+            'member_id' => $member_id,
+            'invoice_id' => $invoice_id,
+            'member_course_id' => (int) $mc_id,
+            'payment_status' => $payment_status,
+        ];
+    } finally {
+        delete_option($lock_option);
+    }
 }
 
 /**
@@ -1973,18 +2493,31 @@ function sc_secretary_quick_register_and_enroll($args) {
         return ['success' => false, 'message' => 'این شماره قبلاً ثبت شده است. از تب کاربر موجود استفاده کنید.'];
     }
 
-    $password = wp_generate_password(12, true);
+    $custom_password = isset($args['password']) ? (string) $args['password'] : '';
+    if ($custom_password !== '' && strlen($custom_password) < 6) {
+        return ['success' => false, 'message' => 'رمز عبور باید حداقل ۶ کاراکتر باشد.'];
+    }
+    $password = $custom_password !== '' ? $custom_password : wp_generate_password(12, true);
+    $player_role = function_exists('sc_login_register_player_role') ? sc_login_register_player_role() : 'subscriber';
     $user_id = wp_insert_user([
         'user_login' => $mobile,
         'user_email' => $mobile . '@sportclub.local',
         'user_pass' => $password,
         'first_name' => $first_name,
         'last_name' => $last_name,
-        'role' => 'subscriber',
+        'role' => $player_role,
         'display_name' => trim($first_name . ' ' . $last_name),
     ]);
     if (is_wp_error($user_id)) {
         return ['success' => false, 'message' => $user_id->get_error_message()];
+    }
+    if (function_exists('sc_login_register_assign_player_role')) {
+        sc_login_register_assign_player_role($user_id);
+    } else {
+        $user = get_userdata($user_id);
+        if ($user) {
+            $user->set_role($player_role);
+        }
     }
     update_user_meta($user_id, 'billing_phone', $mobile);
 
@@ -2034,6 +2567,11 @@ function sc_ajax_secretary_validate_enroll() {
         'member_id' => isset($_POST['member_id']) ? absint($_POST['member_id']) : 0,
         'course_id' => isset($_POST['course_id']) ? absint($_POST['course_id']) : 0,
         'chapter' => isset($_POST['chapter']) ? sanitize_text_field(wp_unslash($_POST['chapter'])) : '',
+        'coach_id' => isset($_POST['coach_id']) ? absint($_POST['coach_id']) : 0,
+        'group_name' => isset($_POST['group_name']) ? sanitize_text_field(wp_unslash($_POST['group_name'])) : '',
+        'remaining_sessions' => isset($_POST['remaining_sessions']) ? sanitize_text_field(wp_unslash($_POST['remaining_sessions'])) : '',
+        'package_sessions' => isset($_POST['package_sessions']) ? sanitize_text_field(wp_unslash($_POST['package_sessions'])) : '',
+        'password' => isset($_POST['password']) ? (string) wp_unslash($_POST['password']) : '',
         'is_new_member' => ($tab === 'new'),
         'mobile' => isset($_POST['mobile']) ? sanitize_text_field(wp_unslash($_POST['mobile'])) : '',
         'first_name' => isset($_POST['first_name']) ? sanitize_text_field(wp_unslash($_POST['first_name'])) : '',
@@ -2052,6 +2590,7 @@ function sc_ajax_secretary_quick_action_courses() {
     if (!sc_user_can_quick_actions()) {
         wp_send_json_error(['message' => 'دسترسی ندارید.']);
     }
+    // بدون فیلتر شعبه: همه دوره‌های فعال در محدوده دسترسی
     $chapter = isset($_GET['chapter']) ? sanitize_text_field(wp_unslash($_GET['chapter'])) : '';
     $courses = sc_secretary_get_quick_action_courses($chapter);
     $items = [];
@@ -2059,6 +2598,62 @@ function sc_ajax_secretary_quick_action_courses() {
         $items[] = ['id' => (int) $c->id, 'title' => (string) $c->title];
     }
     wp_send_json_success(['items' => $items]);
+}
+
+add_action('wp_ajax_sc_secretary_quick_action_chapters', 'sc_ajax_secretary_quick_action_chapters');
+function sc_ajax_secretary_quick_action_chapters() {
+    check_ajax_referer('sc_secretary_quick_actions', 'nonce');
+    if (!sc_user_can_quick_actions()) {
+        wp_send_json_error(['message' => 'دسترسی ندارید.']);
+    }
+    $course_id = isset($_REQUEST['course_id']) ? absint($_REQUEST['course_id']) : 0;
+    $chapters = sc_secretary_get_quick_action_chapters_for_course($course_id);
+    $items = [];
+    foreach ($chapters as $ch) {
+        $items[] = ['id' => (string) $ch, 'title' => (string) $ch];
+    }
+    wp_send_json_success(['items' => $items]);
+}
+
+add_action('wp_ajax_sc_secretary_quick_enrollment_options', 'sc_ajax_secretary_quick_enrollment_options');
+function sc_ajax_secretary_quick_enrollment_options() {
+    check_ajax_referer('sc_secretary_quick_actions', 'nonce');
+    if (!sc_user_can_quick_actions()) {
+        wp_send_json_error(['message' => 'دسترسی ندارید.']);
+    }
+    $course_id = isset($_REQUEST['course_id']) ? absint($_REQUEST['course_id']) : 0;
+    $chapter = isset($_REQUEST['chapter']) ? sanitize_text_field(wp_unslash($_REQUEST['chapter'])) : '';
+
+    if ($course_id < 1 || $chapter === '') {
+        wp_send_json_success([
+            'has_grouping' => false,
+            'coaches' => [],
+            'groups' => [],
+            'coach_required' => false,
+            'has_packages' => false,
+            'packages' => [],
+            'default_remaining_sessions' => 0,
+            'default_total_sessions' => 0,
+        ]);
+    }
+
+    if (!sc_secretary_chapter_in_scope($chapter)) {
+        wp_send_json_error(['message' => 'شعبه در محدوده دسترسی شما نیست.']);
+    }
+
+    $options = sc_secretary_get_quick_action_enrollment_options($course_id, $chapter);
+    $options['groups'] = array_map(static function ($group) {
+        if (is_array($group)) {
+            return [
+                'name' => isset($group['name']) ? (string) $group['name'] : '',
+                'chapter_name' => isset($group['chapter_name']) ? (string) $group['chapter_name'] : '',
+                'coach_id' => isset($group['coach_id']) ? (int) $group['coach_id'] : 0,
+            ];
+        }
+        return $group;
+    }, (array) ($options['groups'] ?? []));
+
+    wp_send_json_success($options);
 }
 
 add_action('wp_ajax_sc_secretary_quick_enroll', 'sc_ajax_secretary_quick_enroll');
@@ -2074,6 +2669,8 @@ function sc_ajax_secretary_quick_enroll() {
         'payment_status' => isset($_POST['payment_status']) ? sanitize_text_field(wp_unslash($_POST['payment_status'])) : 'pending',
         'coach_id' => isset($_POST['coach_id']) ? absint($_POST['coach_id']) : 0,
         'group_name' => isset($_POST['group_name']) ? sanitize_text_field(wp_unslash($_POST['group_name'])) : '',
+        'remaining_sessions' => isset($_POST['remaining_sessions']) ? sanitize_text_field(wp_unslash($_POST['remaining_sessions'])) : '',
+        'package_sessions' => isset($_POST['package_sessions']) ? sanitize_text_field(wp_unslash($_POST['package_sessions'])) : '',
     ]);
     if (empty($result['success'])) {
         wp_send_json_error(['message' => $result['message'] ?? 'خطا']);
@@ -2091,9 +2688,14 @@ function sc_ajax_secretary_quick_register() {
         'mobile' => isset($_POST['mobile']) ? sanitize_text_field(wp_unslash($_POST['mobile'])) : '',
         'first_name' => isset($_POST['first_name']) ? sanitize_text_field(wp_unslash($_POST['first_name'])) : '',
         'last_name' => isset($_POST['last_name']) ? sanitize_text_field(wp_unslash($_POST['last_name'])) : '',
+        'password' => isset($_POST['password']) ? (string) wp_unslash($_POST['password']) : '',
         'course_id' => isset($_POST['course_id']) ? absint($_POST['course_id']) : 0,
         'chapter' => isset($_POST['chapter']) ? sanitize_text_field(wp_unslash($_POST['chapter'])) : '',
         'payment_status' => isset($_POST['payment_status']) ? sanitize_text_field(wp_unslash($_POST['payment_status'])) : 'pending',
+        'coach_id' => isset($_POST['coach_id']) ? absint($_POST['coach_id']) : 0,
+        'group_name' => isset($_POST['group_name']) ? sanitize_text_field(wp_unslash($_POST['group_name'])) : '',
+        'remaining_sessions' => isset($_POST['remaining_sessions']) ? sanitize_text_field(wp_unslash($_POST['remaining_sessions'])) : '',
+        'package_sessions' => isset($_POST['package_sessions']) ? sanitize_text_field(wp_unslash($_POST['package_sessions'])) : '',
     ]);
     if (empty($result['success'])) {
         wp_send_json_error(['message' => $result['message'] ?? 'خطا']);

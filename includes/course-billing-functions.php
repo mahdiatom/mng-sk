@@ -504,12 +504,17 @@ function sc_should_create_monthly_invoice_for_member_course($member_course, $bil
         return false;
     }
 
-    if (sc_member_course_has_invoice_for_period($member_course_id, $billing_period, 'monthly_regular')
-        || sc_member_course_has_invoice_for_period($member_course_id, $billing_period, 'system defalt')) {
+    global $wpdb;
+    $inv_table = $wpdb->prefix . 'sc_invoices';
+
+    // هر نوع فاکتور برای همین دورهٔ شمسی — جلوگیری از دوباره‌کاری بعد از ثبت‌نام/تایید پرداخت
+    if (sc_member_course_has_invoice_for_period($member_course_id, $billing_period, '')) {
         return false;
     }
 
-    if (sc_member_course_has_invoice_for_period($member_course_id, $billing_period, 'initial_prorated')) {
+    if (sc_member_course_has_invoice_for_period($member_course_id, $billing_period, 'monthly_regular')
+        || sc_member_course_has_invoice_for_period($member_course_id, $billing_period, 'system defalt')
+        || sc_member_course_has_invoice_for_period($member_course_id, $billing_period, 'initial_prorated')) {
         return false;
     }
 
@@ -519,6 +524,34 @@ function sc_should_create_monthly_invoice_for_member_course($member_course, $bil
         && (int) $member_course->billing_deferred === 1;
 
     if ($deferred && $enroll_period === $billing_period) {
+        return false;
+    }
+
+    // همین ماه ثبت‌نام شده و قبلاً هر فاکتوری (حتی بدون billing_period) دارد → ماهانه نساز
+    if ($enroll_period !== '' && $enroll_period === $billing_period) {
+        $any = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$inv_table}
+             WHERE member_course_id = %d
+                OR (member_id = %d AND course_id = %d)",
+            $member_course_id,
+            isset($member_course->member_id) ? (int) $member_course->member_id : 0,
+            isset($member_course->course_id) ? (int) $member_course->course_id : 0
+        ));
+        if ($any > 0) {
+            return false;
+        }
+    }
+
+    // فاکتور باز (در انتظار) برای این ثبت‌نام
+    $pending = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM {$inv_table}
+         WHERE (member_course_id = %d OR (member_id = %d AND course_id = %d))
+           AND status IN ('pending','under_review')",
+        $member_course_id,
+        isset($member_course->member_id) ? (int) $member_course->member_id : 0,
+        isset($member_course->course_id) ? (int) $member_course->course_id : 0
+    ));
+    if ($pending > 0) {
         return false;
     }
 
@@ -562,8 +595,30 @@ function sc_create_enrollment_invoice_for_member_course($member_id, $member_cour
         "SELECT COUNT(*) FROM {$inv_table} WHERE member_course_id = %d",
         $member_course_id
     ));
+    if ($inv_count < 1) {
+        $inv_count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$inv_table}
+             WHERE member_id = %d AND course_id = %d
+               AND status IN ('pending','under_review')",
+            $member_id,
+            (int) $row->course_id
+        ));
+    }
     if ($inv_count > 0) {
-        return ['success' => false, 'message' => 'برای این ثبت‌نام قبلاً صورت‌حساب صادر شده است.'];
+        $existing_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$inv_table}
+             WHERE member_course_id = %d
+                OR (member_id = %d AND course_id = %d AND status IN ('pending','under_review'))
+             ORDER BY id DESC LIMIT 1",
+            $member_course_id,
+            $member_id,
+            (int) $row->course_id
+        ));
+        return [
+            'success' => false,
+            'message' => 'برای این ثبت‌نام قبلاً صورت‌حساب صادر شده است.',
+            'invoice_id' => $existing_id,
+        ];
     }
 
     $short_mode = isset($options['short_sessions_mode']) ? sanitize_text_field((string) $options['short_sessions_mode']) : 'charge_remaining';
@@ -673,6 +728,17 @@ function sc_create_enrollment_invoice_for_member_course($member_id, $member_cour
         $wpdb->update(
             $mc_table,
             ['billing_deferred' => 0, 'updated_at' => current_time('mysql')],
+            ['id' => $member_course_id],
+            ['%d', '%s'],
+            ['%d']
+        );
+    }
+
+    // جلوگیری از فاکتور تکراری کرون آستانهٔ جلسات بعد از فاکتور ثبت‌نام
+    if (is_array($result) && !empty($result['success']) && !empty($result['invoice_id'])) {
+        $wpdb->update(
+            $mc_table,
+            ['threshold_invoiced' => 1, 'updated_at' => current_time('mysql')],
             ['id' => $member_course_id],
             ['%d', '%s'],
             ['%d']

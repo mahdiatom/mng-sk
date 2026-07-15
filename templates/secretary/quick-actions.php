@@ -10,9 +10,10 @@ if (!function_exists('sc_user_can_quick_actions') || !sc_user_can_quick_actions(
 $is_branch_scoped = function_exists('sc_quick_actions_is_branch_scoped') && sc_quick_actions_is_branch_scoped();
 $chapters = function_exists('sc_quick_actions_get_chapters') ? sc_quick_actions_get_chapters() : [];
 $filter_chapter = function_exists('sc_secretary_get_filter_chapter') ? sc_secretary_get_filter_chapter() : 'all';
-$default_chapter = ($filter_chapter !== 'all') ? $filter_chapter : (isset($chapters[0]) ? $chapters[0] : '');
+$default_chapter = ($filter_chapter !== 'all') ? $filter_chapter : '';
+// ابتدا همه دوره‌های مجاز؛ شعبه بعد از انتخاب دوره فیلتر می‌شود
 $courses = function_exists('sc_secretary_get_quick_action_courses')
-    ? sc_secretary_get_quick_action_courses($default_chapter)
+    ? sc_secretary_get_quick_action_courses('')
     : (function_exists('sc_secretary_get_branch_courses') ? sc_secretary_get_branch_courses() : []);
 
 $sounds = [];
@@ -26,7 +27,7 @@ wp_enqueue_script(
     'sc-secretary-quick-actions',
     SC_ASSETS_URL . 'js/secretary-quick-actions.js',
     ['jquery'],
-    defined('SC_PLUGIN_VERSION') ? SC_PLUGIN_VERSION : '1.0',
+    (string) filemtime(SC_PLUGIN_DIR . 'assets/js/secretary-quick-actions.js'),
     true
 );
 wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
@@ -45,7 +46,7 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
     <div class="sc-members-list-header">
         <div class="sc-members-list-header-text">
             <h1 class="sc-members-list-title">اقدامات سریع</h1>
-            <p class="sc-members-list-desc"><?php if ($is_branch_scoped) : ?>ثبت‌نام بازیکن در دوره و صدور صورت‌حساب برای شعبه(های) مجاز شما. در افزودن به دوره، همه بازیکنان سایت قابل جستجو هستند؛ فقط دوره‌هایی با برنامه هفتگی فعال برای شعبه نمایش داده می‌شوند.<?php else : ?>ثبت‌نام بازیکن در دوره و صدور صورت‌حساب — دسترسی به همه شعب و دوره‌های فعال.<?php endif; ?></p>
+            <p class="sc-members-list-desc"><?php if ($is_branch_scoped) : ?>ثبت‌نام بازیکن در دوره و صدور صورت‌حساب برای شعبه(های) مجاز شما. ابتدا دوره را انتخاب کنید؛ سپس فقط شعبه‌های فعال همان دوره نمایش داده می‌شود.<?php else : ?>ثبت‌نام بازیکن در دوره و صدور صورت‌حساب — ابتدا دوره، سپس شعبه‌های فعال همان دوره.<?php endif; ?></p>
         </div>
     </div>
 
@@ -57,7 +58,7 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
     <div id="sc-qa-existing" class="sc-secretary-qa-panel sc-members-list-table-card">
         <div class="sc-secretary-qa-panel-head">
             <h2>افزودن بازیکن موجود به دوره</h2>
-            <p>نام، موبایل یا کد ملی را جستجو کنید و بازیکن را از لیست انتخاب کنید، سپس شعبه و دوره را مشخص کنید.</p>
+            <p>نام، موبایل یا کد ملی را جستجو کنید، بازیکن را انتخاب کنید، سپس دوره و بعد شعبه را مشخص کنید.</p>
         </div>
         <table class="form-table sc-secretary-qa-form-table">
             <tr>
@@ -68,17 +69,6 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
                     <p class="description">حداقل ۱ کاراکتر تایپ کنید؛ سپس روی نام بازیکن در لیست کلیک کنید.</p>
                     <div id="sc_qa_member_selected" class="sc-qa-member-selected" style="display:none;"></div>
                     <div id="sc_qa_member_results" class="sc-qa-search-results"></div>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row"><label for="sc_qa_existing_chapter">شعبه</label></th>
-                <td>
-                    <select id="sc_qa_existing_chapter" class="sc-secretary-qa-control">
-                        <?php foreach ($chapters as $ch) : ?>
-                            <option value="<?php echo esc_attr($ch); ?>" <?php selected($default_chapter, $ch); ?>><?php echo esc_html($ch); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <p class="description"><?php echo $is_branch_scoped ? 'با تغییر شعبه، لیست دوره‌ها بر اساس برنامه هفتگی همان شعبه به‌روز می‌شود.' : 'با تغییر شعبه، لیست دوره‌های فعال همان شعبه به‌روز می‌شود.'; ?></p>
                 </td>
             </tr>
             <tr>
@@ -93,6 +83,48 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
                 </td>
             </tr>
             <tr>
+                <th scope="row"><label for="sc_qa_existing_chapter">شعبه</label></th>
+                <td>
+                    <select id="sc_qa_existing_chapter" class="sc-secretary-qa-control" disabled>
+                        <option value="">ابتدا دوره را انتخاب کنید</option>
+                    </select>
+                    <p class="description">فقط شعبه‌هایی که برای دوره انتخاب‌شده فعال هستند نمایش داده می‌شود.</p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><label for="sc_qa_existing_coach">مربی</label></th>
+                <td>
+                    <select id="sc_qa_existing_coach" class="sc-secretary-qa-control" disabled>
+                        <option value="">ابتدا شعبه را انتخاب کنید</option>
+                    </select>
+                </td>
+            </tr>
+            <tr class="sc-qa-group-row" style="display:none;">
+                <th scope="row"><label for="sc_qa_existing_group">گروه</label></th>
+                <td>
+                    <select id="sc_qa_existing_group" class="sc-secretary-qa-control" disabled>
+                        <option value="">ابتدا مربی را انتخاب کنید</option>
+                    </select>
+                    <p class="description">فقط گروه‌های همان مربی در شعبه و دوره انتخاب‌شده نمایش داده می‌شود.</p>
+                </td>
+            </tr>
+            <tr class="sc-qa-package-row" style="display:none;">
+                <th scope="row"><label for="sc_qa_existing_package">پکیج قیمتی</label></th>
+                <td>
+                    <select id="sc_qa_existing_package" class="sc-secretary-qa-control">
+                        <option value="">— انتخاب پکیج —</option>
+                    </select>
+                    <p class="description">می‌توانید یکی از پکیج‌ها را انتخاب کنید یا گزینه «دلخواه» را بزنید.</p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><label for="sc_qa_existing_remaining">جلسات باقی‌مانده</label></th>
+                <td>
+                    <input type="number" id="sc_qa_existing_remaining" class="regular-text sc-secretary-qa-control" min="0" step="1" value="" placeholder="پیش‌فرض دوره" />
+                    <p class="description">خالی بگذارید تا تعداد پیش‌فرض دوره/پکیج اعمال شود. می‌توانید عددی بیشتر از جلسات دوره وارد کنید.</p>
+                </td>
+            </tr>
+            <tr>
                 <th scope="row"><label for="sc_qa_existing_payment">وضعیت پرداخت</label></th>
                 <td>
                     <select id="sc_qa_existing_payment" class="sc-secretary-qa-control">
@@ -104,8 +136,9 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
             </tr>
         </table>
         <div class="sc-secretary-qa-actions">
-            <button type="button" class="button button-primary sc-qa-submit" id="sc_qa_existing_submit">بررسی اطلاعات</button>
-            <p class="description sc-qa-submit-hint">ابتدا «بررسی اطلاعات» را بزنید؛ پس از تأیید، دکمه به «تایید و ثبت در دوره» تغییر می‌کند.</p>
+            <button type="button" class="button button-secondary sc-qa-check" id="sc_qa_existing_check">بررسی اطلاعات</button>
+            <button type="button" class="button button-primary sc-qa-confirm" id="sc_qa_existing_confirm" disabled>تایید و ثبت در دوره</button>
+            <p class="description sc-qa-submit-hint">ابتدا «بررسی اطلاعات» را بزنید. فاکتور فقط بعد از «تایید و ثبت در دوره» ساخته می‌شود.</p>
         </div>
         <div id="sc_qa_existing_message" class="sc-qa-message" aria-live="polite"></div>
         <div id="sc_qa_existing_validation" class="sc-qa-validation" aria-live="polite" style="display:none;"></div>
@@ -114,7 +147,7 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
     <div id="sc-qa-new" class="sc-secretary-qa-panel sc-members-list-table-card" style="display:none;">
         <div class="sc-secretary-qa-panel-head">
             <h2>ثبت‌نام بازیکن جدید + دوره</h2>
-            <p>بازیکن جدید را با موبایل ثبت کنید و هم‌زمان در دوره شعبه خود فعال کنید.</p>
+            <p>بازیکن جدید را ثبت کنید؛ ابتدا دوره را انتخاب کنید، سپس فقط شعبه‌های فعال همان دوره را ببینید.</p>
         </div>
         <table class="form-table sc-secretary-qa-form-table">
             <tr>
@@ -130,13 +163,10 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
                 <td><input type="text" id="sc_qa_new_last" class="regular-text sc-secretary-qa-control" /></td>
             </tr>
             <tr>
-                <th scope="row"><label for="sc_qa_new_chapter">شعبه</label></th>
+                <th scope="row"><label for="sc_qa_new_password">رمز عبور</label></th>
                 <td>
-                    <select id="sc_qa_new_chapter" class="sc-secretary-qa-control">
-                        <?php foreach ($chapters as $ch) : ?>
-                            <option value="<?php echo esc_attr($ch); ?>" <?php selected($default_chapter, $ch); ?>><?php echo esc_html($ch); ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <input type="text" id="sc_qa_new_password" class="regular-text sc-secretary-qa-control" autocomplete="new-password" placeholder="اختیاری — حداقل ۶ کاراکتر" />
+                    <p class="description">اگر خالی باشد، رمز عبور به‌صورت خودکار ساخته می‌شود. نقش کاربر همیشه «بازیکن» خواهد بود.</p>
                 </td>
             </tr>
             <tr>
@@ -151,6 +181,48 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
                 </td>
             </tr>
             <tr>
+                <th scope="row"><label for="sc_qa_new_chapter">شعبه</label></th>
+                <td>
+                    <select id="sc_qa_new_chapter" class="sc-secretary-qa-control" disabled>
+                        <option value="">ابتدا دوره را انتخاب کنید</option>
+                    </select>
+                    <p class="description">فقط شعبه‌هایی که برای دوره انتخاب‌شده فعال هستند نمایش داده می‌شود.</p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><label for="sc_qa_new_coach">مربی</label></th>
+                <td>
+                    <select id="sc_qa_new_coach" class="sc-secretary-qa-control" disabled>
+                        <option value="">ابتدا شعبه را انتخاب کنید</option>
+                    </select>
+                </td>
+            </tr>
+            <tr class="sc-qa-group-row" style="display:none;">
+                <th scope="row"><label for="sc_qa_new_group">گروه</label></th>
+                <td>
+                    <select id="sc_qa_new_group" class="sc-secretary-qa-control" disabled>
+                        <option value="">ابتدا مربی را انتخاب کنید</option>
+                    </select>
+                    <p class="description">فقط گروه‌های همان مربی در شعبه و دوره انتخاب‌شده نمایش داده می‌شود.</p>
+                </td>
+            </tr>
+            <tr class="sc-qa-package-row" style="display:none;">
+                <th scope="row"><label for="sc_qa_new_package">پکیج قیمتی</label></th>
+                <td>
+                    <select id="sc_qa_new_package" class="sc-secretary-qa-control">
+                        <option value="">— انتخاب پکیج —</option>
+                    </select>
+                    <p class="description">می‌توانید یکی از پکیج‌ها را انتخاب کنید یا گزینه «دلخواه» را بزنید.</p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><label for="sc_qa_new_remaining">جلسات باقی‌مانده</label></th>
+                <td>
+                    <input type="number" id="sc_qa_new_remaining" class="regular-text sc-secretary-qa-control" min="0" step="1" value="" placeholder="پیش‌فرض دوره" />
+                    <p class="description">خالی بگذارید تا تعداد پیش‌فرض دوره/پکیج اعمال شود. می‌توانید عددی بیشتر از جلسات دوره وارد کنید.</p>
+                </td>
+            </tr>
+            <tr>
                 <th scope="row"><label for="sc_qa_new_payment">وضعیت پرداخت</label></th>
                 <td>
                     <select id="sc_qa_new_payment" class="sc-secretary-qa-control">
@@ -162,8 +234,9 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
             </tr>
         </table>
         <div class="sc-secretary-qa-actions">
-            <button type="button" class="button button-primary sc-qa-submit" id="sc_qa_new_submit">بررسی اطلاعات</button>
-            <p class="description sc-qa-submit-hint">ابتدا بررسی کنید، سپس در صورت موفقیت ثبت نهایی را تأیید کنید.</p>
+            <button type="button" class="button button-secondary sc-qa-check" id="sc_qa_new_check">بررسی اطلاعات</button>
+            <button type="button" class="button button-primary sc-qa-confirm" id="sc_qa_new_confirm" disabled>تایید و ثبت در دوره</button>
+            <p class="description sc-qa-submit-hint">ابتدا بررسی کنید؛ فاکتور فقط بعد از تایید نهایی ساخته می‌شود.</p>
         </div>
         <div id="sc_qa_new_validation" class="sc-qa-validation" aria-live="polite" style="display:none;"></div>
         <div id="sc_qa_new_message" class="sc-qa-message" aria-live="polite"></div>
@@ -223,13 +296,15 @@ body[class*="_page_sc-secretary-quick-actions"] .sc-qa-submit-hint {
     color: #6b7280;
     font-size: 12px;
 }
-body[class*="_page_sc-secretary-quick-actions"] .sc-qa-submit.is-checking {
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-check.is-checking,
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-confirm.is-checking {
     opacity: 0.85;
     cursor: wait;
     position: relative;
     padding-right: 28px;
 }
-body[class*="_page_sc-secretary-quick-actions"] .sc-qa-submit.is-checking::after {
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-check.is-checking::after,
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-confirm.is-checking::after {
     content: '';
     position: absolute;
     right: 10px;
@@ -242,14 +317,15 @@ body[class*="_page_sc-secretary-quick-actions"] .sc-qa-submit.is-checking::after
     border-radius: 50%;
     animation: sc-qa-spin 0.7s linear infinite;
 }
-body[class*="_page_sc-secretary-quick-actions"] .sc-qa-submit.is-ready {
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-confirm.is-ready:not(:disabled) {
     background: #047857 !important;
     border-color: #047857 !important;
     box-shadow: 0 0 0 2px rgba(4, 120, 87, 0.15);
 }
-body[class*="_page_sc-secretary-quick-actions"] .sc-qa-submit.is-error-flash {
+body[class*="_page_sc-secretary-quick-actions"] .sc-qa-check.is-error-flash {
     background: #b32d2e !important;
     border-color: #b32d2e !important;
+    color: #fff !important;
 }
 @keyframes sc-qa-spin {
     to { transform: rotate(360deg); }

@@ -1775,6 +1775,63 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
     global $wpdb;
     $invoices_table = $wpdb->prefix . 'sc_invoices';
     $courses_table = $wpdb->prefix . 'sc_courses';
+    $member_id = absint($member_id);
+    $course_id = absint($course_id);
+    $member_course_id = absint($member_course_id);
+
+    // جلوگیری از فاکتور pending تکراری برای همان ثبت‌نام / عضو+دوره
+    if ($member_course_id > 0) {
+        $pending_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$invoices_table}
+             WHERE member_course_id = %d AND status IN ('pending','under_review')
+             ORDER BY id DESC LIMIT 1",
+            $member_course_id
+        ));
+        if ($pending_id > 0) {
+            return [
+                'success' => false,
+                'message' => 'برای این ثبت‌نام قبلاً صورت‌حساب در انتظار پرداخت وجود دارد.',
+                'invoice_id' => $pending_id,
+            ];
+        }
+    }
+    if ($member_id > 0 && $course_id > 0) {
+        $pending_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$invoices_table}
+             WHERE member_id = %d AND course_id = %d AND status IN ('pending','under_review')
+             ORDER BY id DESC LIMIT 1",
+            $member_id,
+            $course_id
+        ));
+        if ($pending_id > 0) {
+            return [
+                'success' => false,
+                'message' => 'برای این بازیکن در این دوره قبلاً صورت‌حساب در انتظار پرداخت وجود دارد.',
+                'invoice_id' => $pending_id,
+            ];
+        }
+    }
+
+    // کرون interval/آستانه: اگر هر فاکتوری از قبل هست (حتی تاییدشده)، دوباره نساز
+    $auto_types = ['system defalt', 'session_auto'];
+    if (in_array((string) $type, $auto_types, true) && $member_course_id > 0) {
+        $existing_any = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$invoices_table}
+             WHERE member_course_id = %d
+                OR (member_id = %d AND course_id = %d)
+             ORDER BY id DESC LIMIT 1",
+            $member_course_id,
+            $member_id,
+            $course_id
+        ));
+        if ($existing_any > 0) {
+            return [
+                'success' => false,
+                'message' => 'برای این ثبت‌نام قبلاً صورت‌حساب صادر شده است؛ فاکتور خودکار ایجاد نمی‌شود.',
+                'invoice_id' => $existing_any,
+            ];
+        }
+    }
     
     // دریافت اطلاعات دوره
     $course = $wpdb->get_row($wpdb->prepare(
