@@ -2,9 +2,8 @@
 if (!defined('ABSPATH')) {
     exit;
 }
-if (!function_exists('sc_user_can_staff_admin_panel') || !sc_user_can_staff_admin_panel()) {
-    wp_die('دسترسی غیرمجاز.');
-}
+$is_coach = !empty($GLOBALS['sc_programs_is_coach']);
+$GLOBALS['sc_programs_is_coach'] = $is_coach;
 
 global $wpdb;
 $members_table = $wpdb->prefix . 'sc_members';
@@ -13,70 +12,93 @@ $events_table = $wpdb->prefix . 'sc_events';
 $team_table = $wpdb->prefix . 'sc_team_categories';
 $level_table = $wpdb->prefix . 'sc_level_categories';
 
-$members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name, first_name");
+$ctx = sc_program_staff_context();
+if ($ctx['is_coach'] && function_exists('sc_private_notes_get_member_ids_for_coach')) {
+    $allowed = sc_private_notes_get_member_ids_for_coach($ctx['coach_id']);
+    if (!empty($allowed)) {
+        $ph = implode(',', array_fill(0, count($allowed), '%d'));
+        $members = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, first_name, last_name, national_id FROM $members_table WHERE id IN ($ph) ORDER BY last_name, first_name",
+            ...$allowed
+        ));
+    } else {
+        $members = [];
+    }
+} elseif ($ctx['is_secretary'] && function_exists('sc_secretary_get_branch_members_for_picker')) {
+    $members = sc_secretary_get_branch_members_for_picker();
+} else {
+    $members = $wpdb->get_results("SELECT id, first_name, last_name, national_id FROM $members_table WHERE is_active = 1 ORDER BY last_name, first_name");
+}
+
+$preview_add_members = function_exists('sc_audience_get_members_for_preview_add_picker')
+    ? sc_audience_get_members_for_preview_add_picker()
+    : $members;
+
 $courses = function_exists('sc_audience_get_courses_for_picker')
     ? sc_audience_get_courses_for_picker(0)
     : $wpdb->get_results("SELECT id, title, course_type, chapter AS chapter_name FROM $courses_table WHERE deleted_at IS NULL AND is_active = 1 ORDER BY title");
-if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()) {
-    if (function_exists('sc_secretary_get_branch_members_for_picker')) {
-        $members = sc_secretary_get_branch_members_for_picker();
-    }
-    if (function_exists('sc_secretary_get_branch_courses_for_attendance')) {
-        $courses = sc_secretary_get_branch_courses_for_attendance();
-    }
-}
 $events = $wpdb->get_results("SELECT id, name FROM $events_table WHERE (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00') AND is_active = 1 ORDER BY name");
 $teams = $wpdb->get_results("SELECT id, name FROM $team_table ORDER BY name");
 $levels = $wpdb->get_results("SELECT id, name FROM $level_table ORDER BY name");
-
-$templates = sc_users_export_get_saved_templates();
-$field_labels = sc_users_export_get_field_labels();
-$can_basic_export = function_exists('sc_user_can_users_export_basic') ? sc_user_can_users_export_basic() : true;
-$can_pvc_export = function_exists('sc_user_can_users_export_pvc') && sc_user_can_users_export_pvc();
+$templates = sc_program_template_query(['status' => 'active', 'per_page' => 200]);
+$today_ymd = sc_program_today_ymd();
+$end_ymd = gmdate('Y-m-d', strtotime($today_ymd . ' +13 days'));
+$today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($today_ymd) : $today_ymd;
+$end_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($end_ymd) : $end_ymd;
+$list_page = $is_coach ? 'sc-coach-programs' : 'sc-programs';
 ?>
-
-<div class="wrap sc-users-export-page-header sc-notification-add-wrap sc-users-export-wrap sc-cert-wrap">
-    <h1 class="wp-heading-inline sc-notification-add-title">خروجی اطلاعات کاربران</h1>
-    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-users-export-templates')); ?>" class="page-title-action">تعریف قالب خروجی</a>
-    <hr class="wp-header-end">
-    <p class="sc-users-export-subtitle">فیلتر کاربران و فیلدهای خروجی را انتخاب کنید. در صورت انتخاب فیلد تصویری، خروجی PDF یا ZIP تصاویر کارت در دسترس است.</p>
+<div class="wrap sc-users-export-page-header sc-notification-add-wrap sc-users-export-wrap sc-programs-wrap sc-prog-pro">
+    <h1 class="wp-heading-inline">اختصاص برنامه تخصصی</h1>
+    <a href="<?php echo esc_url(admin_url('admin.php?page=' . $list_page)); ?>" class="page-title-action">لیست برنامه‌ها</a>
+    <p class="sc-users-export-subtitle">قالب و تاریخ را تنظیم کنید، کاربران را فیلتر کنید، پیش‌نمایش بگیرید و سپس برنامه را اختصاص دهید — دقیقاً مثل خروجی اطلاعات کاربران.</p>
 </div>
 
-<div class="wrap sc-users-export-page-body sc-notification-add-wrap sc-users-export-wrap sc-cert-wrap">
-    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="sc-users-export-form" class="sc-users-export-form sc-notification-form">
-        <?php wp_nonce_field('sc_users_info_export_action', 'sc_users_info_export_nonce'); ?>
-        <input type="hidden" name="action" value="sc_users_info_export">
+<div class="wrap sc-users-export-page-body sc-notification-add-wrap sc-users-export-wrap sc-programs-wrap sc-prog-pro">
+    <?php if (!empty($_GET['error'])) : ?>
+        <div class="notice notice-error"><p><?php echo esc_html(sanitize_text_field(wp_unslash($_GET['error']))); ?></p></div>
+    <?php endif; ?>
+
+    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="sc-users-export-form" class="sc-users-export-form sc-notification-form sc-prog-assign-form">
+        <?php wp_nonce_field('sc_issue_specialized_programs', 'sc_issue_specialized_programs_nonce'); ?>
+        <input type="hidden" name="action" value="sc_issue_specialized_programs">
+        <input type="hidden" name="sc_programs_is_coach" value="<?php echo $is_coach ? '1' : '0'; ?>">
 
         <div class="sc-notification-add-panel sc-users-export-template-panel postbox">
             <div class="postbox-header">
-                <h2>۱) انتخاب قالب (اختیاری)</h2>
+                <h2>۱) قالب و تاریخ برنامه</h2>
             </div>
             <div class="inside">
                 <table class="form-table sc-notification-form-table sc-users-export-form-table" role="presentation">
                     <tbody>
                     <tr>
-                        <th scope="row"><label for="sc-template-key">قالب خروجی</label></th>
+                        <th scope="row"><label for="template_id">قالب برنامه</label></th>
                         <td>
-                            <select name="template_key" id="sc-template-key" class="sc-notification-select">
-                                <option value="">بدون قالب</option>
-                                <?php foreach ($templates as $template) : ?>
-                                    <option
-                                        value="<?php echo esc_attr($template['key']); ?>"
-                                        data-template="<?php echo esc_attr(wp_json_encode($template)); ?>"
-                                    >
-                                        <?php echo esc_html($template['title']); ?>
+                            <select name="template_id" id="template_id" class="sc-notification-select" required>
+                                <option value="">انتخاب کنید</option>
+                                <?php foreach ($templates['rows'] as $tpl) :
+                                    $mode = $tpl->schedule_mode ?? 'fixed';
+                                    $mode_label = ['fixed' => 'بازه ثابت', 'manual' => 'دستی', 'weekly' => 'هفتگی'][$mode] ?? $mode;
+                                    ?>
+                                    <option value="<?php echo (int) $tpl->id; ?>">
+                                        <?php echo esc_html($tpl->title . ' — ' . $mode_label); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </td>
                     </tr>
                     <tr>
-                        <th scope="row">ویرایش فیلدها</th>
+                        <th scope="row"><label for="sc-prog-start-shamsi">تاریخ شروع (شمسی)</label></th>
                         <td>
-                            <label class="sc-inline-check">
-                                <input type="checkbox" name="override_template_fields" id="sc-override-template-fields" value="1">
-                                ویرایش دستی فیلدها (به‌جای فیلدهای قالب)
-                            </label>
+                            <input type="text" id="sc-prog-start-shamsi" name="start_date_shamsi" class="persian-date-input sc-notification-input regular-text" readonly value="<?php echo esc_attr($today_shamsi); ?>">
+                            <input type="hidden" name="start_date" value="<?php echo esc_attr($today_ymd); ?>">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sc-prog-end-shamsi">تاریخ پایان (شمسی)</label></th>
+                        <td>
+                            <input type="text" id="sc-prog-end-shamsi" name="end_date_shamsi" class="persian-date-input sc-notification-input regular-text" readonly value="<?php echo esc_attr($end_shamsi); ?>">
+                            <input type="hidden" name="end_date" value="<?php echo esc_attr($end_ymd); ?>">
+                            <p class="description">برای حالت هفتگی پیشنهاد می‌شود؛ در حالت ثابت معمولاً از تعداد روز قالب استفاده می‌شود.</p>
                         </td>
                     </tr>
                     </tbody>
@@ -97,7 +119,7 @@ $can_pvc_export = function_exists('sc_user_can_users_export_pvc') && sc_user_can
                             <select name="target_type" id="sc-target-type" class="sc-notification-select">
                                 <option value="all">همه کاربران فعال</option>
                                 <option value="free_users">کاربران آزاد (بدون هیچ دوره)</option>
-                                <option value="specific">انتخاب کاربران خاص (جستجو)</option>
+                                <option value="specific" selected>انتخاب کاربران خاص (جستجو)</option>
                                 <option value="course">بر اساس دوره</option>
                                 <option value="event">بر اساس رویداد</option>
                                 <option value="team">بر اساس تیم</option>
@@ -116,7 +138,7 @@ $can_pvc_export = function_exists('sc_user_can_users_export_pvc') && sc_user_can
                             </select>
                         </td>
                     </tr>
-                    <tr id="sc-filter-specific" class="sc-users-export-target-row" style="display:none;">
+                    <tr id="sc-filter-specific" class="sc-users-export-target-row">
                         <th scope="row">انتخاب کاربران</th>
                         <td>
                             <div id="sc-selected-members-count" class="sc-selected-count">0 کاربر انتخاب شده</div>
@@ -154,7 +176,7 @@ $can_pvc_export = function_exists('sc_user_can_users_export_pvc') && sc_user_can
                             <?php
                             echo function_exists('sc_render_audience_course_picker')
                                 ? sc_render_audience_course_picker((array) $courses, [], [
-                                    'id' => 'sc-users-export-course-picker',
+                                    'id' => 'sc-program-course-picker',
                                     'name' => 'course_ids[]',
                                 ])
                                 : '';
@@ -194,12 +216,12 @@ $can_pvc_export = function_exists('sc_user_can_users_export_pvc') && sc_user_can
                     <tr id="sc-filter-exclude">
                         <th scope="row">استثنا از نتایج فیلتر</th>
                         <td>
-                            <p class="description">اختیاری — کاربرانی که نباید در خروجی باشند را انتخاب کنید.</p>
+                            <p class="description">اختیاری — کاربرانی که نباید برنامه برایشان صادر شود را انتخاب کنید.</p>
                             <div id="sc-excluded-members-count" class="sc-selected-count">0 کاربر از خروجی حذف شده</div>
                             <div id="sc-excluded-members" class="sc-selected-tags sc-notification-recipient-tags"></div>
                             <div class="sc-users-member-dropdown" id="sc-exclude-member-dropdown">
                                 <div class="sc-users-dropdown-toggle">
-                                    <span class="sc-users-dropdown-placeholder">جستجو کاربر برای حذف از خروجی...</span>
+                                    <span class="sc-users-dropdown-placeholder">جستجو کاربر برای حذف از اختصاص...</span>
                                     <span class="sc-users-dropdown-arrow">▼</span>
                                 </div>
                                 <div class="sc-users-dropdown-menu">
@@ -240,12 +262,12 @@ $can_pvc_export = function_exists('sc_user_can_users_export_pvc') && sc_user_can
             </div>
             <div class="inside">
                 <div id="sc-users-preview-result" class="sc-bulk-preview-result back_table_list">
-                    <p class="description">بعد از انتخاب فیلتر، روی «پیش‌نمایش کاربران فیلترشده» کلیک کنید.</p>
+                    <p class="description">بعد از انتخاب فیلتر، روی «پیش‌نمایش کاربران فیلترشده» کلیک کنید. در پیش‌نمایش می‌توانید کاربران را انتخاب/حذف کنید.</p>
                 </div>
                 <?php
                 if (function_exists('sc_audience_render_preview_add_members_block')) {
                     sc_audience_render_preview_add_members_block(
-                        function_exists('sc_audience_get_members_for_preview_add_picker') ? sc_audience_get_members_for_preview_add_picker() : $members,
+                        $preview_add_members,
                         [
                             'wrap_id' => 'sc-users-preview-add-wrap',
                             'dropdown_id' => 'sc-users-preview-add-dropdown',
@@ -259,103 +281,8 @@ $can_pvc_export = function_exists('sc_user_can_users_export_pvc') && sc_user_can
             </div>
         </div>
 
-        <div class="sc-notification-add-panel sc-users-export-fields-panel postbox">
-            <div class="postbox-header">
-                <h2>۴) فیلدهای خروجی</h2>
-            </div>
-            <div class="inside">
-                <div class="sc-fields-grid" id="sc-fields-grid">
-                    <?php foreach ($field_labels as $key => $label) : ?>
-                        <label class="sc-inline-check sc-base-field-check">
-                            <input type="checkbox" name="fields[]" value="<?php echo esc_attr($key); ?>" <?php checked($key === 'full_name'); ?>>
-                            <?php echo esc_html($label); ?>
-                        </label>
-                    <?php endforeach; ?>
-                </div>
-                <div id="sc-event-fields-grid" class="sc-fields-grid sc-event-fields-grid"></div>
-                <input type="hidden" id="sc-event-fields-nonce" value="<?php echo esc_attr(wp_create_nonce('sc_users_export_get_event_fields')); ?>">
-            </div>
-        </div>
-
-        <div class="sc-notification-add-panel sc-users-export-output-panel postbox">
-            <div class="postbox-header">
-                <h2>۵) خروجی</h2>
-            </div>
-            <div class="inside">
-                <table class="form-table sc-notification-form-table sc-users-export-form-table" role="presentation">
-                    <tbody>
-                    <tr class="sc-export-format-row">
-                        <th scope="row"><label for="sc-export-format">فرمت خروجی</label></th>
-                        <td>
-                            <select name="export_format" id="sc-export-format" class="sc-notification-select">
-                                <option value="pdf">PDF</option>
-                                <?php if ($can_basic_export) : ?>
-                                <option value="excel">Excel</option>
-                                <?php endif; ?>
-                                <?php if ($can_pvc_export) : ?>
-                                <option value="cards_zip">ZIP تصاویر کارت‌ها (PNG)</option>
-                                <option value="excel_images">ترکیب اکسل و فایل</option>
-                                <?php endif; ?>
-                            </select>
-                            <p class="description" id="sc-export-format-desc-default">در حالت ZIP تصاویر کارت‌ها، هر کارت به‌صورت یک فایل PNG جداگانه درون فایل فشرده قرار می‌گیرد.</p>
-                            <p class="description" id="sc-export-format-desc-excel-images" style="display:none;">فقط برای مدیر کل — فیلدهای متنی در فایل اکسل و هر نوع تصویر در پوشه مخصوص خود (مثلاً عکس کارت ملی، QR و ...).</p>
-                            <div id="sc-excel-images-options" class="sc-excel-images-options" style="display:none;">
-                                <label for="sc-excel-images-name-field">نام‌گذاری فایل‌های تصویر بر اساس</label>
-                                <select name="excel_images_name_field" id="sc-excel-images-name-field" class="sc-notification-select"></select>
-                                <p class="description">دقیقاً همان مقداری که در ستون مربوطه در فایل اکسل نوشته می‌شود — بدون پیشوند یا پسوند اضافه.</p>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="sc-page-size">اندازه صفحه</label></th>
-                        <td>
-                            <select name="page_size" id="sc-page-size" class="sc-notification-select">
-                                <option value="A4">A4</option>
-                                <option value="A5">A5</option>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="sc-cards-per-page">تعداد کارت در صفحه</label></th>
-                        <td>
-                            <select name="cards_per_page" id="sc-cards-per-page" class="sc-notification-select">
-                                <option value="1">1</option>
-                                <option value="2" selected>2</option>
-                                <option value="4">4</option>
-                            </select>
-                        </td>
-                    </tr>
-                    <?php if ($can_pvc_export) : ?>
-                    <tr class="sc-pvc-export-row">
-                        <th scope="row">خروجی کارت PVC</th>
-                        <td>
-                            <label class="sc-inline-check">
-                                <input type="checkbox" name="pvc_export" id="sc-pvc-export" value="1">
-                                حالت کارت PVC (فایل ZIP شامل اکسل + پوشه تصاویر)
-                            </label>
-                            <p class="description">فقط برای مدیر کل — فیلدهای متنی در اکسل و تصاویر انتخاب‌شده در پوشه <code>images</code> قرار می‌گیرند.</p>
-                            <div id="sc-pvc-options" class="sc-pvc-options" style="display:none;">
-                                <label for="sc-pvc-image-name-field">نام‌گذاری فایل عکس بر اساس</label>
-                                <select name="pvc_image_name_field" id="sc-pvc-image-name-field" class="sc-notification-select"></select>
-                                <p class="description">اگر «نام و نام خانوادگی» انتخاب شود: <code>نام خانوادگی + شماره همراه</code> — اگر «شماره همراه» انتخاب شود: فقط شماره (مثلاً <code>09038412995</code>).</p>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endif; ?>
-                    </tbody>
-                </table>
-
-                <div class="sc-template-preview" id="sc-template-preview">
-                    <div class="sc-template-preview-title">پیش‌نمایش چیدمان</div>
-                    <div class="sc-template-preview-meta" id="sc-template-preview-meta">A4 - 2 کارت در صفحه</div>
-                    <div class="sc-template-preview-grid" id="sc-template-preview-grid"></div>
-                </div>
-            </div>
-        </div>
-
-        <script type="application/json" id="sc-export-field-labels-data"><?php echo wp_json_encode($field_labels, JSON_UNESCAPED_UNICODE); ?></script>
-        <p class="submit sc-notification-add-submit sc-users-export-submit sc-cert-submit">
-            <button class="button button-primary" type="submit">ایجاد خروجی</button>
+        <p class="submit sc-notification-add-submit sc-users-export-submit">
+            <button type="submit" class="button button-primary sc_button sc_button--primary">اختصاص برنامه تخصصی</button>
         </p>
     </form>
 </div>

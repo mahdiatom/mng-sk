@@ -136,6 +136,7 @@ function sc_header_search_link_targets_map() {
 		'sc-wallet'           => 'کیف پول',
 		'sc-support-tickets'  => 'تیکت پشتیبانی',
 		'sc-private-notes'    => 'یادداشت‌های من',
+		'sc-my-programs'      => 'برنامه‌های تخصصی من',
 		'sc-private-classes'  => 'کلاس خصوصی',
 		'shop'                => 'فروشگاه (تب حساب کاربری)',
 		'my-orders'           => 'سفارش‌های فروشگاه',

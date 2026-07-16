@@ -20,6 +20,8 @@ $jalali = gregorian_to_jalali((int) $today->format('Y'), (int) $today->format('m
 $today_shamsi = $jalali[0] . '/' . str_pad((string) $jalali[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad((string) $jalali[2], 2, '0', STR_PAD_LEFT);
 
 $nonce = wp_create_nonce('sc_attendance_report_player');
+$can_manage_attendance = function_exists('sc_user_can_manage_attendance') && sc_user_can_manage_attendance();
+$attendance_list_page = $can_manage_attendance ? 'sc-attendance-list' : 'sc-attendance-list_report';
 ?>
 
 <div class="wrap sc-att-report-wrap">
@@ -29,8 +31,10 @@ $nonce = wp_create_nonce('sc_attendance_report_player');
             <p class="sc-att-list-desc">گزارش حضور و غیاب یک بازیکن در بازه تاریخ انتخابی</p>
         </div>
         <div class="sc-att-list-header-actions">
+            <?php if ($can_manage_attendance) : ?>
             <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-add')); ?>" class="sc-att-btn-secondary">ثبت حضور و غیاب</a>
-            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-list')); ?>" class="sc-att-btn-primary">لیست حضور و غیاب</a>
+            <?php endif; ?>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=' . $attendance_list_page)); ?>" class="sc-att-btn-primary">لیست حضور و غیاب</a>
         </div>
     </div>
 

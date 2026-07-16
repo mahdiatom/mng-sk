@@ -1253,6 +1253,154 @@ function sc_create_private_note_messages_table() {
 }
 
 /**
+ * جداول برنامه تخصصی
+ */
+function sc_create_specialized_program_tables() {
+    global $wpdb;
+    $charset_collate = $wpdb->get_charset_collate();
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    $library = $wpdb->prefix . 'sc_program_library_items';
+    dbDelta("CREATE TABLE `$library` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `title` varchar(255) NOT NULL,
+        `description` longtext DEFAULT NULL,
+        `media_type` varchar(20) NOT NULL DEFAULT 'none' COMMENT 'none, aparat, url, file',
+        `media_url` text DEFAULT NULL,
+        `file_path` varchar(500) DEFAULT NULL,
+        `file_name` varchar(255) DEFAULT NULL,
+        `created_by_user_id` bigint(20) unsigned NOT NULL DEFAULT 0,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_title` (`title`),
+        KEY `idx_created_at` (`created_at`)
+    ) $charset_collate");
+
+    $templates = $wpdb->prefix . 'sc_program_templates';
+    dbDelta("CREATE TABLE `$templates` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `title` varchar(255) NOT NULL,
+        `description` text DEFAULT NULL,
+        `schedule_mode` varchar(20) NOT NULL DEFAULT 'fixed' COMMENT 'fixed, manual, weekly',
+        `duration_days` int(11) unsigned NOT NULL DEFAULT 7,
+        `weekly_mask` text DEFAULT NULL COMMENT 'JSON array of PHP date(w) 0-6',
+        `status` varchar(20) NOT NULL DEFAULT 'active',
+        `created_by_user_id` bigint(20) unsigned NOT NULL DEFAULT 0,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_status` (`status`),
+        KEY `idx_updated_at` (`updated_at`)
+    ) $charset_collate");
+
+    $tdays = $wpdb->prefix . 'sc_program_template_days';
+    dbDelta("CREATE TABLE `$tdays` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `template_id` bigint(20) unsigned NOT NULL,
+        `day_offset` int(11) unsigned NOT NULL DEFAULT 0,
+        `title` varchar(255) DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_template_id` (`template_id`),
+        UNIQUE KEY `uniq_template_day` (`template_id`, `day_offset`)
+    ) $charset_collate");
+
+    $titems = $wpdb->prefix . 'sc_program_template_day_items';
+    dbDelta("CREATE TABLE `$titems` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `template_day_id` bigint(20) unsigned NOT NULL,
+        `library_item_id` bigint(20) unsigned DEFAULT NULL,
+        `title` varchar(255) NOT NULL,
+        `description` longtext DEFAULT NULL,
+        `media_type` varchar(20) NOT NULL DEFAULT 'none',
+        `media_url` text DEFAULT NULL,
+        `file_path` varchar(500) DEFAULT NULL,
+        `file_name` varchar(255) DEFAULT NULL,
+        `sort_order` int(11) NOT NULL DEFAULT 0,
+        `created_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_template_day_id` (`template_day_id`),
+        KEY `idx_library_item_id` (`library_item_id`),
+        KEY `idx_sort_order` (`sort_order`)
+    ) $charset_collate");
+
+    $programs = $wpdb->prefix . 'sc_member_programs';
+    dbDelta("CREATE TABLE `$programs` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `user_id` bigint(20) unsigned NOT NULL DEFAULT 0,
+        `template_id` bigint(20) unsigned DEFAULT NULL,
+        `title` varchar(255) NOT NULL,
+        `description` text DEFAULT NULL,
+        `schedule_mode` varchar(20) NOT NULL DEFAULT 'fixed',
+        `start_date` date NOT NULL,
+        `end_date` date DEFAULT NULL,
+        `weekly_mask` text DEFAULT NULL,
+        `status` varchar(20) NOT NULL DEFAULT 'active',
+        `created_by_user_id` bigint(20) unsigned NOT NULL DEFAULT 0,
+        `created_by_coach_id` bigint(20) unsigned DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_user_id` (`user_id`),
+        KEY `idx_template_id` (`template_id`),
+        KEY `idx_status` (`status`),
+        KEY `idx_start_date` (`start_date`)
+    ) $charset_collate");
+
+    $mdays = $wpdb->prefix . 'sc_member_program_days';
+    dbDelta("CREATE TABLE `$mdays` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `program_id` bigint(20) unsigned NOT NULL,
+        `day_offset` int(11) unsigned NOT NULL DEFAULT 0,
+        `program_date` date NOT NULL,
+        `title` varchar(255) DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_program_id` (`program_id`),
+        KEY `idx_program_date` (`program_date`),
+        UNIQUE KEY `uniq_program_date` (`program_id`, `program_date`)
+    ) $charset_collate");
+
+    $mitems = $wpdb->prefix . 'sc_member_program_day_items';
+    dbDelta("CREATE TABLE `$mitems` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `program_day_id` bigint(20) unsigned NOT NULL,
+        `source_library_item_id` bigint(20) unsigned DEFAULT NULL,
+        `title` varchar(255) NOT NULL,
+        `description` longtext DEFAULT NULL,
+        `media_type` varchar(20) NOT NULL DEFAULT 'none',
+        `media_url` text DEFAULT NULL,
+        `file_path` varchar(500) DEFAULT NULL,
+        `file_name` varchar(255) DEFAULT NULL,
+        `sort_order` int(11) NOT NULL DEFAULT 0,
+        `created_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_program_day_id` (`program_day_id`),
+        KEY `idx_source_library` (`source_library_item_id`),
+        KEY `idx_sort_order` (`sort_order`)
+    ) $charset_collate");
+
+    $completions = $wpdb->prefix . 'sc_member_program_completions';
+    dbDelta("CREATE TABLE `$completions` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `day_item_id` bigint(20) unsigned NOT NULL,
+        `program_id` bigint(20) unsigned NOT NULL,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `completed_by_user_id` bigint(20) unsigned NOT NULL DEFAULT 0,
+        `completed_by_role` varchar(20) NOT NULL DEFAULT 'player' COMMENT 'player, coach, secretary, admin',
+        `completed_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `uniq_day_item` (`day_item_id`),
+        KEY `idx_program_id` (`program_id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_completed_at` (`completed_at`)
+    ) $charset_collate");
+}
+
+/**
  * جدول لاگ ارسال پیامک (همهٔ ارسال‌ها از هر بخش)
  */
 function sc_create_sms_log_table() {
@@ -1532,6 +1680,9 @@ function sc_update_database() {
         sc_create_private_notes_table();
         sc_create_private_note_threads_table();
         sc_create_private_note_messages_table();
+        if (function_exists('sc_create_specialized_program_tables')) {
+            sc_create_specialized_program_tables();
+        }
         sc_create_sms_log_table();
         sc_create_sms_log_entries_table();
         sc_create_activity_log_table();
@@ -1947,6 +2098,13 @@ function sc_update_database() {
             sc_create_private_note_messages_table();
         }
         update_option('sc_private_note_messages_table_added', '1');
+    }
+
+    if (get_option('sc_specialized_program_tables_added', '0') !== '1') {
+        if (function_exists('sc_create_specialized_program_tables')) {
+            sc_create_specialized_program_tables();
+        }
+        update_option('sc_specialized_program_tables_added', '1');
     }
 
     // تعداد جلسات انتخاب‌شده هنگام ثبت‌نام (پکیج)

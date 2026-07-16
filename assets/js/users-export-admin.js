@@ -613,23 +613,29 @@ jQuery(function ($) {
             $('input[name="fields[]"][value="attendance_qr"]').is(':checked');
         var $format = $('#sc-export-format');
         var current = $format.val();
+        var $excelOption = $format.find('option[value="excel"]');
+        var $cardsZipOption = $format.find('option[value="cards_zip"]');
         var $excelImagesOption = $format.find('option[value="excel_images"]');
         if (hasPhoto) {
             if (current === 'excel') {
                 $format.val('pdf');
             }
-            $format.find('option[value="excel"]').prop('disabled', true);
-            $format.find('option[value="cards_zip"]').prop('disabled', false);
+            $excelOption.prop('disabled', true);
+            if ($cardsZipOption.length) {
+                $cardsZipOption.prop('disabled', false);
+            }
             if ($excelImagesOption.length) {
                 $excelImagesOption.prop('disabled', false);
             }
         } else {
-            $format.find('option[value="excel"]').prop('disabled', false);
-            $format.find('option[value="cards_zip"]').prop('disabled', false);
+            $excelOption.prop('disabled', false);
+            if ($cardsZipOption.length) {
+                $cardsZipOption.prop('disabled', false);
+            }
             if ($excelImagesOption.length) {
                 $excelImagesOption.prop('disabled', true);
                 if (current === 'excel_images') {
-                    $format.val('excel');
+                    $format.val($excelOption.length ? 'excel' : 'pdf');
                 }
             }
         }

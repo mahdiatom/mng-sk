@@ -965,14 +965,30 @@ function sc_users_export_filename() {
 }
 
 /**
- * خروجی‌های ZIP ویژه (PVC، ترکیب اکسل و فایل) — فقط مدیر کل (manage_options).
+ * خروجی PDF و Excel — مدیر کل، مدیر باشگاه، مدیر سامانه، منشی.
+ */
+function sc_user_can_users_export_basic($user_id = 0) {
+    $user_id = $user_id > 0 ? (int) $user_id : get_current_user_id();
+    if ($user_id <= 0) {
+        return false;
+    }
+    if (function_exists('sc_user_can_staff_admin_panel') && sc_user_can_staff_admin_panel($user_id)) {
+        return true;
+    }
+    return user_can($user_id, 'administrator')
+        || (function_exists('sc_user_has_club_manager_role') && sc_user_has_club_manager_role($user_id))
+        || (function_exists('sc_user_is_secretary') && sc_user_is_secretary($user_id));
+}
+
+/**
+ * خروجی‌های ویژه (ZIP تصاویر، PVC، ترکیب اکسل و فایل) — فقط مدیر کل.
  */
 function sc_user_can_users_export_pvc($user_id = 0) {
     $user_id = $user_id > 0 ? (int) $user_id : get_current_user_id();
     if ($user_id <= 0) {
         return false;
     }
-    return user_can($user_id, 'manage_options');
+    return user_can($user_id, 'administrator');
 }
 
 /**
@@ -1922,7 +1938,7 @@ function sc_users_info_export_handler() {
     $pvc_export = !empty($_POST['pvc_export']);
     if ($pvc_export) {
         if (!sc_user_can_users_export_pvc()) {
-            wp_die('خروجی کارت PVC فقط برای مدیر کل سامانه فعال است.');
+            wp_die('خروجی کارت PVC فقط برای مدیر کل فعال است.');
         }
         $pvc_name_field = isset($_POST['pvc_image_name_field']) ? sanitize_key(wp_unslash($_POST['pvc_image_name_field'])) : 'full_name';
         sc_users_export_to_pvc_zip($rows, $fields, $field_labels, [
@@ -1935,7 +1951,7 @@ function sc_users_info_export_handler() {
     $format = isset($_POST['export_format']) ? sanitize_text_field(wp_unslash($_POST['export_format'])) : 'pdf';
     if ($format === 'excel_images' || $excel_images_export) {
         if (!sc_user_can_users_export_pvc()) {
-            wp_die('خروجی ترکیب اکسل و فایل فقط برای مدیر کل سامانه فعال است.');
+            wp_die('خروجی ترکیب اکسل و فایل فقط برای مدیر کل فعال است.');
         }
         $excel_images_name_field = isset($_POST['excel_images_name_field']) ? sanitize_key(wp_unslash($_POST['excel_images_name_field'])) : 'full_name';
         sc_users_export_to_excel_images_zip($rows, $fields, $field_labels, [
@@ -1946,6 +1962,12 @@ function sc_users_info_export_handler() {
 
     if (!in_array($format, ['pdf', 'excel', 'cards_zip'], true)) {
         $format = 'pdf';
+    }
+    if ($format === 'excel' && !sc_user_can_users_export_basic()) {
+        wp_die('خروجی Excel فقط برای مدیر کل، مدیر باشگاه، مدیر سامانه و منشی فعال است.');
+    }
+    if ($format === 'cards_zip' && !sc_user_can_users_export_pvc()) {
+        wp_die('خروجی ZIP تصاویر فقط برای مدیر کل فعال است.');
     }
     $layout = [
         'page_size' => isset($_POST['page_size']) ? sanitize_text_field(wp_unslash($_POST['page_size'])) : ($template['page_size'] ?? 'A4'),

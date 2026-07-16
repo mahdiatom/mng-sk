@@ -1113,17 +1113,24 @@ add_filter('woocommerce_logout_default_redirect_url', function ($redirect) {
  */
 add_action('init', function () {
     add_shortcode('sc_login_register_form', 'sc_login_register_shortcode');
+    add_shortcode('sc_admin_login_form', 'sc_admin_login_shortcode');
 });
 
 /**
  * HTML داخلی کارت فرم ورود
  */
-function sc_login_register_render_card() {
+function sc_login_register_render_card($args = []) {
     $logo_url     = sc_get_setting('sc_login_logo_url', '');
     $sc_name_club = sc_get_setting('sc_name_club', '');
+    $args = wp_parse_args($args, [
+        'card_class' => '',
+        'badge_text' => '',
+        'title'      => 'ورود به ' . $sc_name_club,
+        'subtitle'   => '',
+    ]);
     ob_start();
     ?>
-    <div class="sc-lr-card">
+    <div class="sc-lr-card <?php echo esc_attr($args['card_class']); ?>">
         <div class="sc-lr-alert sc-lr-alert-error" id="sc-lr-global-error" role="alert" aria-live="polite" style="display:none;">
             <span class="sc-lr-alert-icon" aria-hidden="true"></span>
             <span class="sc-lr-alert-text" id="sc-lr-global-error-text"></span>
@@ -1133,7 +1140,13 @@ function sc_login_register_render_card() {
                 <img src="<?php echo esc_url($logo_url); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>">
             </div>
         <?php endif; ?>
-        <h2 class="sc-lr-title">ورود به <?php echo esc_html($sc_name_club); ?></h2>
+        <?php if ($args['badge_text'] !== '') : ?>
+            <div class="sc-lr-badge"><?php echo esc_html($args['badge_text']); ?></div>
+        <?php endif; ?>
+        <h2 class="sc-lr-title"><?php echo esc_html($args['title']); ?></h2>
+        <?php if ($args['subtitle'] !== '') : ?>
+            <p class="sc-lr-title-sub"><?php echo esc_html($args['subtitle']); ?></p>
+        <?php endif; ?>
         <div class="sc-lr-tabs" role="tablist" aria-label="روش ورود">
             <button type="button" class="sc-lr-tab is-active" id="sc-lr-tab-phone" role="tab" aria-selected="true" aria-controls="sc-lr-panel-phone" data-tab="phone">ورود با موبایل</button>
             <button type="button" class="sc-lr-tab" id="sc-lr-tab-nid" role="tab" aria-selected="false" aria-controls="sc-lr-panel-nid" data-tab="nid">ورود با کد ملی</button>
@@ -1314,5 +1327,117 @@ function sc_login_register_shortcode() {
         </div>
         <?php
     endif;
+    return ob_get_clean();
+}
+
+function sc_admin_login_shortcode() {
+    if (is_user_logged_in()) {
+        $redirect = admin_url();
+        return '<div class="sc-lr-logged-in"><p>شما وارد شده‌اید.</p><p><a href="' . esc_url($redirect) . '">رفتن به پنل مدیریت</a></p></div>';
+    }
+
+    wp_enqueue_style(
+        'sc-login-register',
+        SC_ASSETS_URL . 'css/login-register.css',
+        [],
+        (defined('SC_VERSION') ? SC_VERSION : time())
+    );
+    wp_enqueue_script(
+        'sc-login-register',
+        SC_ASSETS_URL . 'js/login-register.js',
+        ['jquery'],
+        (defined('SC_VERSION') ? SC_VERSION : time()),
+        true
+    );
+    wp_localize_script('sc-login-register', 'scLoginRegister', [
+        'ajaxurl' => admin_url('admin-ajax.php'),
+        'nonce'   => wp_create_nonce('sc_login_register'),
+        'strings' => [
+            'enter_phone'   => 'شماره موبایل یا پست الکترونیک',
+            'submit'        => 'ورود مدیران',
+            'password'      => 'رمز عبور',
+            'send_otp'      => 'ارسال کد یکبارمصرف',
+            'otp_placeholder' => 'کد تأیید',
+            'first_name'    => 'نام',
+            'last_name'     => 'نام خانوادگی',
+            'register_btn'  => 'ثبت‌نام و دریافت کد',
+            'verify_btn'    => 'تأیید و ورود',
+            'login_btn'     => 'ورود',
+            'back'          => 'بازگشت',
+            'loading'       => 'لطفاً صبر کنید...',
+            'err_phone'       => 'شماره موبایل معتبر وارد کنید.',
+            'err_phone_empty' => 'لطفاً شماره موبایل را وارد کنید.',
+            'err_phone_short' => 'شماره موبایل باید ۱۱ رقم و به صورت ۰۹xxxxxxxxx باشد.',
+            'err_phone_prefix'=> 'شماره موبایل باید با ۰۹ شروع شود.',
+            'err_phone_invalid'=> 'فرمت شماره موبایل صحیح نیست. نمونه: ۰۹۱۲۱۲۳۴۵۶۷',
+            'err_nid'       => 'کد ملی ۱۰ رقمی معتبر وارد کنید.',
+            'tab_phone'     => 'ورود با موبایل',
+            'tab_nid'       => 'ورود با کد ملی',
+            'pick_user'     => 'انتخاب حساب کاربری',
+        ],
+    ]);
+
+    $bg_color   = sc_get_setting('sc_login_bg_color', '#ffffff');
+    $bg_image   = sc_get_setting('sc_login_bg_image', '');
+    $btn_bg     = sc_get_setting('sc_login_btn_bg', '#e60012');
+    $btn_color  = sc_get_setting('sc_login_btn_color', '#ffffff');
+    $display_mode = sc_get_setting('sc_login_display_mode', 'mode1');
+    $card_align   = sc_get_setting('sc_login_card_align', 'center');
+    if (!in_array($display_mode, ['mode1', 'mode2', 'mode3'], true)) {
+        $display_mode = 'mode1';
+    }
+    if (!in_array($card_align, ['left', 'center', 'right'], true)) {
+        $card_align = 'center';
+    }
+
+    $style_vars = '--sc-lr-bg:' . esc_attr($bg_color) . ';--sc-lr-btn-bg:' . esc_attr($btn_bg) . ';--sc-lr-btn-color:' . esc_attr($btn_color) . ';';
+    if ($bg_image && $display_mode === 'mode1') {
+        $style_vars .= '--sc-lr-bg-image:url(' . esc_url($bg_image) . ');';
+    }
+
+    $wrap_classes = 'sc-login-register-wrap sc-lr-admin-login sc-lr-mode-' . esc_attr(substr($display_mode, -1)) . ' sc-lr-align-' . esc_attr($card_align);
+    $card_html = sc_login_register_render_card([
+        'card_class' => 'sc-lr-card-admin',
+        'badge_text' => 'ورود مدیریت',
+        'title'      => 'صفحه ورود مدیران',
+        'subtitle'   => 'این بخش مخصوص مدیران باشگاه است.',
+    ]);
+
+    ob_start();
+    if (in_array($display_mode, ['mode2', 'mode3'], true)) :
+        ?>
+        <div class="<?php echo esc_attr($wrap_classes); ?>" style="<?php echo $style_vars; ?>">
+            <div class="sc-lr-split">
+                <?php if ($display_mode === 'mode3') : ?>
+                    <div class="sc-lr-split-form">
+                        <?php echo $card_html; ?>
+                    </div>
+                    <div class="sc-lr-split-image">
+                        <?php if ($bg_image) : ?>
+                            <img src="<?php echo esc_url($bg_image); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>">
+                        <?php endif; ?>
+                    </div>
+                <?php else : ?>
+                    <div class="sc-lr-split-image">
+                        <?php if ($bg_image) : ?>
+                            <img src="<?php echo esc_url($bg_image); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>">
+                        <?php endif; ?>
+                    </div>
+                    <div class="sc-lr-split-form">
+                        <?php echo $card_html; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php
+    else :
+        ?>
+        <div class="<?php echo esc_attr($wrap_classes); ?>" style="<?php echo $style_vars; ?>">
+            <div class="sc-lr-background" aria-hidden="true"></div>
+            <?php echo $card_html; ?>
+        </div>
+        <?php
+    endif;
+
     return ob_get_clean();
 }

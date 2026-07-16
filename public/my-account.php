@@ -524,6 +524,7 @@ function sc_add_my_account_menu_item($items) {
     $items['sc-support-tickets'] = $unread_ticket > 0 ? sprintf('تیکت پشتیبانی  (%d)', $unread_ticket) : 'تیکت پشتیبانی ';
     $notes_count = function_exists('sc_private_notes_count_user_notes') ? sc_private_notes_count_user_notes(get_current_user_id()) : 0;
     $items['sc-private-notes'] = $notes_count > 0 ? sprintf('یادداشت های من (%d)', $notes_count) : 'یادداشت های من';
+    $items['sc-my-programs'] = 'برنامه‌های تخصصی من';
 
 
     $items['sc-faq'] = ' سوالات متداول ';
@@ -577,10 +578,15 @@ function sc_add_my_account_endpoint() {
     add_rewrite_endpoint('sc-surveys', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-support-tickets', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-private-notes', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-my-programs', EP_ROOT | EP_PAGES);
 
     if (get_option('sc_surveys_endpoint_flushed') !== 'yes') {
         flush_rewrite_rules();
         update_option('sc_surveys_endpoint_flushed', 'yes');
+    }
+    if (get_option('sc_my_programs_endpoint_flushed') !== 'yes') {
+        flush_rewrite_rules();
+        update_option('sc_my_programs_endpoint_flushed', 'yes');
     }
 }
 
@@ -611,6 +617,7 @@ function sc_add_my_account_query_vars($vars) {
     $vars[] = 'sc-surveys';
     $vars[] = 'sc-support-tickets';
     $vars[] = 'sc-private-notes';
+    $vars[] = 'sc-my-programs';
     $vars[] = 'my-orders';
     return $vars;
 }
@@ -692,6 +699,7 @@ add_filter('woocommerce_endpoint_sc-notifications_title', function() { return '�
 add_filter('woocommerce_endpoint_sc-surveys_title', function() { return 'نظرسنجی‌ها'; });
 add_filter('woocommerce_endpoint_sc-support-tickets_title', function() { return 'تیکت پشتیبانی'; });
 add_filter('woocommerce_endpoint_sc-private-notes_title', function() { return 'یادداشت های من'; });
+add_filter('woocommerce_endpoint_sc-my-programs_title', function() { return 'برنامه‌های تخصصی من'; });
 add_filter('woocommerce_endpoint_sc-my-certificates_title', function() { return 'گواهینامه‌ها'; });
 function sc_invoices_endpoint_title($title) {
     return 'صورت حساب‌ها';
@@ -3382,6 +3390,19 @@ function sc_my_account_private_notes_content() {
     $player = sc_check_user_active_status();
     if (!$player) return;
     include SC_TEMPLATES_PUBLIC_DIR . 'my-private-notes.php';
+}
+
+add_action('woocommerce_account_sc-my-programs_endpoint', 'sc_my_account_programs_content');
+function sc_my_account_programs_content() {
+    sc_check_and_create_tables();
+    if (!is_user_logged_in()) {
+        return;
+    }
+    $player = sc_check_user_active_status();
+    if (!$player) {
+        return;
+    }
+    include SC_TEMPLATES_PUBLIC_DIR . 'my-programs.php';
 }
 
 add_action('woocommerce_account_my-orders_endpoint', 'sc_my_account_my_orders_content');

@@ -379,6 +379,14 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
         sc_update_setting('sms_birthday_user_template', $sms_birthday_user_template, 'sms');
         sc_update_setting('sms_birthday_user_pattern', $sms_birthday_user_pattern, 'sms');
 
+        // Specialized program SMS
+        $sms_specialized_program_enabled = isset($_POST['sms_specialized_program_enabled']) ? 1 : 0;
+        $sms_specialized_program_template = isset($_POST['sms_specialized_program_template']) ? wp_kses($_POST['sms_specialized_program_template'], array()) : '';
+        $sms_specialized_program_pattern = isset($_POST['sms_specialized_program_pattern']) ? absint($_POST['sms_specialized_program_pattern']) : 0;
+        sc_update_setting('sms_specialized_program_enabled', $sms_specialized_program_enabled, 'sms');
+        sc_update_setting('sms_specialized_program_template', $sms_specialized_program_template, 'sms');
+        sc_update_setting('sms_specialized_program_pattern', $sms_specialized_program_pattern, 'sms');
+
         // Insurance expiry SMS Settings
         $sms_insurance_expiry_user_enabled = isset($_POST['sms_insurance_expiry_user_enabled']) ? 1 : 0;
         $sms_insurance_expiry_user_template = isset($_POST['sms_insurance_expiry_user_template']) ? wp_kses($_POST['sms_insurance_expiry_user_template'], array()) : '';
@@ -1175,6 +1183,10 @@ $user_alert_absence_limit = (int) sc_get_setting('user_alert_absence_limit', '3'
 $sms_birthday_user_enabled = (int) sc_get_sms_setting('sms_birthday_user_enabled');
 $sms_birthday_user_template = sc_get_sms_setting('sms_birthday_user_template');
 $sms_birthday_user_pattern = sc_get_sms_setting('sms_birthday_user_pattern');
+
+$sms_specialized_program_enabled = (int) sc_get_sms_setting('sms_specialized_program_enabled');
+$sms_specialized_program_template = sc_get_sms_setting('sms_specialized_program_template');
+$sms_specialized_program_pattern = sc_get_sms_setting('sms_specialized_program_pattern');
 
 // Insurance expiry SMS Settings
 $sms_insurance_expiry_user_enabled = (int) sc_get_sms_setting('sms_insurance_expiry_user_enabled');
@@ -2406,6 +2418,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="absence"> پیامک غیبت</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="absence-alert"> پیامک هشدار غیبت</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="birthday"> پیامک تولد</label>
+                        <label><input type="checkbox" class="sc-sms-section-toggle" data-target="specialized-program"> پیامک برنامه تخصصی</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="insurance"> پیامک انقضای بیمه</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="coach-certificate"> پیامک انقضای مدرک مربی</label>
                         <label><input type="checkbox" class="sc-sms-section-toggle" data-target="identity"> پیامک تایید احراز هویت</label>
@@ -3344,6 +3357,40 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                     </tr>
                 </table>
 
+                </div>
+                <div class="sc-sms-message-section" data-section="specialized-program">
+                <h3>پیامک برنامه تخصصی</h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">پیامک اختصاص/به‌روزرسانی برنامه</th>
+                        <td>
+                            <label>
+                                <input type="checkbox"
+                                       name="sms_specialized_program_enabled"
+                                       value="1"
+                                       <?php checked($sms_specialized_program_enabled, 1); ?>>
+                                فعال کردن ارسال پیامک هنگام اختصاص یا به‌روزرسانی برنامه تخصصی
+                            </label>
+                            <p class="description">اطلاع‌رسانی در ربات بله به‌صورت پیش‌فرض (اگر ربات فعال باشد) ارسال می‌شود. این گزینه فقط پیامک را کنترل می‌کند.</p>
+                            <br><br>
+                            <textarea name="sms_specialized_program_template"
+                                      rows="3"
+                                      class="large-text"
+                                      placeholder="متن پیامک"><?php echo esc_textarea($sms_specialized_program_template); ?></textarea>
+                            <p class="description">
+                                متغیرها: %name% = نام بازیکن — %label% = نوع رویداد — %program% = عنوان برنامه<br>
+                                پیش‌فرض: «%name% عزیز، %label%: %program%»
+                            </p>
+                            <br>
+                            <input type="number"
+                                   name="sms_specialized_program_pattern"
+                                   value="<?php echo esc_attr($sms_specialized_program_pattern); ?>"
+                                   class="small-text"
+                                   placeholder="کد پترن (اختیاری)">
+                            <p class="description">کد پترن از پنل sms.ir (در صورت خالی بودن از پیامک عادی استفاده می‌شود)</p>
+                        </td>
+                    </tr>
+                </table>
                 </div>
                 <div class="sc-sms-message-section" data-section="insurance">
                 <!-- Insurance expiry SMS Settings -->

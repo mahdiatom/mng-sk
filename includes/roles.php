@@ -749,6 +749,7 @@ function club_add_woocommerce_capabilities_to_club_coach() {
         if ( current_user_can('accountantt')) {
             $allowed_pages = [
                 'sc-attendance-list_report',
+                'sc-attendance-report',
                 'sc-reports',
                 'sc-reports-income-expenses',
                 'sc-reports-bi-analytics',
@@ -760,7 +761,6 @@ function club_add_woocommerce_capabilities_to_club_coach() {
                 'sc-add-expense',
                 'sc-expenses',
                 'sc-add-invoice',
-                'sc-attendance-list_report',
                 'sc-invoices',
                 'sc-wallet',
                 'sc-wallet-charge',
@@ -785,6 +785,8 @@ function club_add_woocommerce_capabilities_to_club_coach() {
                 'sc-support-ticket-new',
                 'sc-discount-codes',
                 'sc-add-discount-code',
+                'sc-incomes',
+                'sc-add-income'
             ];
 
             $blocked_pages = array(

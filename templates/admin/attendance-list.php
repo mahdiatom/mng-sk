@@ -41,8 +41,17 @@ if (!function_exists('sc_attendance_where_coach_member_scope_list')) {
 // دریافت تب فعال
 $active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'individual';
 
+$attendance_list_page = (!empty($_GET['page']) && sanitize_key(wp_unslash($_GET['page'])) === 'sc-attendance-list_report')
+    ? 'sc-attendance-list_report'
+    : 'sc-attendance-list';
+$can_manage_attendance = function_exists('sc_user_can_manage_attendance') && sc_user_can_manage_attendance();
+$can_delete_or_justify_attendance = function_exists('sc_user_can_delete_or_justify_attendance') && sc_user_can_delete_or_justify_attendance();
+
 // پردازش حذف (فقط برای تب اول)
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['attendance_id']) && $active_tab === 'individual') {
+    if (!$can_delete_or_justify_attendance) {
+        echo '<div class="notice notice-error is-dismissible"><p>شما دسترسی لازم برای حذف حضور و غیاب را ندارید.</p></div>';
+    } else {
     check_admin_referer('delete_attendance_' . $_GET['attendance_id']);
 
     $attendance_id = absint($_GET['attendance_id']);
@@ -122,10 +131,14 @@ if ($row && ($row->status === 'present' || $row->status === 'absent')) {
         echo '<div class="notice notice-error is-dismissible"><p>خطا در حذف حضور و غیاب.</p></div>';
     }
     }
+    }
 }
 
 // --- بخش جدید: پردازش مجاز کردن غیبت ---
 if (isset($_GET['action']) && $_GET['action'] === 'justify' && isset($_GET['attendance_id']) && $active_tab === 'individual') {
+    if (!$can_delete_or_justify_attendance) {
+        echo '<div class="notice notice-error is-dismissible"><p>شما دسترسی لازم برای مجاز کردن غیبت را ندارید.</p></div>';
+    } else {
     check_admin_referer('justify_attendance_' . $_GET['attendance_id']);
 
     $attendance_id = absint($_GET['attendance_id']);
@@ -194,6 +207,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'justify' && isset($_GET['atte
         }
     } else {
         echo '<div class="notice notice-warning is-dismissible"><p>این رکورد غایب نیست یا قبلاً مجاز شده است.</p></div>';
+    }
     }
 }
 
@@ -928,24 +942,26 @@ if ($active_tab === 'overall') {
             <p class="sc-att-list-desc">مشاهده و فیلتر حضور و غیاب در تب‌های جزئی، دوره‌ها، اشخاص و غایبین</p>
         </div>
         <div class="sc-att-list-header-actions">
+            <?php if ($can_manage_attendance) : ?>
             <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-add')); ?>" class="sc-att-btn-primary">ثبت حضور و غیاب</a>
+            <?php endif; ?>
             <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-report')); ?>" class="sc-att-btn-secondary">گزارش حضور بازیکن</a>
         </div>
     </div>
 </div>
 <div class="wrap sc-attendance-page-body sc-attendance-list-body sc-att-list-body">
     <nav class="sc-att-tabs nav-tab-wrapper" aria-label="تب‌های حضور و غیاب">
-        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-list&tab=individual')); ?>" class="nav-tab <?php echo $active_tab === 'individual' ? 'nav-tab-active' : ''; ?>">حضور و غیاب جزئی</a>
-        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-list&tab=grouped')); ?>" class="nav-tab <?php echo $active_tab === 'grouped' ? 'nav-tab-active' : ''; ?>">گزارش دوره‌ها</a>
-        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-list&tab=overall')); ?>" class="nav-tab <?php echo $active_tab === 'overall' ? 'nav-tab-active' : ''; ?>">گزارش اشخاص</a>
-        <a href="<?php echo esc_url(admin_url('admin.php?page=sc-attendance-list&tab=absents')); ?>" class="nav-tab <?php echo $active_tab === 'absents' ? 'nav-tab-active' : ''; ?>">غایبین</a>
+        <a href="<?php echo esc_url(admin_url('admin.php?page=' . $attendance_list_page . '&tab=individual')); ?>" class="nav-tab <?php echo $active_tab === 'individual' ? 'nav-tab-active' : ''; ?>">حضور و غیاب جزئی</a>
+        <a href="<?php echo esc_url(admin_url('admin.php?page=' . $attendance_list_page . '&tab=grouped')); ?>" class="nav-tab <?php echo $active_tab === 'grouped' ? 'nav-tab-active' : ''; ?>">گزارش دوره‌ها</a>
+        <a href="<?php echo esc_url(admin_url('admin.php?page=' . $attendance_list_page . '&tab=overall')); ?>" class="nav-tab <?php echo $active_tab === 'overall' ? 'nav-tab-active' : ''; ?>">گزارش اشخاص</a>
+        <a href="<?php echo esc_url(admin_url('admin.php?page=' . $attendance_list_page . '&tab=absents')); ?>" class="nav-tab <?php echo $active_tab === 'absents' ? 'nav-tab-active' : ''; ?>">غایبین</a>
     </nav>
     
     <?php if ($active_tab === 'individual') : ?>
     <!-- تب 1: لیست حضور و غیاب کاربران -->
         <!-- فیلترها -->
         <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
-            <input type="hidden" name="page" value="sc-attendance-list">
+            <input type="hidden" name="page" value="<?php echo esc_attr($attendance_list_page); ?>">
             <input type="hidden" name="tab" value="individual">
         
 
@@ -1100,7 +1116,7 @@ $max_display = 10;
                 <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
                 <?php
                 // ساخت URL برای export Excel با حفظ فیلترها
-                $export_url = admin_url('admin.php?page=sc-attendance-list&sc_export=excel&export_type=attendance');
+                $export_url = admin_url('admin.php?page=' . $attendance_list_page . '&sc_export=excel&export_type=attendance');
                 $export_url = add_query_arg('filter_course', isset($_GET['filter_course']) ? $_GET['filter_course'] : 0, $export_url);
                 $export_url = add_query_arg('filter_member', isset($_GET['filter_member']) ? $_GET['filter_member'] : 0, $export_url);
                 if (!empty($coaches_list) && isset($_GET['filter_coach']) && $_GET['filter_coach'] > 0) {
@@ -1120,7 +1136,7 @@ $max_display = 10;
                 }
                 $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                 ?>
-                <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=individual'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+                <a href="<?php echo admin_url('admin.php?page=' . $attendance_list_page . '&tab=individual'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
                 <a href="<?php echo esc_url($export_url); ?>" class="button export_excel_btn button_export">
                     📊 خروجی Excel
                 </a>
@@ -1192,6 +1208,7 @@ $max_display = 10;
                                     </span>
                                 </td>
                                 <td>
+                                    <?php if ($can_manage_attendance) : ?>
                                     <a href="<?php echo esc_url(function_exists('sc_attendance_add_page_url')
                                         ? sc_attendance_add_page_url(
                                             $attendance->course_id,
@@ -1201,7 +1218,9 @@ $max_display = 10;
                                         )
                                         : admin_url('admin.php?page=sc-attendance-add&attendance_course_id=' . (int) $attendance->course_id . '&date=' . rawurlencode($attendance->attendance_date))); ?>"
                                        class="button button-small">ویرایش</a>
-                                    <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=sc-attendance-list&tab=individual&action=delete&attendance_id=' . $attendance->id), 'delete_attendance_' . $attendance->id); ?>" 
+                                    <?php endif; ?>
+                                    <?php if ($can_delete_or_justify_attendance) : ?>
+                                    <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=' . $attendance_list_page . '&tab=individual&action=delete&attendance_id=' . $attendance->id), 'delete_attendance_' . $attendance->id); ?>" 
                                        class="button button-small button_delete_attendance" 
                                        onclick="return scConfirmInline(event, { type: 'warning', message: 'آیا مطمئن هستید که می‌خواهید این حضور و غیاب را حذف کنید؟' });"
                                        >حذف</a>
@@ -1209,7 +1228,7 @@ $max_display = 10;
                                 <?php
                                     // لینک مجاز کردن غیبت
                                     $justify_url = wp_nonce_url(
-                                        admin_url('admin.php?page=sc-attendance-list&tab=individual&action=justify&attendance_id=' . $attendance->id),
+                                        admin_url('admin.php?page=' . $attendance_list_page . '&tab=individual&action=justify&attendance_id=' . $attendance->id),
                                         'justify_attendance_' . $attendance->id
                                     );
 
@@ -1222,10 +1241,8 @@ $max_display = 10;
                                                     مجاز کردن
                                                 </a>';
                                         }
-
-
-                                    
-                                    ?>    
+                                    ?>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -1237,7 +1254,7 @@ $max_display = 10;
                     <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
                         <div class="tablenav-pages">
                             <?php
-                            $pagination_args = ['page' => 'sc-attendance-list', 'tab' => 'individual', 'filter_course' => $filter_course, 'filter_member' => $filter_member, 'filter_status' => $filter_status];
+                            $pagination_args = ['page' => $attendance_list_page, 'tab' => 'individual', 'filter_course' => $filter_course, 'filter_member' => $filter_member, 'filter_status' => $filter_status];
                             if ($filter_coach > 0) $pagination_args['filter_coach'] = $filter_coach;
                             if (!empty($filter_record_method)) $pagination_args['filter_record_method'] = $filter_record_method;
                             if (!empty($filter_date_from)) $pagination_args['filter_date_from'] = $filter_date_from;
@@ -1403,7 +1420,7 @@ $absents = !empty($where_values)
 
 
 <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
-    <input type="hidden" name="page" value="sc-attendance-list">
+    <input type="hidden" name="page" value="<?php echo esc_attr($attendance_list_page); ?>">
     <input type="hidden" name="tab" value="absents">
 
 <div class="sc-filter-grid">
@@ -1522,7 +1539,7 @@ if ($filter_member > 0) {
 
 <p class="submit">
     <input type="submit" class="button button-primary" value="اعمال فیلتر">
-    <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=absents'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+    <a href="<?php echo admin_url('admin.php?page=' . $attendance_list_page . '&tab=absents'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
 </p>
 
 </form>
@@ -1587,7 +1604,7 @@ if ($filter_member > 0) {
     <td>
      <a class="button button-small"
    href="<?php echo admin_url(
-       'admin.php?page=sc-attendance-list'
+       'admin.php?page=' . $attendance_list_page
        .'&tab=individual'
        .'&filter_member=' . $a->member_id
        .'&filter_status=absent'
@@ -1616,7 +1633,7 @@ if ($filter_member > 0) {
         <!-- تب 2: لیست بر اساس دوره و تاریخ -->
         <!-- فیلترها -->
         <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
-            <input type="hidden" name="page" value="sc-attendance-list">
+            <input type="hidden" name="page" value="<?php echo esc_attr($attendance_list_page); ?>">
             <input type="hidden" name="tab" value="grouped">
 
             <div class="sc-filter-grid">
@@ -1697,7 +1714,7 @@ if ($filter_member > 0) {
             
             <p class="submit">
                 <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
-                <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=grouped'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+                <a href="<?php echo admin_url('admin.php?page=' . $attendance_list_page . '&tab=grouped'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
             </p>
         </form>
         
@@ -1751,6 +1768,7 @@ if ($filter_member > 0) {
                                     <?php echo esc_html($group->total_count); ?> نفر
                                 </td>
                                 <td>
+                                    <?php if ($can_manage_attendance) : ?>
                                     <a href="<?php echo esc_url(function_exists('sc_attendance_add_page_url')
                                         ? sc_attendance_add_page_url(
                                             $group->course_id,
@@ -1760,9 +1778,10 @@ if ($filter_member > 0) {
                                         )
                                         : admin_url('admin.php?page=sc-attendance-add&attendance_course_id=' . (int) $group->course_id . '&date=' . rawurlencode($group->attendance_date))); ?>"
                                        class="button button-small">ویرایش</a>
+                                    <?php endif; ?>
                                     <?php
                                     // ساخت URL برای export Excel این روز
-                                    $export_url = admin_url('admin.php?page=sc-attendance-list&sc_export=excel&export_type=attendance_overall');
+                                    $export_url = admin_url('admin.php?page=' . $attendance_list_page . '&sc_export=excel&export_type=attendance_overall');
                                     $export_url = add_query_arg('filter_course', $group->course_id, $export_url);
                                     $export_url = add_query_arg('filter_date_from', $group->attendance_date, $export_url);
                                     $export_url = add_query_arg('filter_date_to', $group->attendance_date, $export_url);
@@ -1790,7 +1809,7 @@ if ($filter_member > 0) {
                     <div class="tablenav bottom sc_paginate" style="margin-top: 20px;">
                         <div class="tablenav-pages">
                             <?php
-                            $pagination_args = ['page' => 'sc-attendance-list', 'tab' => 'grouped', 'filter_course' => $filter_course];
+                            $pagination_args = ['page' => $attendance_list_page, 'tab' => 'grouped', 'filter_course' => $filter_course];
                             if ($filter_coach > 0) $pagination_args['filter_coach'] = $filter_coach;
                             if (!empty($filter_record_method)) $pagination_args['filter_record_method'] = $filter_record_method;
                             if (!empty($filter_date_from)) $pagination_args['filter_date_from'] = $filter_date_from;
@@ -1823,7 +1842,7 @@ if ($filter_member > 0) {
         <!-- تب 3: لیست کلی حضور و غیاب -->
         <!-- فیلترها -->
         <form method="GET" action="" class="form_fillter_attendance form_fillter_attendance_tab1">
-            <input type="hidden" name="page" value="sc-attendance-list">
+            <input type="hidden" name="page" value="<?php echo esc_attr($attendance_list_page); ?>">
             <input type="hidden" name="tab" value="overall">
 
             <div class="sc-filter-grid">
@@ -1958,7 +1977,7 @@ if ($filter_member > 0) {
                 <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
                 <?php
                 // ساخت URL برای export Excel
-                $export_url = admin_url('admin.php?page=sc-attendance-list&sc_export=excel&export_type=attendance_overall');
+                $export_url = admin_url('admin.php?page=' . $attendance_list_page . '&sc_export=excel&export_type=attendance_overall');
                 $export_url = add_query_arg('filter_course', isset($_GET['filter_course']) ? $_GET['filter_course'] : 0, $export_url);
                 $export_url = add_query_arg('filter_member', isset($_GET['filter_member']) ? $_GET['filter_member'] : 0, $export_url);
                 if (!empty($coaches_list) && isset($_GET['filter_coach']) && $_GET['filter_coach'] > 0) {
@@ -1975,7 +1994,7 @@ if ($filter_member > 0) {
                 }
                 $export_url = wp_nonce_url($export_url, 'sc_export_excel');
                 ?>
-                <a href="<?php echo admin_url('admin.php?page=sc-attendance-list&tab=overall'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
+                <a href="<?php echo admin_url('admin.php?page=' . $attendance_list_page . '&tab=overall'); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
 
                 <a href="<?php echo esc_url($export_url); ?>" class="button export_excel_btn button_export" >
                     📊 خروجی Excel

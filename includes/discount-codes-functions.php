@@ -935,6 +935,345 @@ function sc_admin_discount_code_edit_page() {
     include SC_TEMPLATES_ADMIN_DIR . 'discount-code-edit.php';
 }
 
+/**
+ * آمار استفاده کدهای تخفیف (تعداد / نفرات یکتا / مجموع مبلغ).
+ * مجموع تخفیف فقط برای صورت‌حساب‌های پرداخت‌شده / تایید پرداخت حساب می‌شود.
+ *
+ * @param int[] $discount_code_ids
+ * @return array<int,array{usage_count:int,member_count:int,total_saved:float}>
+ */
+function sc_get_discount_codes_usage_stats(array $discount_code_ids) {
+    global $wpdb;
+    $discount_code_ids = array_values(array_filter(array_map('absint', $discount_code_ids)));
+    $out = [];
+    foreach ($discount_code_ids as $id) {
+        $out[$id] = [
+            'usage_count' => 0,
+            'member_count' => 0,
+            'total_saved' => 0.0,
+        ];
+    }
+    if (empty($discount_code_ids) || !sc_sc_discount_tables_ready()) {
+        return $out;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($discount_code_ids), '%d'));
+    $usages_t = $wpdb->prefix . 'sc_discount_code_usages';
+    $invoices_t = $wpdb->prefix . 'sc_invoices';
+    $paid_statuses = sc_discount_paid_invoice_statuses();
+    $status_placeholders = implode(',', array_fill(0, count($paid_statuses), '%s'));
+
+    $sql = "SELECT u.discount_code_id,
+                   COUNT(*) AS usage_count,
+                   COUNT(DISTINCT u.member_id) AS member_count,
+                   COALESCE(SUM(
+                       CASE
+                           WHEN i.status IN ($status_placeholders) THEN u.amount_saved
+                           ELSE 0
+                       END
+                   ), 0) AS total_saved
+            FROM $usages_t u
+            LEFT JOIN $invoices_t i ON i.id = u.invoice_id
+            WHERE u.discount_code_id IN ($placeholders)
+            GROUP BY u.discount_code_id";
+
+    $args = array_merge($paid_statuses, $discount_code_ids);
+    $rows = $wpdb->get_results($wpdb->prepare($sql, ...$args), ARRAY_A);
+
+    if (!empty($rows)) {
+        foreach ($rows as $row) {
+            $id = (int) $row['discount_code_id'];
+            $out[$id] = [
+                'usage_count' => (int) $row['usage_count'],
+                'member_count' => (int) $row['member_count'],
+                'total_saved' => round((float) $row['total_saved'], 2),
+            ];
+        }
+    }
+
+    return $out;
+}
+
+/**
+ * وضعیت‌های صورت‌حساب که در جمع تخفیف لحاظ می‌شوند.
+ *
+ * @return string[]
+ */
+function sc_discount_paid_invoice_statuses() {
+    return ['processing', 'paid', 'completed'];
+}
+
+/**
+ * آیا وضعیت صورت‌حساب برای جمع تخفیف معتبر است؟
+ *
+ * @param string|null $status
+ */
+function sc_discount_invoice_status_counts_toward_total($status) {
+    $status = is_string($status) ? trim($status) : '';
+    return $status !== '' && in_array($status, sc_discount_paid_invoice_statuses(), true);
+}
+
+/**
+ * برچسب فارسی وضعیت صورت‌حساب برای مودال کد تخفیف.
+ *
+ * @param string|null $status
+ * @param bool        $invoice_found
+ */
+function sc_discount_invoice_status_label($status, $invoice_found = true) {
+    if (!$invoice_found) {
+        return 'صورت‌حساب یافت نشد';
+    }
+    $status = is_string($status) ? trim($status) : '';
+    if ($status === '') {
+        return 'نامشخص';
+    }
+    if (function_exists('sc_get_invoice_status_display')) {
+        $info = sc_get_invoice_status_display($status);
+        if (!empty($info['label'])) {
+            return (string) $info['label'];
+        }
+    }
+    return $status;
+}
+
+/**
+ * ردیف‌های استفاده از یک کد تخفیف برای مودال کاربران.
+ *
+ * @return array<int,array<string,mixed>>
+ */
+function sc_get_discount_code_usage_rows($discount_code_id) {
+    global $wpdb;
+    $discount_code_id = absint($discount_code_id);
+    if (!$discount_code_id || !sc_sc_discount_tables_ready()) {
+        return [];
+    }
+
+    $usages_t = $wpdb->prefix . 'sc_discount_code_usages';
+    $members_t = $wpdb->prefix . 'sc_members';
+    $invoices_t = $wpdb->prefix . 'sc_invoices';
+
+    $rows = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT u.id AS usage_id, u.invoice_id, u.member_id, u.amount_saved, u.created_at,
+                    m.first_name, m.last_name, m.national_id, m.player_phone,
+                    i.id AS invoice_exists_id, i.amount AS invoice_amount, i.status AS invoice_status
+             FROM $usages_t u
+             LEFT JOIN $members_t m ON m.id = u.member_id
+             LEFT JOIN $invoices_t i ON i.id = u.invoice_id
+             WHERE u.discount_code_id = %d
+             ORDER BY u.created_at DESC, u.id DESC",
+            $discount_code_id
+        ),
+        ARRAY_A
+    );
+
+    if (empty($rows) || !is_array($rows)) {
+        return [];
+    }
+
+    foreach ($rows as &$row) {
+        $row['full_name'] = trim((string) ($row['first_name'] ?? '') . ' ' . (string) ($row['last_name'] ?? ''));
+        if ($row['full_name'] === '') {
+            $row['full_name'] = 'کاربر #' . (int) ($row['member_id'] ?? 0);
+        }
+        $row['amount_saved'] = round((float) ($row['amount_saved'] ?? 0), 2);
+        $row['created_at_shamsi'] = function_exists('sc_date_shamsi')
+            ? sc_date_shamsi((string) ($row['created_at'] ?? ''), 'Y/m/d H:i')
+            : (string) ($row['created_at'] ?? '-');
+        $row['invoice_found'] = !empty($row['invoice_exists_id']);
+        $row['invoice_amount'] = isset($row['invoice_amount']) && $row['invoice_amount'] !== null
+            ? round((float) $row['invoice_amount'], 2)
+            : null;
+        $row['invoice_status'] = isset($row['invoice_status']) ? trim((string) $row['invoice_status']) : '';
+        $row['invoice_status_label'] = sc_discount_invoice_status_label(
+            $row['invoice_status'],
+            (bool) $row['invoice_found']
+        );
+        $row['counts_toward_total'] = $row['invoice_found']
+            && sc_discount_invoice_status_counts_toward_total($row['invoice_status']);
+    }
+    unset($row);
+
+    return $rows;
+}
+
+/**
+ * HTML مودال کاربران استفاده‌کننده از کد تخفیف.
+ *
+ * @param array<int,array<string,mixed>> $rows
+ */
+function sc_render_discount_code_users_modal_html($discount_code_id, array $rows, $code_label = '') {
+    $discount_code_id = absint($discount_code_id);
+    $code_label = $code_label !== '' ? (string) $code_label : ('کد #' . $discount_code_id);
+    $usage_count = count($rows);
+    $member_ids = [];
+    $total_saved = 0.0;
+    foreach ($rows as $row) {
+        $mid = (int) ($row['member_id'] ?? 0);
+        if ($mid > 0) {
+            $member_ids[$mid] = true;
+        }
+        if (!empty($row['counts_toward_total'])) {
+            $total_saved += (float) ($row['amount_saved'] ?? 0);
+        }
+    }
+    $member_count = count($member_ids);
+    $total_saved = round($total_saved, 2);
+
+    ob_start();
+    ?>
+    <div class="sc-discount-users-modal-inner">
+        <div class="sc-discount-users-modal-toolbar">
+            <div class="sc-discount-users-modal-toolbar-text">
+                <p class="sc-reports-list-desc">
+                    <?php
+                    echo esc_html(sprintf(
+                        'کد «%s» — %d استفاده توسط %d نفر | مجموع تخفیف: %s تومان',
+                        $code_label,
+                        $usage_count,
+                        $member_count,
+                        number_format($total_saved, 0, '.', ',')
+                    ));
+                    ?>
+                </p>
+            </div>
+        </div>
+
+        <div class="sc-discount-users-stats">
+            <div class="sc-discount-users-stat">
+                <span class="sc-discount-users-stat-label">تعداد استفاده</span>
+                <span class="sc-discount-users-stat-value"><?php echo (int) $usage_count; ?></span>
+            </div>
+            <div class="sc-discount-users-stat">
+                <span class="sc-discount-users-stat-label">تعداد نفرات</span>
+                <span class="sc-discount-users-stat-value"><?php echo (int) $member_count; ?></span>
+            </div>
+            <div class="sc-discount-users-stat">
+                <span class="sc-discount-users-stat-label">مجموع تخفیف</span>
+                <span class="sc-discount-users-stat-value"><?php echo esc_html(number_format($total_saved, 0, '.', ',')); ?> <small>تومان</small></span>
+                <span class="description" style="display:block;margin-top:4px;font-size:11px;">فقط پرداخت‌شده / تایید پرداخت</span>
+            </div>
+        </div>
+
+        <?php if ($usage_count === 0) : ?>
+            <div class="sc-discount-users-empty">
+                <p>هنوز کسی از این کد تخفیف استفاده نکرده است.</p>
+            </div>
+        <?php else : ?>
+            <div class="sc-reports-list-table-card sc-discount-users-table-card">
+                <div class="sc-discount-users-table-scroll">
+                    <table class="wp-list-table widefat fixed striped sc-discount-users-table">
+                        <thead>
+                            <tr>
+                                <th class="column-row">ردیف</th>
+                                <th>کاربر</th>
+                                <th>کد ملی</th>
+                                <th>تماس</th>
+                                <th>مبلغ تخفیف</th>
+                                <th>صورت‌حساب</th>
+                                <th>تاریخ استفاده</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($rows as $index => $row) :
+                                $invoice_id = (int) ($row['invoice_id'] ?? 0);
+                                $member_id = (int) ($row['member_id'] ?? 0);
+                                $member_url = $member_id
+                                    ? admin_url('admin.php?page=sc-view-member&player_id=' . $member_id)
+                                    : '';
+                                $invoice_url = $invoice_id
+                                    ? admin_url('admin.php?page=sc-invoices&s=' . $invoice_id)
+                                    : '';
+                                ?>
+                                <tr>
+                                    <td class="column-row"><?php echo (int) ($index + 1); ?></td>
+                                    <td>
+                                        <?php if ($member_url) : ?>
+                                            <a href="<?php echo esc_url($member_url); ?>"><?php echo esc_html($row['full_name']); ?></a>
+                                        <?php else : ?>
+                                            <?php echo esc_html($row['full_name']); ?>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?php echo esc_html($row['national_id'] ?: '—'); ?></td>
+                                    <td><?php echo esc_html($row['player_phone'] ?: '—'); ?></td>
+                                    <td><strong><?php echo esc_html(number_format((float) $row['amount_saved'], 0, '.', ',')); ?></strong></td>
+                                    <td>
+                                        <?php if ($invoice_id) : ?>
+                                            <?php if ($invoice_url) : ?>
+                                                <a href="<?php echo esc_url($invoice_url); ?>">#<?php echo (int) $invoice_id; ?></a>
+                                            <?php else : ?>
+                                                #<?php echo (int) $invoice_id; ?>
+                                            <?php endif; ?>
+                                            <span class="sc-discount-users-invoice-status"><?php echo esc_html($row['invoice_status_label'] ?? 'نامشخص'); ?></span>
+                                        <?php else : ?>
+                                            —
+                                            <span class="sc-discount-users-invoice-status">بدون صورت‌حساب</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?php echo esc_html($row['created_at_shamsi'] ?? '—'); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+    <?php
+
+    return (string) ob_get_clean();
+}
+
+add_action('wp_ajax_sc_get_discount_code_users', 'sc_ajax_get_discount_code_users');
+function sc_ajax_get_discount_code_users() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
+    }
+
+    $discount_code_id = isset($_POST['discount_code_id']) ? absint($_POST['discount_code_id']) : 0;
+    if (!$discount_code_id) {
+        wp_send_json_error(['message' => 'شناسه کد تخفیف معتبر نیست.']);
+    }
+
+    if (!sc_sc_discount_tables_ready()) {
+        wp_send_json_error(['message' => 'جداول کد تخفیف آماده نیست.']);
+    }
+
+    global $wpdb;
+    $codes_t = $wpdb->prefix . 'sc_discount_codes';
+    $code_row = $wpdb->get_row($wpdb->prepare(
+        "SELECT id, code FROM $codes_t WHERE id = %d LIMIT 1",
+        $discount_code_id
+    ));
+    if (!$code_row) {
+        wp_send_json_error(['message' => 'کد تخفیف یافت نشد.']);
+    }
+
+    $rows = sc_get_discount_code_usage_rows($discount_code_id);
+    $html = sc_render_discount_code_users_modal_html($discount_code_id, $rows, (string) $code_row->code);
+
+    $member_ids = [];
+    $total_saved = 0.0;
+    foreach ($rows as $row) {
+        $mid = (int) ($row['member_id'] ?? 0);
+        if ($mid > 0) {
+            $member_ids[$mid] = true;
+        }
+        if (!empty($row['counts_toward_total'])) {
+            $total_saved += (float) ($row['amount_saved'] ?? 0);
+        }
+    }
+
+    wp_send_json_success([
+        'html' => $html,
+        'count' => count($rows),
+        'member_count' => count($member_ids),
+        'total_saved' => round($total_saved, 2),
+        'discount_code_id' => $discount_code_id,
+        'code' => (string) $code_row->code,
+    ]);
+}
+
 add_action(
     'admin_init',
     static function () {

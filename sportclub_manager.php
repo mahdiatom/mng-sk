@@ -71,6 +71,7 @@ require_once SC_INCLUDES_DIR . 'user-profile-access.php'; // دسترسی user-e
 require_once SC_INCLUDES_DIR . 'wp-content-list-admin.php'; // استایل لیست برگه‌ها و نوشته‌های وردپرس
 require_once SC_INCLUDES_DIR . 'coach-panel-admin.php'; // استایل صفحات پنل مربی
 require_once SC_INCLUDES_DIR . 'roles.php';                // نقش‌ها و محدودیت دسترسی (همیشه، حتی بدون لایسنس)
+require_once SC_INCLUDES_DIR . 'wp-admin-login.php';       // سفارشی‌سازی صفحه wp-login.php
 require_once SC_INCLUDES_DIR . 'secretary-functions.php'; // نقش منشی شعبه
 require_once SC_INCLUDES_DIR . 'block-external-trackers.php'; // بلاک stats.wp.com و amplitude.com
 
@@ -119,6 +120,7 @@ require_once SC_INCLUDES_DIR . 'birthday-sms-cron.php'; // Birthday SMS daily cr
 require_once SC_INCLUDES_DIR . 'insurance-expiry-sms-cron.php'; // Insurance expiry SMS daily cron
 require_once SC_INCLUDES_DIR . 'support-ticket-functions.php'; // Support ticket CRUD, SMS, attachments
 require_once SC_INCLUDES_DIR . 'private-notes-functions.php'; // Private notes CRUD, attachments
+require_once SC_INCLUDES_DIR . 'specialized-programs-functions.php'; // برنامه تخصصی
 require_once SC_INCLUDES_DIR . 'honor-attachments-functions.php'; // Honor attachments (AJAX upload)
 require_once SC_INCLUDES_DIR . 'honors-api-functions.php'; // REST API افتخارات (خروجی برای سایت‌های خارجی)
 require_once SC_INCLUDES_DIR . 'api/public-api-functions.php'; // REST API عمومی باشگاه (سایت اصلی)
@@ -1905,6 +1907,39 @@ function sc_admin_enqueue_assets() {
             'nonce' => wp_create_nonce('sc_private_notes_preview'),
         ));
     }
+
+    $sc_program_pages = array(
+        'sc-programs', 'sc-program-library', 'sc-program-templates', 'sc-programs-assign', 'sc-program-edit', 'sc-programs-report',
+        'sc-coach-programs', 'sc-coach-program-library', 'sc-coach-program-templates', 'sc-coach-programs-assign', 'sc-coach-program-edit', 'sc-coach-programs-report',
+    );
+    if (in_array($current_page, $sc_program_pages, true)) {
+        wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
+        wp_enqueue_style('sc-specialized-programs-css', SC_ASSETS_URL . 'css/specialized-programs.css', array('sc-admin-css'), time());
+        wp_enqueue_script('jquery-ui-sortable');
+        if (in_array($current_page, array('sc-programs-report', 'sc-coach-programs-report'), true)) {
+            wp_enqueue_script('sc-chart-js', SC_ASSETS_URL . 'js/vendor/chart.min.js', array(), '3.9.1', true);
+        }
+        $prog_deps = array('jquery', 'jquery-ui-sortable');
+        if (wp_script_is('sc-chart-js', 'enqueued')) {
+            $prog_deps[] = 'sc-chart-js';
+        }
+        wp_enqueue_script('sc-audience-course-picker-js', SC_ASSETS_URL . 'js/audience-course-picker.js', array('jquery'), time(), true);
+        wp_enqueue_script('sc-audience-preview-add-js', SC_ASSETS_URL . 'js/audience-preview-add-members.js', array('jquery', 'sc-audience-course-picker-js'), time(), true);
+        if (!wp_script_is('sc-confirm-js', 'enqueued')) {
+            wp_enqueue_style('sc-confirm-css', SC_ASSETS_URL . 'css/sc-confirm.css', array(), time());
+            wp_enqueue_script('sc-confirm-js', SC_ASSETS_URL . 'js/sc-confirm.js', array(), time(), true);
+        }
+        wp_enqueue_script('sc-users-export-admin-js', SC_ASSETS_URL . 'js/users-export-admin.js', array('jquery', 'sc-admin-js', 'sc-audience-course-picker-js', 'sc-audience-preview-add-js', 'sc-confirm-js'), time(), true);
+        wp_enqueue_script('sc-specialized-programs-admin-js', SC_ASSETS_URL . 'js/specialized-programs-admin.js', $prog_deps, time(), true);
+        wp_localize_script('sc-specialized-programs-admin-js', 'scProgramsAdmin', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('sc_program_admin'),
+            'toggleNonce' => wp_create_nonce('sc_program_toggle'),
+            'uploadNonce' => wp_create_nonce('sc_program_upload'),
+            'maxUpload' => defined('SC_PROGRAM_MAX_UPLOAD_BYTES') ? SC_PROGRAM_MAX_UPLOAD_BYTES : (50 * 1024 * 1024),
+        ));
+    }
+
     if ($current_page === 'sc-attendance-add' && function_exists('sc_attendance_qr_is_enabled') && sc_attendance_qr_is_enabled()) {
         wp_enqueue_style('sc-attendance-qr-css', SC_ASSETS_URL . 'css/attendance-qr.css', array('sc-admin-css'), time());
         wp_enqueue_script('html5-qrcode', SC_ASSETS_URL . 'js/vendor/html5-qrcode.min.js', array(), '2.3.8', true);
@@ -2143,6 +2178,21 @@ function sc_public_enqueue_assets() {
     if ($sc_is_panel && function_exists('sc_panel_active_tab_is') && sc_panel_active_tab_is('sc-private-notes')) {
         wp_enqueue_style('sc-private-notes-css', SC_ASSETS_URL . 'css/private-notes.css', array('sc-public-css'), time());
     }
+    if ($sc_is_panel && (
+        (function_exists('sc_panel_active_tab_is') && sc_panel_active_tab_is('sc-my-programs'))
+        || ($sc_req_uri !== '' && strpos($sc_req_uri, 'sc-my-programs') !== false)
+        || (function_exists('is_wc_endpoint_url') && is_wc_endpoint_url('sc-my-programs'))
+        || get_query_var('sc-my-programs', false) !== false
+    )) {
+        wp_enqueue_style('sc-specialized-programs-css', SC_ASSETS_URL . 'css/specialized-programs.css', array('sc-public-css'), time());
+        wp_enqueue_style('sc-confirm-css', SC_ASSETS_URL . 'css/sc-confirm.css', array(), time());
+        wp_enqueue_script('sc-confirm-js', SC_ASSETS_URL . 'js/sc-confirm.js', array(), time(), true);
+        wp_enqueue_script('sc-specialized-programs-public-js', SC_ASSETS_URL . 'js/specialized-programs-public.js', array('jquery', 'sc-confirm-js'), time(), true);
+        wp_localize_script('sc-specialized-programs-public-js', 'scProgramsPublic', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('sc_program_toggle'),
+        ));
+    }
     if ($sc_is_panel && function_exists('sc_panel_active_tab_is') && sc_panel_active_tab_is('sc-private-classes')) {
         wp_enqueue_style('sc-private-booking-css', SC_ASSETS_URL . 'css/private-booking.css', array('sc-public-css'), time());
         wp_enqueue_script('sc-private-booking-form-js', SC_ASSETS_URL . 'js/private-booking-form.js', array(), time(), true);
@@ -2293,7 +2343,10 @@ add_action('wp_ajax_sc_attendance_report_player', 'sc_ajax_attendance_report_pla
 function sc_ajax_attendance_report_player() {
     check_ajax_referer('sc_attendance_report_player', 'nonce');
 
-    if (!function_exists('sc_user_can_manage_attendance') || !sc_user_can_manage_attendance()) {
+    if (
+        (!function_exists('sc_user_can_manage_attendance') || !sc_user_can_manage_attendance())
+        && (!function_exists('sc_user_can_view_attendance_reports') || !sc_user_can_view_attendance_reports())
+    ) {
         wp_send_json_error(['message' => 'دسترسی غیرمجاز.']);
     }
 

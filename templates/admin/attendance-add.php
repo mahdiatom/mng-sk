@@ -166,8 +166,14 @@ if (
                     $status ='present';
                 }elseif($status === 'absent'){
                     $status = 'absent';
-                }else{
+                }elseif ($status === 'excused') {
+                    // مربی نمی‌تواند غیبت را مجاز کند
+                    if ($current_is_coach_user) {
+                        continue;
+                    }
                     $status = 'excused';
+                } else {
+                    continue;
                 }
                 if (!$member_id) {
                     continue;

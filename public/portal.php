@@ -102,6 +102,7 @@ function sc_panel_get_tab_hero_map() {
         'sc-notifications'   => ['اطلاعیه‌ها', 'آخرین اطلاعیه‌ها و پیام‌های باشگاه را در این بخش دنبال کنید.', 'notifications'],
         'sc-surveys'         => ['نظرسنجی‌ها', 'در نظرسنجی‌های فعال باشگاه شرکت کنید و دیدگاه خود را ثبت کنید.', 'surveys'],
         'sc-private-notes'   => ['یادداشت‌های من', 'گفتگوها و یادداشت‌های خصوصی شما با کادر باشگاه.', 'notes'],
+        'sc-my-programs'     => ['برنامه‌های تخصصی من', 'برنامه‌های تمرینی روزانه خود را ببینید و تمرین‌های امروز را تیک بزنید.', 'courses'],
         'sc-private-classes' => ['کلاس‌های خصوصی', 'درخواست و پیگیری جلسات کلاس خصوصی خود را انجام دهید.', 'private'],
         'sc-my-honors'       => ['افتخارات من', 'افتخارات و دستاوردهای ورزشی ثبت‌شده برای شما.', 'honors'],
         'sc-my-certificates' => ['گواهینامه‌های من', 'گواهینامه‌های صادرشده خود را مشاهده و دانلود کنید.', 'certificates'],
@@ -161,6 +162,7 @@ function sc_portal_menu_icon($slug) {
         'sc-wallet'           => 'wallet.svg',
         'sc-support-tickets'  => 'ticket-1.svg',
         'sc-private-notes'    => 'dafter.svg',
+        'sc-my-programs'      => 'layers.svg',
         'sc-private-classes'  => 'member.svg',
         'sc-faq'              => 'dafter.svg',
         'bot-connect'         => 'massege.svg',
@@ -191,6 +193,7 @@ function sc_portal_get_profile_dropdown_links($verification_gate_locked = false)
         }
         $links[] = ['slug' => 'sc-my-events', 'label' => 'رویداد های من'];
         $links[] = ['slug' => 'sc-private-notes', 'label' => 'یادداشت های من'];
+        $links[] = ['slug' => 'sc-my-programs', 'label' => 'برنامه‌های تخصصی من'];
     }
     $links[] = ['slug' => 'edit-account', 'label' => 'تغییر رمز ورود', 'hash' => '#password_current'];
     $links[] = ['slug' => 'home', 'label' => 'بازگشت به سایت', 'url' => home_url('/')];
@@ -208,7 +211,7 @@ function sc_portal_header_tab_visible($slug, $verification_gate_locked = false) 
     $locked_slugs = [
         'edit-account', 'bot-connect', 'sc-enroll-course', 'sc-private-classes',
         'sc-my-courses', 'sc-my-attendances', 'sc-events', 'sc-my-events', 'sc-invoices',
-        'sc-my-honors', 'sc-my-certificates', 'sc-private-notes', 'sc-notifications',
+        'sc-my-honors', 'sc-my-certificates', 'sc-private-notes', 'sc-my-programs', 'sc-notifications',
         'sc-wallet', 'sc-support-tickets', 'sc-faq', 'sc-surveys',
     ];
     if ($verification_gate_locked && in_array($slug, $locked_slugs, true)) {

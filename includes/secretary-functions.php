@@ -1143,6 +1143,50 @@ function sc_user_can_manage_attendance($user_id = 0) {
         || user_can($user_id, 'sc_manage_attendance_or_admin');
 }
 
+/**
+ * مشاهده گزارش‌های حضور و غیاب (حسابدار + نقش‌های دارای دسترسی مدیریت).
+ */
+function sc_user_can_view_attendance_reports($user_id = 0) {
+    $user_id = $user_id > 0 ? (int) $user_id : get_current_user_id();
+    if ($user_id <= 0) {
+        return false;
+    }
+    if (sc_user_can_manage_attendance($user_id)) {
+        return true;
+    }
+    return user_can($user_id, 'accountantt');
+}
+
+/**
+ * حذف یا مجاز کردن غیبت — مربی خالص مجاز نیست.
+ */
+function sc_user_can_delete_or_justify_attendance($user_id = 0) {
+    $user_id = $user_id > 0 ? (int) $user_id : get_current_user_id();
+    if ($user_id <= 0) {
+        return false;
+    }
+    if (function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_only_for_attendance($user_id)) {
+        return false;
+    }
+    return sc_user_can_manage_attendance($user_id);
+}
+
+/** Capability مشاهده گزارش حضور و غیاب (حسابدار و مدیران حضور) */
+add_filter('user_has_cap', 'sc_view_attendance_reports_cap', 10, 4);
+function sc_view_attendance_reports_cap($allcaps, $caps, $args, $user) {
+    foreach ($caps as $cap) {
+        if ($cap !== 'sc_view_attendance_reports') {
+            continue;
+        }
+        $user_id = isset($user->ID) ? (int) $user->ID : 0;
+        if ($user_id > 0 && function_exists('sc_user_can_view_attendance_reports') && sc_user_can_view_attendance_reports($user_id)) {
+            $allcaps['sc_view_attendance_reports'] = true;
+        }
+        break;
+    }
+    return $allcaps;
+}
+
 /** Capability حضور و غیاب برای منشی */
 add_filter('user_has_cap', 'sc_secretary_attendance_cap', 10, 4);
 function sc_secretary_attendance_cap($allcaps, $caps, $args, $user) {
