@@ -103,6 +103,13 @@ function sc_invoices_bulk_bg_process_one($action, $invoice_id) {
             }
         }
 
+        // هوک ووکامرس به‌خاطر آپدیت قبلی وضعیت فاکتور معمولاً sc_invoice_paid را نمی‌زند؛
+        // مثل مسیر منشی، انتقال به پرداخت‌شده را صریحاً اعلام می‌کنیم (شارژ جلسات / باز شدن قفل).
+        $was_paid = in_array((string) $invoice->status, ['completed', 'paid', 'processing'], true);
+        if (!$was_paid && in_array($new_status, ['completed', 'processing'], true)) {
+            do_action('sc_invoice_paid', $invoice_id);
+        }
+
         return ['success' => true, 'message' => 'وضعیت به «' . $new_status . '» تغییر کرد.'];
     }
 

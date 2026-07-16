@@ -694,6 +694,9 @@ function sc_validate_bulk_course_activate_assignments(array $course_ids) {
     $coaches_post = isset($_POST['course_coach']) && is_array($_POST['course_coach'])
         ? wp_unslash($_POST['course_coach'])
         : [];
+    $groups_post = isset($_POST['course_group']) && is_array($_POST['course_group'])
+        ? wp_unslash($_POST['course_group'])
+        : [];
 
     foreach ($course_ids as $course_id) {
         $course_id = absint($course_id);
@@ -707,6 +710,7 @@ function sc_validate_bulk_course_activate_assignments(array $course_ids) {
         $chapters = function_exists('sc_get_course_chapters') ? sc_get_course_chapters($course_id) : [];
         $sel_chapter = isset($chapters_post[$course_id]) ? sanitize_text_field((string) $chapters_post[$course_id]) : '';
         $sel_coach = isset($coaches_post[$course_id]) ? absint($coaches_post[$course_id]) : 0;
+        $sel_group = isset($groups_post[$course_id]) ? sanitize_text_field((string) $groups_post[$course_id]) : '';
 
         if (count($chapters) > 1) {
             if ($sel_chapter === '' || !in_array($sel_chapter, $chapters, true)) {
@@ -719,6 +723,17 @@ function sc_validate_bulk_course_activate_assignments(array $course_ids) {
 
         if ($sel_chapter === '') {
             continue;
+        }
+
+        // اگر مربی انتخاب نشده ولی گروه انتخاب شده، مربی/شعبهٔ گروه را اعمال کن
+        if ($sel_coach <= 0 && $sel_group !== '' && function_exists('sc_resolve_enrollment_from_course_group')) {
+            $from_group = sc_resolve_enrollment_from_course_group($course_id, $sel_group);
+            if ((int) $from_group['coach_id'] > 0) {
+                $sel_coach = (int) $from_group['coach_id'];
+            }
+            if ($sel_chapter === '' && $from_group['chapter'] !== '') {
+                $sel_chapter = $from_group['chapter'];
+            }
         }
 
         $coaches = function_exists('sc_get_course_chapter_coaches')

@@ -4397,6 +4397,18 @@ function callback_add_member_sufix(){
                     }
                     if (function_exists('sc_course_has_packages') && sc_course_has_packages($cid_pkg)) {
                         $sel = isset($course_package_sessions[$cid_pkg]) ? absint($course_package_sessions[$cid_pkg]) : 0;
+                        // در ویرایش اگر پکیج عوض نشده، مقدار قبلی ثبت‌نام حفظ شود
+                        if (!$sel) {
+                            $existing_pkg = (int) $wpdb->get_var($wpdb->prepare(
+                                "SELECT enrollment_sessions FROM {$wpdb->prefix}sc_member_courses WHERE member_id = %d AND course_id = %d LIMIT 1",
+                                $player_id,
+                                $cid_pkg
+                            ));
+                            if ($existing_pkg > 0) {
+                                $course_package_sessions[$cid_pkg] = $existing_pkg;
+                                $sel = $existing_pkg;
+                            }
+                        }
                         if (!$sel || !function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($cid_pkg, $sel)) {
                             wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=member_pkg_error&player_id=' . $player_id));
                             exit;
@@ -5175,13 +5187,12 @@ function sc_member_course_activate_one($member_id, $course_id, $course_package_s
 
     if ($existing) {
         $existing_row = $wpdb->get_row($wpdb->prepare(
-            "SELECT coach_id, chapter, group_name, status FROM $table_name WHERE id = %d LIMIT 1",
+            "SELECT coach_id, chapter, group_name FROM $table_name WHERE id = %d LIMIT 1",
             $existing
         ));
         $existing_coach_id = $existing_row ? (int) $existing_row->coach_id : 0;
         $existing_chapter = $existing_row && isset($existing_row->chapter) ? (string) $existing_row->chapter : '';
         $existing_group = $existing_row && isset($existing_row->group_name) ? (string) $existing_row->group_name : '';
-        $existing_status = $existing_row && isset($existing_row->status) ? (string) $existing_row->status : '';
         $assignment = function_exists('sc_resolve_member_course_assignment')
             ? sc_resolve_member_course_assignment($course_id, $sel_chapter, $sel_coach, $existing_chapter, $existing_coach_id)
             : ['chapter' => $sel_chapter, 'coach_id' => $sel_coach];
@@ -5191,15 +5202,15 @@ function sc_member_course_activate_one($member_id, $course_id, $course_package_s
             $assignment['group_name'] = sanitize_text_field($sel_group !== '' ? $sel_group : $existing_group);
         }
         $assignment = $apply_group_to_assignment($course_id, $assignment, $assignment['group_name']);
-        $keep_active = ($existing_status === 'active');
+        // فعال‌سازی دسته‌جمعی: همیشه status=active (برخلاف ویرایش بازیکن که ممکن است inactive بماند)
         $upd = [
-            'status' => $keep_active ? 'active' : 'inactive',
+            'status' => 'active',
             'coach_id' => (int) $assignment['coach_id'],
             'chapter' => $assignment['chapter'] !== '' ? $assignment['chapter'] : null,
             'course_status_flags' => $flags_string,
-            'enrollment_date' => $keep_active ? current_time('Y-m-d') : null,
-            'total_sessions' => $keep_active ? (int) $sf['total_sessions'] : 0,
-            'remaining_sessions' => $keep_active ? (int) $sf['remaining_sessions'] : 0,
+            'enrollment_date' => current_time('Y-m-d'),
+            'total_sessions' => (int) $sf['total_sessions'],
+            'remaining_sessions' => (int) $sf['remaining_sessions'],
             'updated_at' => current_time('mysql'),
         ];
         $fmt = ['%s', '%d', '%s', '%s', '%s', '%d', '%d', '%s'];
@@ -5230,11 +5241,11 @@ function sc_member_course_activate_one($member_id, $course_id, $course_package_s
             'course_id' => $course_id,
             'coach_id' => (int) $assignment['coach_id'],
             'chapter' => $assignment['chapter'] !== '' ? $assignment['chapter'] : null,
-            'enrollment_date' => null,
-            'status' => 'inactive',
+            'enrollment_date' => current_time('Y-m-d'),
+            'status' => 'active',
             'course_status_flags' => $flags_string,
-            'total_sessions' => 0,
-            'remaining_sessions' => 0,
+            'total_sessions' => (int) $sf['total_sessions'],
+            'remaining_sessions' => (int) $sf['remaining_sessions'],
             'created_at' => current_time('mysql'),
             'updated_at' => current_time('mysql'),
         ];

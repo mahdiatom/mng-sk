@@ -66,7 +66,12 @@
         if (group.chapter_name && group.chapter_name !== '' && (chapterName === '' || group.chapter_name !== chapterName)) {
             return false;
         }
-        if (group.coach_id > 0 && (coachId <= 0 || group.coach_id !== coachId)) {
+        // تا وقتی مربی انتخاب نشده، گروه‌های همان شعبه را نشان بده
+        // (قبلاً گروه‌های دارای coach_id مخفی می‌شدند و لیست خالی به نظر می‌رسید)
+        if (coachId <= 0) {
+            return true;
+        }
+        if (group.coach_id > 0 && group.coach_id !== coachId) {
             return false;
         }
         return true;
@@ -263,6 +268,19 @@
 
             if (!chapter && chapters.length === 1) {
                 chapter = chapters[0];
+            }
+
+            // مربی را از گروه انتخاب‌شده هم می‌توان استخراج کرد
+            if (coachId <= 0 && $block.length) {
+                var groupName = $block.find('select[name="course_group[' + courseId + ']"]').val() || '';
+                if (groupName) {
+                    var matchedGroup = getCourseGroups(courseId).filter(function (g) {
+                        return g.name === groupName;
+                    })[0];
+                    if (matchedGroup && matchedGroup.coach_id > 0) {
+                        coachId = matchedGroup.coach_id;
+                    }
+                }
             }
 
             var coaches = getCoachesForChapter(courseId, chapter);
@@ -747,8 +765,27 @@
             if (!courseId) {
                 return;
             }
+            var $block = $(this).closest('.sc-bulk-activate-course-block');
+            var groupName = $(this).val() || '';
             activateBranchState[courseId] = activateBranchState[courseId] || { chapter: '', coachId: 0, groupName: '' };
-            activateBranchState[courseId].groupName = $(this).val() || '';
+            activateBranchState[courseId].groupName = groupName;
+
+            // اگر گروه به مربی خاصی وصل است، همان مربی را در فرم تنظیم کن
+            if (groupName && $block.length) {
+                var matched = getCourseGroups(courseId).filter(function (g) {
+                    return g.name === groupName;
+                })[0];
+                if (matched && matched.coach_id > 0) {
+                    var $coachSelect = $block.find('.sc-bulk-activate-coach-select');
+                    var $coachHidden = $block.find('input[name="course_coach[' + courseId + ']"]');
+                    if ($coachSelect.length) {
+                        $coachSelect.val(String(matched.coach_id));
+                    } else if ($coachHidden.length) {
+                        $coachHidden.val(String(matched.coach_id));
+                    }
+                    activateBranchState[courseId].coachId = matched.coach_id;
+                }
+            }
         });
         $('#sc-assign-course-id').on('change', function () {
             refreshAssignChapterOptions();

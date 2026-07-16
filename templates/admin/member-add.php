@@ -498,9 +498,8 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                 $player_course_chapter = [];
                 $player_course_coach = [];
                 $player_course_group = [];
-                /** ثبت‌نام فعال بدون فلگ وضعیت (paused/completed/canceled): course_id => [ total_sessions, remaining_sessions ] */
+                /** ثبت‌نام فعال: course_id => [ total_sessions, remaining_sessions ] */
                 $player_courses_sessions = [];
-                $member_branch_configs = [];
                 $edit_member_id = isset($_GET['player_id']) ? absint($_GET['player_id']) : 0;
                 if ($edit_member_id) {
                     $player_courses_data = $wpdb->get_results($wpdb->prepare(
@@ -525,7 +524,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                             $player_course_chapter[$cid] = isset($pc['chapter']) ? (string) $pc['chapter'] : '';
                             $player_course_coach[$cid] = isset($pc['coach_id']) ? (int) $pc['coach_id'] : 0;
                             $player_course_group[$cid] = isset($pc['group_name']) ? (string) $pc['group_name'] : '';
-                            if ($pc['status'] === 'active' && empty($flags)) {
+                            if ($pc['status'] === 'active') {
                                 $player_courses_sessions[$cid] = [
                                     'total_sessions' => (int) ($pc['total_sessions'] ?? 0),
                                     'remaining_sessions' => (int) ($pc['remaining_sessions'] ?? 0),
@@ -533,136 +532,150 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                             }
                         }
                     }
+
+                    // در ویرایش بازیکن فقط دوره‌های فعال او نمایش داده شود (با/بدون فلگ وضعیت)
+                    $courses = array_values(array_filter((array) $courses, static function ($course) use ($player_courses_active) {
+                        return isset($player_courses_active[(int) $course->id]);
+                    }));
+                    $listed_ids = [];
+                    foreach ($courses as $listed_course) {
+                        $listed_ids[(int) $listed_course->id] = true;
+                    }
+
+                    // اگر دورهٔ فعال در کاتالوگ نبود (مثلاً غیرفعال شده)، باز هم در ویرایش نشان بده
+                    $missing_ids = array_values(array_filter(array_diff(
+                        array_map('absint', array_keys($player_courses_active)),
+                        array_map('absint', array_keys($listed_ids))
+                    )));
+                    if (!empty($missing_ids)) {
+                        $placeholders = implode(',', array_fill(0, count($missing_ids), '%d'));
+                        $extra_sql = "SELECT * FROM $courses_table WHERE deleted_at IS NULL AND id IN ($placeholders) ORDER BY title ASC";
+                        $extra_courses = $wpdb->get_results($wpdb->prepare($extra_sql, ...$missing_ids));
+                        if (!empty($extra_courses)) {
+                            $courses = array_merge($courses, $extra_courses);
+                        }
+                    }
                 }
                 
                 if (empty($courses)) {
                     echo '<div style="padding: 20px; text-align: center; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">';
-                    echo '<p style="margin: 0 0 10px 0; color: #856404;">هنوز دوره‌ای ثبت نشده است.</p>';
-                    echo '<a href="' . admin_url('admin.php?page=sc-add-course') . '" target="_blank" class="button button-primary">افزودن دوره جدید</a>';
+                    if ($edit_member_id) {
+                        echo '<p style="margin: 0; color: #856404;">این بازیکن دوره فعالی ندارد (دوره‌های فعال با فلگ یا بدون فلگ).</p>';
+                    } else {
+                        echo '<p style="margin: 0 0 10px 0; color: #856404;">هنوز دوره‌ای ثبت نشده است.</p>';
+                        echo '<a href="' . admin_url('admin.php?page=sc-add-course') . '" target="_blank" class="button button-primary">افزودن دوره جدید</a>';
+                    }
                     echo '</div>';
                 } else {
+                    $coaches_table_ma = $wpdb->prefix . 'sc_coaches';
+                    $coach_ids_needed = array_values(array_filter(array_map('absint', $player_course_coach)));
+                    $coach_name_map = [];
+                    if (!empty($coach_ids_needed)) {
+                        $coach_placeholders = implode(',', array_fill(0, count($coach_ids_needed), '%d'));
+                        $coach_rows = $wpdb->get_results($wpdb->prepare(
+                            "SELECT id, first_name, last_name FROM $coaches_table_ma WHERE id IN ($coach_placeholders)",
+                            ...$coach_ids_needed
+                        ));
+                        foreach ((array) $coach_rows as $crow) {
+                            $coach_name_map[(int) $crow->id] = trim((string) $crow->first_name . ' ' . (string) $crow->last_name);
+                        }
+                    }
+
                     echo '<div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; border-radius: 4px; background: #f9f9f9;">';
                     foreach ($courses as $course) {
-                        $is_active = isset($player_courses_active[$course->id]);
-                        $current_flags = isset($player_courses_flags[$course->id]) ? $player_courses_flags[$course->id] : [];
-                        $is_paused = in_array('paused', $current_flags);
-                        $is_completed = in_array('completed', $current_flags);
-                        $is_canceled = in_array('canceled', $current_flags);
-                        
-                        $enrolled = $wpdb->get_var($wpdb->prepare(
-                            "SELECT COUNT(*)
-                             FROM $member_courses_table
-                             WHERE course_id = %d
-                               AND status = 'active'
-                               AND (course_status_flags IS NULL OR TRIM(course_status_flags) = '')",
-                            $course->id
-                        ));
-                        $course_packages = function_exists('sc_get_course_packages') ? sc_get_course_packages($course->id) : [];
-                        $has_course_packages = !empty($course_packages);
-                        $selected_pkg_sessions = isset($player_courses_enrollment_sessions[$course->id]) ? (int) $player_courses_enrollment_sessions[$course->id] : 0;
-                        $selected_chapter = isset($player_course_chapter[$course->id]) ? (string) $player_course_chapter[$course->id] : '';
-                        $selected_coach = isset($player_course_coach[$course->id]) ? (int) $player_course_coach[$course->id] : 0;
-                        if (function_exists('sc_get_course_enrollment_branch_config')) {
-                            $member_branch_configs[(int) $course->id] = sc_get_course_enrollment_branch_config((int) $course->id);
+                        $cid = (int) $course->id;
+                        $is_active = isset($player_courses_active[$cid]);
+                        $current_flags = isset($player_courses_flags[$cid]) ? $player_courses_flags[$cid] : [];
+                        $is_paused = in_array('paused', $current_flags, true);
+                        $is_completed = in_array('completed', $current_flags, true);
+                        $is_canceled = in_array('canceled', $current_flags, true);
+                        $selected_chapter = isset($player_course_chapter[$cid]) ? (string) $player_course_chapter[$cid] : '';
+                        $selected_coach = isset($player_course_coach[$cid]) ? (int) $player_course_coach[$cid] : 0;
+                        $selected_group = isset($player_course_group[$cid]) ? (string) $player_course_group[$cid] : '';
+                        $selected_pkg_sessions = isset($player_courses_enrollment_sessions[$cid]) ? (int) $player_courses_enrollment_sessions[$cid] : 0;
+                        $coach_label = ($selected_coach > 0 && isset($coach_name_map[$selected_coach]))
+                            ? $coach_name_map[$selected_coach]
+                            : ($selected_coach > 0 ? ('#' . $selected_coach) : '—');
+                        $group_label = $selected_group !== '' ? $selected_group : '—';
+                        $package_label = '—';
+                        if ($selected_pkg_sessions > 0 && function_exists('sc_get_course_package_by_sessions')) {
+                            $pkg = sc_get_course_package_by_sessions($cid, $selected_pkg_sessions);
+                            if ($pkg) {
+                                $package_label = (int) $pkg->sessions_count . ' جلسه - ' . number_format((float) $pkg->price, 0, '.', ',') . ' تومان';
+                            } else {
+                                $package_label = $selected_pkg_sessions . ' جلسه';
+                            }
+                        } elseif (function_exists('sc_course_has_packages') && sc_course_has_packages($cid)) {
+                            $package_label = 'پکیج ثبت نشده';
                         }
-                        $capacity = isset($course->capacity) ? (int) $course->capacity : 0;
-                        $capacity_text = $capacity > 0 ? "($enrolled/{$capacity})" : "(نامحدود)";
-                        $capacity_warning = ($capacity > 0 && $enrolled >= $capacity) ? ' style="color: #d63638; font-weight: bold;"' : '';
-                        
+
                         echo '<div style="padding: 15px; margin-bottom: 10px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">';
-                        echo '<div style="display: flex; align-items: flex-start; gap: 15px;">';
-                        
-                        // Checkbox برای فعال/غیرفعال
-                        echo '<div style="flex-shrink: 0; margin-top: 5px;">';
-                        echo '<input type="checkbox" name="courses[]" value="' . esc_attr($course->id) . '" id="course_cb_' . esc_attr($course->id) . '" ' . ($is_active ? 'checked' : '') . '>';
+                        echo '<div style="margin-bottom: 10px;"><strong>' . esc_html($course->title) . '</strong></div>';
+
+                        // حفظ وضعیت فعال و فلگ‌ها هنگام ذخیره (قابل ویرایش نیستند)
+                        if ($is_active) {
+                            echo '<input type="hidden" name="courses[]" value="' . esc_attr((string) $cid) . '">';
+                        }
+                        if ($is_paused) {
+                            echo '<input type="hidden" name="course_flags[' . esc_attr((string) $cid) . '][paused]" value="1">';
+                        }
+                        if ($is_completed) {
+                            echo '<input type="hidden" name="course_flags[' . esc_attr((string) $cid) . '][completed]" value="1">';
+                        }
+                        if ($is_canceled) {
+                            echo '<input type="hidden" name="course_flags[' . esc_attr((string) $cid) . '][canceled]" value="1">';
+                        }
+                        echo '<input type="hidden" name="course_chapter[' . esc_attr((string) $cid) . ']" value="' . esc_attr($selected_chapter) . '">';
+                        echo '<input type="hidden" name="course_coach[' . esc_attr((string) $cid) . ']" value="' . esc_attr((string) $selected_coach) . '">';
+                        echo '<input type="hidden" name="course_group[' . esc_attr((string) $cid) . ']" value="' . esc_attr($selected_group) . '">';
+                        if ($selected_pkg_sessions > 0) {
+                            echo '<input type="hidden" name="course_enrollment_package[' . esc_attr((string) $cid) . ']" value="' . esc_attr((string) $selected_pkg_sessions) . '">';
+                        }
+
+                        echo '<div style="margin-top:8px;padding:10px;background:#f0f6fc;border:1px solid #c3d9e8;border-radius:4px;">';
+                        echo '<div style="margin-bottom:6px;"><strong>مربی:</strong> ' . esc_html($coach_label) . '</div>';
+                        echo '<div style="margin-bottom:6px;"><strong>گروه:</strong> ' . esc_html($group_label) . '</div>';
+                        echo '<div><strong>پکیج:</strong> ' . esc_html($package_label) . '</div>';
                         echo '</div>';
-                        
-                        // اطلاعات دوره
-                        echo '<div style="flex: 1;">';
-                        echo '<label for="course_cb_' . esc_attr($course->id) . '" style="cursor: pointer; display: block; margin-bottom: 10px;">';
-                        echo '<strong>' . esc_html($course->title) . '</strong>';
-                        if ($edit_member_id && isset($player_courses_sessions[$course->id])) {
-                            $ps = $player_courses_sessions[$course->id];
+
+                        if (!empty($current_flags)) {
+                            $flag_labels = [];
+                            if ($is_paused) {
+                                $flag_labels[] = 'متوقف شده';
+                            }
+                            if ($is_completed) {
+                                $flag_labels[] = 'تمام شده';
+                            }
+                            if ($is_canceled) {
+                                $flag_labels[] = 'لغو شده';
+                            }
+                            if ($flag_labels) {
+                                echo '<p class="description" style="margin-top:8px;">وضعیت: ' . esc_html(implode('، ', $flag_labels)) . '</p>';
+                            }
+                        }
+
+                        if (isset($player_courses_sessions[$cid])) {
+                            $ps = $player_courses_sessions[$cid];
                             ?>
-                        <div class="session_course_member">
+                        <div class="session_course_member" style="margin-top:10px;">
                             <div class="total_sessions">
                                 <span class="key">کل جلسات دوره : </span>
                                 <span class="val"><?php echo (int) $ps['total_sessions']; ?></span>
                             </div>
                             <div class="remaining_sessions">
                                 <span class="key">جلسات باقی مانده : </span>
-                                <input type="number" name="remaining_sessions[<?php echo esc_attr((string) $course->id); ?>]" min="0" step="1"
+                                <input type="number" name="remaining_sessions[<?php echo esc_attr((string) $cid); ?>]" min="0" step="1"
                                     value="<?php echo (int) $ps['remaining_sessions']; ?>">
                             </div>
                         </div>
                             <?php
                         }
 
-                        if ($has_course_packages) {
-                            echo '<div style="margin-top:8px;padding:8px;background:#f6f7f7;border:1px solid #ddd;border-radius:4px;">';
-                            echo '<strong style="display:block;margin-bottom:6px;">پکیج ثبت‌نام</strong>';
-                            echo '<select name="course_enrollment_package[' . esc_attr($course->id) . ']" style="min-width:220px;">';
-                            echo '<option value="">انتخاب پکیج</option>';
-                            foreach ($course_packages as $pkg) {
-                                $sel = selected($selected_pkg_sessions, (int) $pkg->sessions_count, false);
-                                echo '<option value="' . esc_attr((int) $pkg->sessions_count) . '" ' . $sel . '>';
-                                echo esc_html((int) $pkg->sessions_count) . ' جلسه - ' . esc_html(number_format((float) $pkg->price, 0, '.', ',')) . ' تومان';
-                                echo '</option>';
-                            }
-                            echo '</select>';
-                            echo '<p class="description" style="margin-top:6px;">برای دوره‌های دارای پکیج، انتخاب این مقدار الزامی است.</p>';
-                            echo '</div>';
-                        }
-
-                        echo '<div class="sc-member-course-branch-block" id="sc_member_branch_' . esc_attr((string) $course->id) . '" style="margin-top:10px;padding:10px;background:#f0f6fc;border:1px solid #c3d9e8;border-radius:4px;" data-course-id="' . esc_attr((string) $course->id) . '">';
-                        echo '<strong style="display:block;margin-bottom:8px;">شعبه، مربی و گروه</strong>';
-                        echo '<div class="sc-member-chapter-field" style="margin-bottom:8px;"></div>';
-                        echo '<div class="sc-member-coach-field" style="margin-bottom:8px;"></div>';
-                        echo '<div class="sc-member-group-field"></div>';
-                        echo '</div>';
-
-                        echo '</label>';
-                        
-                        // Checkbox های وضعیت‌های اضافی
-                        echo '<div id="course_status_' . esc_attr($course->id) . '" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">';
-                        echo '<label style="font-size: 18px; display: block; font-weight:bold;" > <p>وضعیت‌های اضافی: </p>';
-                        echo '<div style="display: flex; gap: 15px; flex-wrap: wrap;">';
-                        
-                        echo '<label class="label_cheakbox_active_courses_user">';
-                        echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][paused]" value="1" ' . ($is_paused ? 'checked' : '') . ' style="margin-left: 5px;">';
-                        echo '<span>متوقف شده</span>';
-                        echo '</label>';
-                        
-                        echo '<label class="label_cheakbox_active_courses_user">';
-                        echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][completed]" value="1" ' . ($is_completed ? 'checked' : '') . ' style="margin-left: 5px;">';
-                        echo '<span>تمام شده</span>';
-                        echo '</label>';
-                        
-                        echo '<label class="label_cheakbox_active_courses_user">';
-                        echo '<input type="checkbox" name="course_flags[' . esc_attr($course->id) . '][canceled]" value="1" ' . ($is_canceled ? 'checked' : '') . ' style="margin-left: 5px;">';
-                        echo '<span>لغو شده</span>';
-                        echo '</label>';
-                        echo '</label>';
-                        
-                        echo '</div>';
-                        echo '</div>';
-                        
-                        echo '</div>';
-                        echo '</div>';
                         echo '</div>';
                     }
                     echo '</div>';
-                    echo '<br><strong style="margin-top:10px;  font-size:24px; font-weight:bold; ">راهنما دوره های بازیکن : <br></strong>';
-                    echo '<p class="description" style="margin-top: 10px; font-size:20px; ">بازیکن می‌تواند در چند دوره شرکت کند. تیک اول دوره را فعال/غیرفعال می‌کند و تیک‌های دیگر وضعیت‌های اضافی هستند. - در صورت انتخاب وضعیت های اضافی صورت حساب برای آن دوره ایجاد نخواهد شد.</p>';
-                    echo '<p class="description" style="margin-top: 10px;  font-size:20px; "> دوره فعال برای بازیکن به این معنا است که بازیکن در کلاس ها حاضر است و برای بازیکن به صورت ماهیانه صورتحساب ایجاد می شود.</p>';
-                    if (!empty($member_branch_configs)) {
-                        echo '<script type="application/json" id="sc-member-branch-configs">' . wp_json_encode($member_branch_configs, JSON_UNESCAPED_UNICODE) . '</script>';
-                        echo '<script type="application/json" id="sc-member-branch-selected">' . wp_json_encode([
-                            'chapters' => $player_course_chapter,
-                            'coaches' => $player_course_coach,
-                            'groups' => $player_course_group,
-                        ], JSON_UNESCAPED_UNICODE) . '</script>';
-                    }
+                    echo '<br><strong style="margin-top:10px; font-size:24px; font-weight:bold;">راهنما دوره های بازیکن : <br></strong>';
+                    echo '<p class="description" style="margin-top: 10px; font-size:20px;">در این بخش فقط می‌توانید تعداد جلسات باقی‌مانده را تغییر دهید. مربی، گروه و پکیج فقط نمایش داده می‌شوند.</p>';
                 }
                 ?>
             </div>
@@ -722,166 +735,6 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
             });
         }
 
-        var branchConfigs = {};
-        var branchSelected = { chapters: {}, coaches: {}, groups: {} };
-        try {
-            var cfgEl = document.getElementById('sc-member-branch-configs');
-            var selEl = document.getElementById('sc-member-branch-selected');
-            if (cfgEl) {
-                branchConfigs = JSON.parse(cfgEl.textContent || '{}');
-            }
-            if (selEl) {
-                branchSelected = JSON.parse(selEl.textContent || '{}');
-            }
-        } catch (e) {
-            branchConfigs = {};
-        }
-
-        function renderMemberBranchBlock(courseId) {
-            var cfg = branchConfigs[courseId];
-            var $block = $('#sc_member_branch_' + courseId);
-            if (!$block.length || !cfg) {
-                return;
-            }
-            var chapters = cfg.chapters || [];
-            var selChapter = (branchSelected.chapters && branchSelected.chapters[courseId]) ? branchSelected.chapters[courseId] : '';
-            var selCoach = (branchSelected.coaches && branchSelected.coaches[courseId]) ? parseInt(branchSelected.coaches[courseId], 10) : 0;
-            var $chField = $block.find('.sc-member-chapter-field');
-            var $coField = $block.find('.sc-member-coach-field');
-            $chField.empty();
-            $coField.empty();
-
-            if (!chapters.length) {
-                $chField.html('<span class="description">شعبه‌ای برای این دوره تعریف نشده است.</span>');
-                return;
-            }
-
-            if (chapters.length === 1) {
-                var onlyName = chapters[0].name;
-                $chField.html('<span><strong>شعبه:</strong> ' + onlyName + '</span><input type="hidden" name="course_chapter[' + courseId + ']" value="' + onlyName + '">');
-                selChapter = onlyName;
-            } else {
-                var html = '<label><strong>شعبه:</strong> <select name="course_chapter[' + courseId + ']" class="sc-member-chapter-select" data-course-id="' + courseId + '">';
-                html += '<option value="">انتخاب شعبه</option>';
-                chapters.forEach(function (ch) {
-                    html += '<option value="' + ch.name + '"' + (selChapter === ch.name ? ' selected' : '') + '>' + ch.name + '</option>';
-                });
-                html += '</select></label>';
-                $chField.html(html);
-            }
-
-            renderMemberCoachField(courseId, selChapter, selCoach);
-            renderMemberGroupField(courseId);
-        }
-
-        function groupMatchesBranch(group, chapterName, coachId) {
-            chapterName = String(chapterName || '');
-            coachId = parseInt(coachId, 10) || 0;
-            if (group.chapter_name && group.chapter_name !== '' && (chapterName === '' || group.chapter_name !== chapterName)) {
-                return false;
-            }
-            if (group.coach_id > 0 && (coachId <= 0 || group.coach_id !== coachId)) {
-                return false;
-            }
-            return true;
-        }
-
-        function renderMemberGroupField(courseId) {
-            var cfg = branchConfigs[courseId];
-            var $groupField = $('#sc_member_branch_' + courseId + ' .sc-member-group-field');
-            $groupField.empty();
-            if (!cfg || !cfg.groups || !cfg.groups.has_grouping || !cfg.groups.groups || !cfg.groups.groups.length) {
-                return;
-            }
-
-            var selChapter = '';
-            var $chapterHidden = $('#sc_member_branch_' + courseId + ' input[name="course_chapter[' + courseId + ']"]');
-            var $chapterSelect = $('#sc_member_branch_' + courseId + ' .sc-member-chapter-select');
-            if ($chapterSelect.length) {
-                selChapter = $chapterSelect.val() || '';
-            } else if ($chapterHidden.length) {
-                selChapter = $chapterHidden.val() || '';
-            }
-
-            var coachRaw = $('#sc_member_branch_' + courseId + ' select[name="course_coach[' + courseId + ']"], #sc_member_branch_' + courseId + ' input[name="course_coach[' + courseId + ']"]').val();
-            var selCoach = parseInt(coachRaw, 10) || 0;
-
-            var selGroup = (branchSelected.groups && branchSelected.groups[courseId]) ? branchSelected.groups[courseId] : '';
-            var html = '<label><strong>گروه (اختیاری):</strong> <select name="course_group[' + courseId + ']" class="sc-member-group-select">';
-            html += '<option value="">بدون گروه</option>';
-            (cfg.groups.groups || []).forEach(function (g) {
-                var name = g.name || '';
-                if (!name || !groupMatchesBranch(g, selChapter, selCoach)) {
-                    return;
-                }
-                html += '<option value="' + name + '"' + (selGroup === name ? ' selected' : '') + '>' + name + '</option>';
-            });
-            html += '</select></label>';
-            if (selGroup) {
-                var desc = '';
-                (cfg.groups.groups || []).forEach(function (g) {
-                    if (g.name === selGroup && g.description) {
-                        desc = g.description;
-                    }
-                });
-                if (desc) {
-                    html += '<p class="description" style="margin-top:6px;">' + desc + '</p>';
-                }
-            }
-            $groupField.html(html);
-        }
-
-        function renderMemberCoachField(courseId, chapterName, selectedCoachId) {
-            var cfg = branchConfigs[courseId];
-            var $coField = $('#sc_member_branch_' + courseId + ' .sc-member-coach-field');
-            $coField.empty();
-            if (!cfg || !chapterName) {
-                return;
-            }
-            var coaches = [];
-            (cfg.chapters || []).forEach(function (ch) {
-                if (ch.name === chapterName) {
-                    coaches = ch.coaches || [];
-                }
-            });
-            if (!coaches.length) {
-                $coField.html('<span class="description">مربی برای این شعبه تعریف نشده — ثبت‌نام بدون مربی.</span><input type="hidden" name="course_coach[' + courseId + ']" value="0">');
-                renderMemberGroupField(courseId);
-                return;
-            }
-            if (coaches.length === 1) {
-                var c = coaches[0];
-                $coField.html('<span><strong>مربی:</strong> ' + c.label + '</span><input type="hidden" name="course_coach[' + courseId + ']" value="' + c.id + '">');
-                renderMemberGroupField(courseId);
-                return;
-            }
-            var html = '<label><strong>مربی:</strong> <select name="course_coach[' + courseId + ']" class="sc-member-coach-select">';
-            html += '<option value="0">انتخاب مربی (اختیاری)</option>';
-            coaches.forEach(function (c) {
-                html += '<option value="' + c.id + '"' + (selectedCoachId === c.id ? ' selected' : '') + '>' + c.label + '</option>';
-            });
-            html += '</select></label>';
-            $coField.html(html);
-            renderMemberGroupField(courseId);
-        }
-
-        Object.keys(branchConfigs).forEach(function (courseId) {
-            renderMemberBranchBlock(courseId);
-        });
-
-        $(document).on('change', '.sc-member-chapter-select', function () {
-            var courseId = $(this).data('course-id');
-            renderMemberCoachField(courseId, $(this).val(), 0);
-            renderMemberGroupField(courseId);
-        });
-
-        $(document).on('change', '.sc-member-coach-select', function () {
-            var courseId = $(this).closest('[id^="sc_member_branch_"]').attr('id');
-            if (courseId) {
-                courseId = courseId.replace('sc_member_branch_', '');
-                renderMemberGroupField(courseId);
-            }
-        });
     });
     </script>
 </div>

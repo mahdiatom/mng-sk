@@ -337,26 +337,6 @@ $get_certificate = isset($_GET['sc_phys_cert']) ? $_GET['sc_phys_cert'] : '';
                         $action_buttons = [];
 
                         if ($payment_url && $invoice->status === 'pending') {
-                            $wallet_enabled = function_exists('sc_can_show_players_wallet') && sc_can_show_players_wallet();
-                            $can_pay_from_wallet = false;
-
-                            if ($wallet_enabled) {
-                                $can_pay_from_wallet = sc_can_pay_amount_from_wallet($player->id, $total_amount);
-                            }
-
-                            if ($can_pay_from_wallet && !($invoice->expense_name === 'شارژ کیف پول')) {
-                                $wallet_pay_url = wp_nonce_url(
-                                    add_query_arg([
-                                        'pay_from_wallet' => '1',
-                                        'invoice_id' => $invoice->id,
-                                    ], wc_get_account_endpoint_url('sc-invoices')),
-                                    'pay_from_wallet_' . $invoice->id
-                                );
-
-                                $wallet_text = sc_get_wallet_payment_button_label($player->id, $total_amount);
-                                $action_buttons[] = '<a href="' . esc_url($wallet_pay_url) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-wallet sc-account-btn-compact">💰 ' . esc_html($wallet_text) . '</a>';
-                            }
-
                             $action_buttons[] = '<a href="' . esc_url($payment_url) . '" class="woocommerce-button button view sc-invoice-btn sc-invoice-btn-pay sc-account-btn-compact">💳 پرداخت</a>';
                         }
 

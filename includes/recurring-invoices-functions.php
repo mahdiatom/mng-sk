@@ -808,8 +808,9 @@ function sc_create_threshold_invoices() {
     // دوره‌هایی که:
     // active هستند
     // paused/completed/canceled نیستند
-    // threshold_invoiced != 1 (یعنی قبلاً فاکتور threshold نگرفته‌اند)
-    // و هنوز هیچ فاکتوری برای این ثبت‌نام ندارند (مثلاً از اقدامات سریع)
+    // فاکتور unpaid (pending/under_review) برای این ثبت‌نام ندارند
+    // فاکتورهای پرداخت‌شده مانع تمدید نیستند (وقتی remaining به آستانه برسد دوباره صادر می‌شود)
+    // قفل threshold_invoiced عمداً در WHERE نیست: بعد از فاکتور ثبت‌نام روی 1 می‌ماند و تمدید را بی‌دلیل مسدود می‌کرد
     $courses = $wpdb->get_results("
         SELECT mc.*, c.price, c.title AS course_title, m.user_id , mc.remaining_sessions , m.player_phone 
         FROM $member_courses_table mc
@@ -824,11 +825,11 @@ function sc_create_threshold_invoices() {
         AND c.deleted_at IS NULL
         AND c.is_active = 1
         AND m.is_active = 1
-        AND (mc.threshold_invoiced IS NULL OR mc.threshold_invoiced = 0)
         AND NOT EXISTS (
             SELECT 1 FROM $invoices_table i
-            WHERE i.member_course_id = mc.id
-               OR (i.member_id = mc.member_id AND i.course_id = mc.course_id)
+            WHERE (i.member_course_id = mc.id
+               OR (i.member_id = mc.member_id AND i.course_id = mc.course_id))
+            AND i.status IN ('pending', 'under_review')
         )
     ");
 
@@ -842,8 +843,8 @@ function sc_create_threshold_invoices() {
     foreach ($courses as $course) {
 
         // تابع کمکی که تعداد جلسات باقی‌مانده را از جدول جلسات برمی‌گرداند
-       $remaining = intval($course->remaining_sessions);
-       $sessions_count_threshold = sc_get_setting('sessions_count_threshold','1');
+       $remaining = (int) $course->remaining_sessions;
+       $sessions_count_threshold = (int) sc_get_setting('sessions_count_threshold', '1');
 
 		if ($remaining !== $sessions_count_threshold) {
 			continue;
@@ -1021,42 +1022,55 @@ function sc_refill_sessions_after_payment($invoice_id) {
         $invoice_id
     ));
 
-    if (!$invoice) return;
+    if (!$invoice || empty($invoice->member_course_id)) {
+        return;
+    }
 
-    // فقط برای فاکتورهای حالت آستانه جلسات
-    if ($invoice->type !== 'session_auto') return;
+    $mc_table = $wpdb->prefix . 'sc_member_courses';
 
-  
+    // فقط برای فاکتورهای حالت آستانه جلسات: شارژ مجدد جلسات
+    if ($invoice->type === 'session_auto') {
+        $member_course = $wpdb->get_row($wpdb->prepare(
+            "SELECT remaining_sessions, total_sessions, threshold_invoiced
+             FROM {$mc_table}
+             WHERE id = %d",
+            $invoice->member_course_id
+        ));
 
-    // اطلاعات دوره مربوطه
-    $member_course = $wpdb->get_row($wpdb->prepare(
-        "SELECT remaining_sessions, total_sessions ,threshold_invoiced
-         FROM {$wpdb->prefix}sc_member_courses 
-         WHERE id = %d",
-        $invoice->member_course_id
-    ));
+        if (!$member_course) {
+            return;
+        }
 
-    if (!$member_course) return;
+        $new_remaining = (int) $member_course->remaining_sessions + (int) $member_course->total_sessions;
+        $new_total     = (int) $member_course->total_sessions;
 
-    // شارژ جلسات
-    $new_remaining = (int)$member_course->remaining_sessions + (int)$member_course->total_sessions;
-    $new_total     = (int)$member_course->total_sessions ;
-	$threshold_invoiced = 0;
+        $wpdb->update(
+            $mc_table,
+            [
+                'total_sessions'     => $new_total,
+                'remaining_sessions' => $new_remaining,
+                'threshold_invoiced' => 0,
+            ],
+            ['id' => $invoice->member_course_id],
+            ['%d', '%d', '%d'],
+            ['%d']
+        );
 
-    // بروزرسانی تعداد جلسات
-    $wpdb->update(
-        "{$wpdb->prefix}sc_member_courses",
-        [
-            'total_sessions'     => $new_total,
-            'remaining_sessions' => $new_remaining,
-            'threshold_invoiced' => $threshold_invoiced   // ***** مهم‌ترین بخش: ریست قفل *****
-        ],
-        ['id' => $invoice->member_course_id],
-        ['%d', '%d', '%d'],
-        ['%d']
-    );
+        error_log("SC THRESHOLD: Sessions refilled and threshold reset for MC {$invoice->member_course_id}");
+        return;
+    }
 
-    error_log("SC THRESHOLD: Sessions refilled and threshold reset for MC {$invoice->member_course_id}");
+    // فاکتورهای عادی دوره: بعد از پرداخت قفل تمدید را باز کن
+    // تا وقتی جلسات دوباره به آستانه برسد، کرون بتواند فاکتور جدید بسازد
+    if (!empty($invoice->course_id)) {
+        $wpdb->update(
+            $mc_table,
+            ['threshold_invoiced' => 0],
+            ['id' => (int) $invoice->member_course_id],
+            ['%d'],
+            ['%d']
+        );
+    }
 }
 
 

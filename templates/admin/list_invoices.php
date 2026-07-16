@@ -460,6 +460,16 @@ public function column_order_number($item) {
 
         // به‌روزرسانی وضعیت همه صورت حساب‌های انتخاب شده
         foreach ($invoice_ids as $invoice_id) {
+            $invoice = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, status, woocommerce_order_id FROM $table_name WHERE id = %d",
+                $invoice_id
+            ));
+            if (!$invoice) {
+                continue;
+            }
+
+            $prev_status = (string) $invoice->status;
+
             $update_data = [
                 'status' => $new_status,
                 'updated_at' => current_time('mysql')
@@ -485,18 +495,17 @@ public function column_order_number($item) {
             );
             
             // اگر سفارش WooCommerce وجود دارد، وضعیت آن را هم به‌روزرسانی کن
-            if (function_exists('wc_get_order')) {
-                $invoice = $wpdb->get_row($wpdb->prepare(
-                    "SELECT woocommerce_order_id FROM $table_name WHERE id = %d",
-                    $invoice_id
-                ));
-                
-                if ($invoice && !empty($invoice->woocommerce_order_id)) {
-                    $order = wc_get_order($invoice->woocommerce_order_id);
-                    if ($order) {
-                        $order->update_status($new_status, 'تغییر وضعیت از طریق bulk action');
-                    }
+            if (function_exists('wc_get_order') && !empty($invoice->woocommerce_order_id)) {
+                $order = wc_get_order($invoice->woocommerce_order_id);
+                if ($order && $order->get_status() !== $new_status) {
+                    $order->update_status($new_status, 'تغییر وضعیت از طریق bulk action');
                 }
+            }
+
+            // مثل مسیر منشی: انتقال به پرداخت‌شده را اعلام کن (شارژ جلسات / باز شدن قفل)
+            $was_paid = in_array($prev_status, ['completed', 'paid', 'processing'], true);
+            if (!$was_paid && in_array($new_status, ['completed', 'processing'], true)) {
+                do_action('sc_invoice_paid', (int) $invoice_id);
             }
         }
 

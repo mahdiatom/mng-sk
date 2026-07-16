@@ -1812,9 +1812,9 @@ function sc_create_course_invoice($member_id, $course_id, $member_course_id, $am
         }
     }
 
-    // کرون interval/آستانه: اگر هر فاکتوری از قبل هست (حتی تاییدشده)، دوباره نساز
-    $auto_types = ['system defalt', 'session_auto'];
-    if (in_array((string) $type, $auto_types, true) && $member_course_id > 0) {
+    // کرون interval: فقط یک‌بار (اگر هر فاکتوری از قبل هست، حتی پرداخت‌شده، دوباره نساز).
+    // session_auto (آستانه جلسات): تمدید مجاز است؛ فقط pending/under_review بالاتر مانع می‌شود.
+    if ((string) $type === 'system defalt' && $member_course_id > 0) {
         $existing_any = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$invoices_table}
              WHERE member_course_id = %d

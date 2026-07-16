@@ -450,7 +450,7 @@
 .sc-invoice-panel--preview,
 .sc-private-note-preview-result {
     position: relative;
-    z-index: 5;
+    z-index:0;
 }
 
 .sc-audience-preview-add-wrap {

@@ -240,6 +240,46 @@ function sc_grant_shop_capabilities_to_accountant() {
 add_action('admin_init', 'sc_grant_shop_capabilities_to_accountant', 10);
 
 /**
+ * دسترسی ویرایش سفارش ووکامرس برای صفحهٔ جزئیات صورت‌حساب.
+ * مدیر باشگاه، مدیر سامانه و حسابدار باید بتوانند از لینک فاکتور وارد ویرایش سفارش شوند.
+ *
+ * @return array<string, bool>
+ */
+function sc_get_invoice_woocommerce_order_capabilities() {
+    return array(
+        'read' => true,
+        'manage_woocommerce' => true,
+        'edit_shop_orders' => true,
+        'read_shop_orders' => true,
+        'edit_published_shop_orders' => true,
+        'read_private_shop_orders' => true,
+        'edit_private_shop_orders' => true,
+        'edit_others_shop_orders' => true,
+    );
+}
+
+/**
+ * اعطای دسترسی ویرایش سفارش به مدیر باشگاه، مدیر سامانه و حسابدار.
+ */
+function sc_grant_invoice_order_capabilities_to_staff_roles() {
+    $role_slugs = array('club_coach', 'system_manager', 'accountantt');
+    $caps = sc_get_invoice_woocommerce_order_capabilities();
+
+    foreach ($role_slugs as $slug) {
+        $role = get_role($slug);
+        if (!$role) {
+            continue;
+        }
+        foreach ($caps as $cap => $grant) {
+            if ($grant && !$role->has_cap($cap)) {
+                $role->add_cap($cap);
+            }
+        }
+    }
+}
+add_action('admin_init', 'sc_grant_invoice_order_capabilities_to_staff_roles', 21);
+
+/**
  * اعطای دسترسی اطلاعیه و پیامک به نقش حسابدار.
  */
 function sc_grant_notifications_capabilities_to_accountant() {
