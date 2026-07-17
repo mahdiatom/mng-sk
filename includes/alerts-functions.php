@@ -256,6 +256,73 @@ function sc_create_member_absence_alert_notification_and_sms($item, $absence_lim
     return !empty($result['success']) ? (int) $result['notification_id'] : 0;
 }
 
+/**
+ * هشدار مدیریت هنگام منفی شدن جلسات یک کاربر در دوره.
+ *
+ * @param int $member_id
+ * @param int $course_id
+ * @param int $new_remaining مقدار منفی جدید (مثلاً -1)
+ */
+function sc_alert_member_sessions_negative($member_id, $course_id, $new_remaining) {
+    if (!function_exists('sc_create_system_alert_notification')) {
+        return 0;
+    }
+    $member_id = (int) $member_id;
+    $course_id = (int) $course_id;
+    $new_remaining = (int) $new_remaining;
+    if ($member_id <= 0 || $new_remaining >= 0) {
+        return 0;
+    }
+
+    global $wpdb;
+    $members_table = $wpdb->prefix . 'sc_members';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+
+    $member = $wpdb->get_row($wpdb->prepare(
+        "SELECT first_name, last_name FROM {$members_table} WHERE id = %d LIMIT 1",
+        $member_id
+    ));
+    $member_name = $member ? trim((string) $member->first_name . ' ' . (string) $member->last_name) : '';
+    if ($member_name === '') {
+        $member_name = 'کاربر';
+    }
+
+    $course_title = '';
+    if ($course_id > 0) {
+        $course_title = (string) $wpdb->get_var($wpdb->prepare(
+            "SELECT title FROM {$courses_table} WHERE id = %d LIMIT 1",
+            $course_id
+        ));
+    }
+    $course_label = $course_title !== '' ? $course_title : 'دوره';
+
+    $deficit = abs($new_remaining);
+    $title = sprintf('جلسات منفی — %s', $member_name);
+    $content = sprintf(
+        'جلسات کاربر %s در دوره %s به %d رسید (%d جلسه بدهکار). لطفاً وضعیت شارژ/تمدید بررسی شود.',
+        $member_name,
+        $course_label,
+        $new_remaining,
+        $deficit
+    );
+
+    // به‌ازای هر سطح منفی یک هشدار (dedupe با کلید یکتا شامل مقدار منفی)
+    $alert_key = 'neg_sessions_' . $member_id . '_' . $course_id . '_' . $deficit;
+
+    return sc_create_system_alert_notification(
+        $alert_key,
+        'sessions_negative',
+        $title,
+        $content,
+        [
+            'member_id' => $member_id,
+            'course_id' => $course_id,
+            'remaining_sessions' => $new_remaining,
+        ],
+        false
+    );
+}
+
 function sc_generate_system_alert_notifications($force = false) {
     $created_count = 0;
     $absence_limit = sc_get_user_alert_absence_limit();
@@ -350,9 +417,11 @@ function sc_get_admin_system_alert_notifications($user_id, $args = []) {
     if (!empty($args['kind']) && $args['kind'] !== 'all') {
         $kind = (string) $args['kind'];
         if ($kind === 'other') {
-            $where[] = '(n.target_config NOT LIKE %s AND n.target_config NOT LIKE %s)';
+            $where[] = '(n.target_config NOT LIKE %s AND n.target_config NOT LIKE %s AND n.target_config NOT LIKE %s AND n.target_config NOT LIKE %s)';
             $params[] = '%"alert_kind":"absence_limit"%';
             $params[] = '%"alert_kind":"debt_over_2"%';
+            $params[] = '%"alert_kind":"sessions_negative_refilled"%';
+            $params[] = '%"alert_kind":"sessions_negative"%';
         } else {
             $where[] = 'n.target_config LIKE %s';
             $params[] = '%"alert_kind":"' . $wpdb->esc_like($kind) . '"%';
@@ -468,7 +537,7 @@ function sc_render_user_alerts_page() {
 
     $filter_search = isset($_REQUEST['s']) ? sanitize_text_field(wp_unslash($_REQUEST['s'])) : '';
     $filter_kind = isset($_REQUEST['filter_kind']) ? sanitize_key(wp_unslash($_REQUEST['filter_kind'])) : 'all';
-    if (!in_array($filter_kind, ['all', 'absence_limit', 'debt_over_2', 'other'], true)) {
+    if (!in_array($filter_kind, ['all', 'absence_limit', 'debt_over_2', 'sessions_negative', 'sessions_negative_refilled', 'other'], true)) {
         $filter_kind = 'all';
     }
     $filter_status = isset($_REQUEST['filter_status']) ? sanitize_key(wp_unslash($_REQUEST['filter_status'])) : 'all';
@@ -553,7 +622,7 @@ function sc_render_user_alerts_page() {
         <div class="sc-alerts-list-header">
             <div class="sc-alerts-list-header-text">
                 <h1 class="sc-alerts-list-title">هشدارهای کاربر</h1>
-                <p class="sc-alerts-list-desc">هشدارهای سیستمی غیبت، بدهی و موارد نیازمند تایید مدیر<?php echo $absence_limit ? ' — حد مجاز غیبت: ' . (int) $absence_limit : ''; ?></p>
+                <p class="sc-alerts-list-desc">هشدارهای سیستمی غیبت، بدهی، شارژ جلسات منفی و موارد نیازمند تایید مدیر<?php echo $absence_limit ? ' — حد مجاز غیبت: ' . (int) $absence_limit : ''; ?></p>
             </div>
             <div class="sc-alerts-list-header-actions">
                 <a href="<?php echo esc_url($generate_url); ?>" class="sc-alerts-list-add-btn">بررسی و تولید هشدار</a>
@@ -586,6 +655,8 @@ function sc_render_user_alerts_page() {
                             <option value="all" <?php selected($filter_kind, 'all'); ?>>همه</option>
                             <option value="absence_limit" <?php selected($filter_kind, 'absence_limit'); ?>>غیبت بیش از حد</option>
                             <option value="debt_over_2" <?php selected($filter_kind, 'debt_over_2'); ?>>بیش از ۲ بدهی</option>
+                            <option value="sessions_negative" <?php selected($filter_kind, 'sessions_negative'); ?>>جلسات منفی</option>
+                            <option value="sessions_negative_refilled" <?php selected($filter_kind, 'sessions_negative_refilled'); ?>>شارژ با جلسه منفی</option>
                             <option value="other" <?php selected($filter_kind, 'other'); ?>>سایر سیستمی</option>
                         </select>
                     </div>
@@ -670,8 +741,20 @@ function sc_render_user_alerts_page() {
                                     $row_number++;
                                     $cfg = !empty($item->target_config) ? json_decode($item->target_config, true) : [];
                                     $kind = is_array($cfg) && !empty($cfg['alert_kind']) ? (string) $cfg['alert_kind'] : '';
-                                    $kind_label = $kind === 'absence_limit' ? 'غیبت بیش از حد' : ($kind === 'debt_over_2' ? 'بیش از ۲ بدهی' : 'سیستمی');
-                                    $kind_badge = $kind === 'absence_limit' ? 'sc-badge--warning' : ($kind === 'debt_over_2' ? 'sc-badge--danger' : 'sc-badge--purple');
+                                    $kind_labels = [
+                                        'absence_limit' => 'غیبت بیش از حد',
+                                        'debt_over_2' => 'بیش از ۲ بدهی',
+                                        'sessions_negative' => 'جلسات منفی',
+                                        'sessions_negative_refilled' => 'شارژ با جلسه منفی',
+                                    ];
+                                    $kind_badges = [
+                                        'absence_limit' => 'sc-badge--warning',
+                                        'debt_over_2' => 'sc-badge--danger',
+                                        'sessions_negative' => 'sc-badge--danger',
+                                        'sessions_negative_refilled' => 'sc-badge--info',
+                                    ];
+                                    $kind_label = isset($kind_labels[$kind]) ? $kind_labels[$kind] : 'سیستمی';
+                                    $kind_badge = isset($kind_badges[$kind]) ? $kind_badges[$kind] : 'sc-badge--purple';
                                     $confirm_url = wp_nonce_url(
                                         add_query_arg(['page' => 'sc-user-alerts', 'sc_alert_action' => 'confirm', 'notification_id' => (int) $item->id], admin_url('admin.php')),
                                         'sc_confirm_alert_' . (int) $item->id

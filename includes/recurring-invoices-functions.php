@@ -1090,6 +1090,11 @@ function sc_refill_sessions_after_payment($invoice_id) {
             $charge_sessions,
             $new_remaining
         ));
+
+        // اگر قبل از شارژ مانده منفی بوده، به کاربر و مدیریت اطلاع بده
+        if ($current_remaining < 0) {
+            sc_notify_negative_sessions_refilled($invoice, $current_remaining, $new_remaining);
+        }
         return;
     }
 
@@ -1102,6 +1107,111 @@ function sc_refill_sessions_after_payment($invoice_id) {
             ['id' => (int) $invoice->member_course_id],
             ['%d'],
             ['%d']
+        );
+    }
+}
+
+/**
+ * پس از شارژ جلسات، اگر مانده قبلی منفی بوده باشد، به کاربر (اطلاعیه پنل)
+ * و به بخش هشدار مدیریت اطلاع می‌دهد.
+ *
+ * @param object $invoice           ردیف فاکتور (شامل member_id, member_course_id, course_id)
+ * @param int    $previous_remaining مانده منفی قبل از شارژ (مثلاً -2)
+ * @param int    $new_remaining      مانده فعلی بعد از شارژ
+ */
+function sc_notify_negative_sessions_refilled($invoice, $previous_remaining, $new_remaining) {
+    if (!function_exists('sc_save_notification')) {
+        return;
+    }
+    $previous_remaining = (int) $previous_remaining;
+    if ($previous_remaining >= 0) {
+        return;
+    }
+
+    global $wpdb;
+    $member_id = (int) $invoice->member_id;
+    $member_course_id = (int) $invoice->member_course_id;
+    $course_id = (int) $invoice->course_id;
+    if ($member_id <= 0) {
+        return;
+    }
+
+    $deficit = abs($previous_remaining);
+    $new_remaining = (int) $new_remaining;
+
+    $members_table = $wpdb->prefix . 'sc_members';
+    $courses_table = $wpdb->prefix . 'sc_courses';
+
+    $member = $wpdb->get_row($wpdb->prepare(
+        "SELECT first_name, last_name FROM {$members_table} WHERE id = %d LIMIT 1",
+        $member_id
+    ));
+    $member_name = $member ? trim((string) $member->first_name . ' ' . (string) $member->last_name) : '';
+    if ($member_name === '') {
+        $member_name = 'کاربر';
+    }
+
+    $course_title = '';
+    if ($course_id > 0) {
+        $course_title = (string) $wpdb->get_var($wpdb->prepare(
+            "SELECT title FROM {$courses_table} WHERE id = %d LIMIT 1",
+            $course_id
+        ));
+    }
+    $course_label = $course_title !== '' ? $course_title : 'دوره';
+
+    // 1) اطلاعیه برای کاربر در پنل
+    $user_title = sprintf('شارژ جلسات دوره %s', $course_label);
+    $user_content = sprintf(
+        'شما %d جلسه منفی داشتید و پس از شارژ حساب، تعداد جلسات باقی‌مانده فعلی شما %d جلسه است.',
+        $deficit,
+        $new_remaining
+    );
+
+    sc_save_notification([
+        'title' => $user_title,
+        'content' => $user_content,
+        'target_type' => 'specific',
+        'target_config' => [
+            'recipient_ids' => ['member_' . $member_id],
+            'alert_kind' => 'sessions_negative_refilled_user',
+            'alert_key' => 'neg_refill_user_' . $member_course_id . '_' . (int) $invoice->id,
+            'alert_meta' => [
+                'member_id' => $member_id,
+                'course_id' => $course_id,
+                'previous_remaining' => $previous_remaining,
+                'new_remaining' => $new_remaining,
+                'invoice_id' => (int) $invoice->id,
+            ],
+        ],
+        'notification_type' => 'system',
+        'send_sms' => 0,
+    ]);
+
+    // 2) هشدار برای بخش مدیریت
+    if (function_exists('sc_create_system_alert_notification')) {
+        $admin_title = sprintf('شارژ جلسات با کسر بدهی — %s', $member_name);
+        $admin_content = sprintf(
+            'کاربر %s در دوره %s پیش از شارژ %d جلسه منفی داشت. پس از شارژ، مانده فعلی: %d جلسه.',
+            $member_name,
+            $course_label,
+            $deficit,
+            $new_remaining
+        );
+        $alert_key = 'neg_refill_admin_' . $member_course_id . '_' . (int) $invoice->id;
+        sc_create_system_alert_notification(
+            $alert_key,
+            'sessions_negative_refilled',
+            $admin_title,
+            $admin_content,
+            [
+                'member_id' => $member_id,
+                'course_id' => $course_id,
+                'previous_remaining' => $previous_remaining,
+                'new_remaining' => $new_remaining,
+                'invoice_id' => (int) $invoice->id,
+            ],
+            false
         );
     }
 }

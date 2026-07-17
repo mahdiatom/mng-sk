@@ -4758,6 +4758,10 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
                     ['%d']
                 );
 
+                if ($current_remaining < 0 && function_exists('sc_notify_negative_sessions_refilled')) {
+                    sc_notify_negative_sessions_refilled($invoice, $current_remaining, $remaining_after_pay);
+                }
+
                 // ارسال پیامک ثبت نام موفق (فقط اگر دوره فعال باشد)
                 $member_course = $wpdb->get_row($wpdb->prepare(
                     "SELECT mc.*, c.title as course_title, c.is_active as course_is_active

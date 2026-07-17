@@ -1119,6 +1119,7 @@ function sc_decrease_member_session($member_id, $course_id, $allow_negative = fa
     }
 
     $was_last_session = ($remaining === 1);
+    $new_remaining = $remaining - 1;
 
     $wpdb->query($wpdb->prepare(
         "UPDATE $table
@@ -1131,6 +1132,11 @@ function sc_decrease_member_session($member_id, $course_id, $allow_negative = fa
 
     if ($was_last_session) {
         do_action('sc_member_course_last_session', $member_id, $course_id);
+    }
+
+    // اگر جلسات به منفی رسید، هشدار مدیریت ثبت شود
+    if ($new_remaining < 0 && function_exists('sc_alert_member_sessions_negative')) {
+        sc_alert_member_sessions_negative($member_id, $course_id, $new_remaining);
     }
 
     return true;
