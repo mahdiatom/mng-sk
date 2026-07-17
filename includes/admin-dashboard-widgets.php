@@ -60,6 +60,9 @@ function sc_dw_secretary_widget_ids() {
     if (function_exists('sc_is_pro_feature_honors_enabled') && sc_is_pro_feature_honors_enabled()) {
         $ids[] = 'sc_dw_pending_honors';
     }
+    if (function_exists('sc_is_pro_feature_coach_rating_enabled') && sc_is_pro_feature_coach_rating_enabled()) {
+        $ids[] = 'sc_dw_coach_ratings';
+    }
     return apply_filters('sc_dw_secretary_widget_ids', $ids);
 }
 
@@ -192,6 +195,15 @@ function sc_register_admin_dashboard_widgets() {
             'sc_dw_coach_withdrawals',
             'درخواست‌های برداشت مربی‌ها',
             'sc_dw_render_coach_withdrawals'
+        );
+    }
+
+    // 7-b) میانگین امتیاز مربیان
+    if (function_exists('sc_is_pro_feature_coach_rating_enabled') && sc_is_pro_feature_coach_rating_enabled()) {
+        $register(
+            'sc_dw_coach_ratings',
+            sc_dw_should_scope_to_secretary_branch() ? 'میانگین امتیاز مربیان (شعبه شما)' : 'میانگین امتیاز مربیان',
+            'sc_dw_render_coach_ratings'
         );
     }
 
@@ -996,6 +1008,70 @@ function sc_dw_render_coach_withdrawals() {
             echo '<div class="sc-dw-list-meta">📅 ' . esc_html($created) . '</div>';
             echo '</div>';
             echo '<span class="sc-dw-status ' . esc_attr($status_cls) . '">' . esc_html($status_text) . '</span>';
+            echo '</a>';
+            echo '</li>';
+        }
+        echo '</ul>';
+    }
+    echo '</div>';
+}
+
+/* ====================================================================
+ * 7-b) میانگین امتیاز مربیان
+ * ================================================================= */
+function sc_dw_render_coach_ratings() {
+    if (!function_exists('sc_coach_rating_get_all_coaches_summary')) {
+        echo '<div class="sc-dw-card sc-dw-card-purple">';
+        sc_dw_render_empty('سیستم امتیازدهی در دسترس نیست.');
+        echo '</div>';
+        return;
+    }
+
+    $rows = sc_coach_rating_get_all_coaches_summary();
+    if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only() && function_exists('sc_secretary_get_branch_coach_ids')) {
+        $allowed = sc_secretary_get_branch_coach_ids();
+        $rows = array_values(array_filter($rows, static function ($row) use ($allowed) {
+            return in_array((int) $row->id, $allowed, true);
+        }));
+    }
+
+    $rated_rows = array_values(array_filter($rows, static function ($row) {
+        return (int) ($row->rating_count ?? 0) > 0;
+    }));
+    usort($rated_rows, static function ($a, $b) {
+        $avg_cmp = ((float) ($b->avg_rating ?? 0)) <=> ((float) ($a->avg_rating ?? 0));
+        if ($avg_cmp !== 0) {
+            return $avg_cmp;
+        }
+        return ((int) ($b->rating_count ?? 0)) <=> ((int) ($a->rating_count ?? 0));
+    });
+    $rated_rows = array_slice($rated_rows, 0, 5);
+
+    $list_url = sc_dw_admin_url(['page' => 'sc-reports-coach-performance']);
+
+    echo '<div class="sc-dw-card sc-dw-card-purple">';
+    echo '<div class="sc-dw-card-head">';
+    echo '<span class="sc-dw-badge sc-dw-badge-blue">' . esc_html(number_format_i18n(count($rated_rows))) . ' مربی دارای امتیاز</span>';
+    echo '<a class="sc-dw-link-btn" href="' . esc_url($list_url) . '">گزارش عملکرد</a>';
+    echo '</div>';
+
+    if (empty($rated_rows)) {
+        sc_dw_render_empty('هنوز امتیازی برای مربیان ثبت نشده است.');
+    } else {
+        echo '<ul class="sc-dw-list">';
+        foreach ($rated_rows as $row) {
+            $coach_name = trim(($row->first_name ?? '') . ' ' . ($row->last_name ?? ''));
+            if ($coach_name === '') {
+                $coach_name = 'مربی #' . (int) $row->id;
+            }
+            $report_url = add_query_arg('filter_coach_id', (int) $row->id, $list_url);
+            echo '<li class="sc-dw-list-item">';
+            echo '<a class="sc-dw-list-link" href="' . esc_url($report_url) . '">';
+            echo '<div class="sc-dw-list-main">';
+            echo '<div class="sc-dw-list-title">⭐ ' . esc_html($coach_name) . ' — ' . esc_html(number_format_i18n((float) $row->avg_rating, 1)) . ' از ۵</div>';
+            echo '<div class="sc-dw-list-meta">بر اساس ' . esc_html(number_format_i18n((int) $row->rating_count)) . ' امتیاز</div>';
+            echo '</div>';
+            echo '<span class="sc-dw-status sc-dw-status-info">' . esc_html(number_format_i18n((float) $row->avg_rating, 1)) . '</span>';
             echo '</a>';
             echo '</li>';
         }

@@ -2528,6 +2528,15 @@ function sc_secretary_quick_register_and_enroll($args) {
         return ['success' => false, 'message' => 'دسترسی ندارید.'];
     }
 
+    if (function_exists('sc_registration_limit_can_create_user') && !sc_registration_limit_can_create_user()) {
+        return [
+            'success' => false,
+            'message' => function_exists('sc_registration_limit_admin_message')
+                ? sc_registration_limit_admin_message()
+                : 'ظرفیت کاربران سامانه تکمیل شده است.',
+        ];
+    }
+
     $mobile = isset($args['mobile']) ? preg_replace('/\D/', '', (string) $args['mobile']) : '';
     $first_name = sanitize_text_field((string) ($args['first_name'] ?? ''));
     $last_name = sanitize_text_field((string) ($args['last_name'] ?? ''));

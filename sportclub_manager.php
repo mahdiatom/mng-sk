@@ -65,6 +65,7 @@ require_once SC_INCLUDES_DIR . 'jdf.php';                  // JDF library for Pe
 require_once SC_INCLUDES_DIR . 'persian-datepicker-helper.php'; // Persian datepicker helper
 require_once SC_INCLUDES_DIR . 'db-functions.php';          // Database table creation functions
 require_once SC_INCLUDES_DIR . 'settings-functions.php';   // Settings functions
+require_once SC_INCLUDES_DIR . 'registration-limit-functions.php'; // محدودیت سقف ثبت‌نام کاربران
 require_once SC_INCLUDES_DIR . 'invoice-fees-functions.php'; // Tax/VAT & registration fee
 require_once SC_INCLUDES_DIR . 'custom-code-functions.php';
 require_once SC_INCLUDES_DIR . 'user-profile-access.php'; // دسترسی user-edit/profile وردپرس
@@ -110,6 +111,7 @@ require_once SC_INCLUDES_DIR . 'sms-functions.php'; // SMS functions
 require_once SC_INCLUDES_DIR . 'notification-functions.php'; // Notification & SMS broadcast
 require_once SC_INCLUDES_DIR . 'survey-functions.php'; // Surveys
 require_once SC_INCLUDES_DIR . 'daily-metrics-functions.php'; // ثبت اطلاعات روزانه
+require_once SC_INCLUDES_DIR . 'coach-rating-functions.php'; // امتیازدهی مربیان
 require_once SC_INCLUDES_DIR . 'survey-export.php'; // Survey Excel export
 require_once SC_INCLUDES_DIR . 'course-capacity-waitlist-functions.php'; // اطلاع‌رسانی خالی شدن ظرفیت دوره
 require_once SC_INCLUDES_DIR . 'alerts-functions.php'; // User alerts (admin)
@@ -1025,6 +1027,7 @@ function sc_check_and_create_tables() {
     $survey_eligibility_table = $wpdb->prefix . 'sc_survey_eligibility';
     $metric_fields_table = $wpdb->prefix . 'sc_metric_fields';
     $member_metric_entries_table = $wpdb->prefix . 'sc_member_metric_entries';
+    $coach_ratings_table = $wpdb->prefix . 'sc_coach_ratings';
     $support_tickets_table = $wpdb->prefix . 'sc_support_tickets';
     $support_ticket_messages_table = $wpdb->prefix . 'sc_support_ticket_messages';
     $sms_log_table = $wpdb->prefix . 'sc_sms_log';
@@ -1066,6 +1069,7 @@ function sc_check_and_create_tables() {
     $survey_eligibility_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $survey_eligibility_table)) == $survey_eligibility_table;
     $metric_fields_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $metric_fields_table)) == $metric_fields_table;
     $member_metric_entries_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $member_metric_entries_table)) == $member_metric_entries_table;
+    $coach_ratings_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $coach_ratings_table)) == $coach_ratings_table;
     $support_tickets_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $support_tickets_table)) == $support_tickets_table;
     $support_ticket_messages_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $support_ticket_messages_table)) == $support_ticket_messages_table;
     $sms_log_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $sms_log_table)) == $sms_log_table;
@@ -1164,6 +1168,9 @@ function sc_check_and_create_tables() {
     }
     if (!$member_metric_entries_exists && function_exists('sc_create_member_metric_entries_table')) {
         sc_create_member_metric_entries_table();
+    }
+    if (!$coach_ratings_exists && function_exists('sc_create_coach_ratings_table')) {
+        sc_create_coach_ratings_table();
     }
     if (!$support_tickets_exists && function_exists('sc_create_support_tickets_table')) {
         sc_create_support_tickets_table();
@@ -1791,8 +1798,12 @@ function sc_admin_enqueue_assets() {
         'nonce' => wp_create_nonce('sc_admin_nonce')
     ));
 
-    if ($current_page === 'sc-daily-metrics') {
+    if ($current_page === 'sc-daily-metrics' || $current_page === 'sc-reports-daily-metrics') {
         wp_enqueue_style('sc-daily-metrics-css', SC_ASSETS_URL . 'css/daily-metrics.css', array('sc-admin-css'), time());
+    }
+
+    if ($current_page === 'sc-reports-coach-performance' || $current_page === 'sc-coaches' || $current_page === 'sc-coach-my-profile') {
+        wp_enqueue_style('sc-coach-rating-css', SC_ASSETS_URL . 'css/coach-rating.css', array('sc-admin-css'), time());
     }
 
     if (in_array($current_page, array('sc-users-info-export', 'sc-users-export-templates', 'sc-certificates-issue', 'sc-certificates-templates', 'sc-certificates-list'), true)) {
@@ -2124,6 +2135,19 @@ function sc_public_enqueue_assets() {
     if ($sc_is_daily_metrics) {
         wp_enqueue_style('sc-daily-metrics-css', SC_ASSETS_URL . 'css/daily-metrics.css', array('sc-public-css'), time());
         wp_enqueue_script('sc-chart-js', SC_ASSETS_URL . 'js/vendor/chart.min.js', array(), '3.9.1', true);
+    }
+
+    $sc_is_coach_rating = !is_admin()
+        && $sc_is_panel
+        && (
+            ($sc_req_uri !== '' && strpos($sc_req_uri, 'sc-coach-rating') !== false)
+            || (is_object($wp) && isset($wp->query_vars['sc-coach-rating']))
+            || (function_exists('is_wc_endpoint_url') && is_wc_endpoint_url('sc-coach-rating'))
+            || get_query_var('sc-coach-rating', false) !== false
+            || (function_exists('sc_panel_active_tab_is') && sc_panel_active_tab_is('sc-coach-rating'))
+        );
+    if ($sc_is_coach_rating) {
+        wp_enqueue_style('sc-coach-rating-css', SC_ASSETS_URL . 'css/coach-rating.css', array('sc-public-css'), time());
     }
 
     $sc_is_dashboard = !is_admin()

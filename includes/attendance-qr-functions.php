@@ -1834,7 +1834,32 @@ function sc_attendance_qr_register_present(array $args) {
         ));
     }
 
+    $recorded_by_assistant = (
+        $current_coach_id > 0
+        && function_exists('sc_attendance_is_assistant_recorder')
+        && sc_attendance_is_assistant_recorder($course_id, $current_coach_id, $chapter_name)
+    ) ? 1 : 0;
+
     if ($current_coach_id > 0) {
+        if (
+            function_exists('sc_coach_can_manage_attendance_for_course_chapter')
+            && !sc_coach_can_manage_attendance_for_course_chapter($course_id, $current_coach_id, $chapter_name, $group_name)
+        ) {
+            $is_assistant_blocked = function_exists('sc_coach_is_assistant_only_for_course_chapter')
+                && sc_coach_is_assistant_only_for_course_chapter($course_id, $current_coach_id, $chapter_name)
+                && !(function_exists('sc_assistant_coach_attendance_enabled') && sc_assistant_coach_attendance_enabled());
+            return [
+                'success' => false,
+                'code'    => $is_assistant_blocked ? 'assistant_no_attendance' : 'attendance_forbidden',
+                'message' => $is_assistant_blocked
+                    ? 'کمک‌مربی امکان ثبت حضور و غیاب ندارد. فقط مربی اصلی می‌تواند حضور و غیاب را ثبت کند.'
+                    : 'شما به این دوره دسترسی ثبت حضور و غیاب ندارید.',
+                'member_name' => $member_name,
+            ];
+        }
+        $scope_coach_id = function_exists('sc_attendance_assistant_effective_primary_coach_id')
+            ? sc_attendance_assistant_effective_primary_coach_id($course_id, $current_coach_id, $chapter_name, $group_name)
+            : $current_coach_id;
         if (function_exists('sc_validate_coach_attendance_date_access')) {
             $coach_date_access = sc_validate_coach_attendance_date_access(
                 $current_coach_id,
@@ -1854,11 +1879,11 @@ function sc_attendance_qr_register_present(array $args) {
         }
 
         $member_scope = function_exists('sc_attendance_member_scope_sql')
-            ? sc_attendance_member_scope_sql($course_id, $current_coach_id, $chapter_name)
+            ? sc_attendance_member_scope_sql($course_id, $scope_coach_id, $chapter_name)
             : [
                 'coach_scope_where' => '(coach_id = %d OR coach_id IS NULL OR coach_id = 0)',
                 'chapter_where'     => '',
-                'prepare_args'      => [$current_coach_id],
+                'prepare_args'      => [$scope_coach_id],
             ];
         $group_filter = function_exists('sc_attendance_member_group_filter_sql')
             ? sc_attendance_member_group_filter_sql($group_name, $course_id)
@@ -1897,14 +1922,14 @@ function sc_attendance_qr_register_present(array $args) {
                 "UPDATE $member_courses_table SET coach_id = %d, chapter = %s, updated_at = %s
                  WHERE member_id = %d AND course_id = %d AND (coach_id IS NULL OR coach_id = 0)
                    AND (chapter = %s OR chapter IS NULL OR chapter = '')",
-                $current_coach_id, $chapter_name, current_time('mysql'),
+                $scope_coach_id, $chapter_name, current_time('mysql'),
                 $member_id, $course_id, $chapter_name
             ));
         } else {
             $wpdb->query($wpdb->prepare(
                 "UPDATE $member_courses_table SET coach_id = %d, updated_at = %s
                  WHERE member_id = %d AND course_id = %d AND (coach_id IS NULL OR coach_id = 0)",
-                $current_coach_id, current_time('mysql'), $member_id, $course_id
+                $scope_coach_id, current_time('mysql'), $member_id, $course_id
             ));
         }
     } else {
@@ -1973,13 +1998,14 @@ function sc_attendance_qr_register_present(array $args) {
         ];
         if ($current_record && empty($current_record->user_id)) {
             $update_data['user_id'] = $current_user_id;
+            $update_data['recorded_by_assistant'] = $recorded_by_assistant;
         }
         if ($current_record && $current_record->status === 'absent') {
             $update_data['absence_sms_sent'] = 0;
         }
         $update_formats = [];
         foreach (array_keys($update_data) as $update_key) {
-            $update_formats[] = in_array($update_key, ['user_id', 'absence_sms_sent'], true) ? '%d' : '%s';
+            $update_formats[] = in_array($update_key, ['user_id', 'absence_sms_sent', 'recorded_by_assistant'], true) ? '%d' : '%s';
         }
         $wpdb->update($attendances_table, $update_data, ['id' => $existing], $update_formats, ['%d']);
 
@@ -2028,10 +2054,11 @@ function sc_attendance_qr_register_present(array $args) {
             'status'           => $status,
             'user_id'          => $current_user_id,
             'record_method'    => 'qr',
+            'recorded_by_assistant' => $recorded_by_assistant,
             'created_at'       => current_time('mysql'),
             'updated_at'       => current_time('mysql'),
         ],
-        ['%d', '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s']
+        ['%d', '%d', '%d', '%s', '%s', '%d', '%s', '%d', '%s', '%s']
     );
 
     if (!$inserted) {

@@ -36,6 +36,10 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
     'chapters' => $chapters,
     'defaultChapter' => $default_chapter,
     'sounds' => $sounds,
+    'registrationBlocked' => (function_exists('sc_registration_limit_can_create_user') && !sc_registration_limit_can_create_user()),
+    'registrationBlockedMessage' => function_exists('sc_registration_limit_admin_message')
+        ? sc_registration_limit_admin_message()
+        : 'ظرفیت کاربران سامانه تکمیل شده است.',
     'labels' => [
         'check' => 'بررسی اطلاعات',
         'confirm' => 'تایید و ثبت در دوره',
@@ -49,6 +53,14 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
             <p class="sc-members-list-desc"><?php if ($is_branch_scoped) : ?>ثبت‌نام بازیکن در دوره و صدور صورت‌حساب برای شعبه(های) مجاز شما. ابتدا دوره را انتخاب کنید؛ سپس فقط شعبه‌های فعال همان دوره نمایش داده می‌شود.<?php else : ?>ثبت‌نام بازیکن در دوره و صدور صورت‌حساب — ابتدا دوره، سپس شعبه‌های فعال همان دوره.<?php endif; ?></p>
         </div>
     </div>
+
+    <?php if (function_exists('sc_registration_limit_can_create_user') && !sc_registration_limit_can_create_user()) : ?>
+        <div class="sc-reg-limit-blocked-banner">
+            <strong>ثبت بازیکن جدید موقتاً غیرفعال است.</strong>
+            <?php echo esc_html(sc_registration_limit_admin_message()); ?>
+            افزودن بازیکن موجود به دوره همچنان امکان‌پذیر است.
+        </div>
+    <?php endif; ?>
 
     <nav class="nav-tab-wrapper sc-secretary-qa-tabs">
         <a href="#sc-qa-existing" class="nav-tab nav-tab-active" data-tab="existing">افزودن بازیکن موجود به دوره</a>
@@ -149,6 +161,16 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
             <h2>ثبت‌نام بازیکن جدید + دوره</h2>
             <p>بازیکن جدید را ثبت کنید؛ ابتدا دوره را انتخاب کنید، سپس فقط شعبه‌های فعال همان دوره را ببینید.</p>
         </div>
+        <?php
+        $sc_qa_new_blocked = function_exists('sc_registration_limit_can_create_user') && !sc_registration_limit_can_create_user();
+        if ($sc_qa_new_blocked) :
+            ?>
+            <div class="sc-reg-limit-blocked-banner">
+                <strong>این بخش غیرفعال است.</strong>
+                <?php echo esc_html(sc_registration_limit_admin_message()); ?>
+            </div>
+        <?php endif; ?>
+        <fieldset <?php echo $sc_qa_new_blocked ? 'disabled' : ''; ?> style="<?php echo $sc_qa_new_blocked ? 'opacity:0.65;' : ''; ?>">
         <table class="form-table sc-secretary-qa-form-table">
             <tr>
                 <th scope="row"><label for="sc_qa_new_mobile">موبایل</label></th>
@@ -234,10 +256,11 @@ wp_localize_script('sc-secretary-quick-actions', 'scSecretaryQuick', [
             </tr>
         </table>
         <div class="sc-secretary-qa-actions">
-            <button type="button" class="button button-secondary sc-qa-check" id="sc_qa_new_check">بررسی اطلاعات</button>
+            <button type="button" class="button button-secondary sc-qa-check" id="sc_qa_new_check" <?php echo $sc_qa_new_blocked ? 'disabled' : ''; ?>>بررسی اطلاعات</button>
             <button type="button" class="button button-primary sc-qa-confirm" id="sc_qa_new_confirm" disabled>تایید و ثبت در دوره</button>
             <p class="description sc-qa-submit-hint">ابتدا بررسی کنید؛ فاکتور فقط بعد از تایید نهایی ساخته می‌شود.</p>
         </div>
+        </fieldset>
         <div id="sc_qa_new_validation" class="sc-qa-validation" aria-live="polite" style="display:none;"></div>
         <div id="sc_qa_new_message" class="sc-qa-message" aria-live="polite"></div>
     </div>

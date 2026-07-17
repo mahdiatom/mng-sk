@@ -106,10 +106,14 @@ if (
     } elseif (
         $current_is_coach_user
         && $current_coach_id_for_assignment > 0
-        && function_exists('sc_coach_is_assistant_only_for_course_chapter')
-        && sc_coach_is_assistant_only_for_course_chapter($course_id, $current_coach_id_for_assignment, $chapter_name)
+        && function_exists('sc_coach_can_manage_attendance_for_course_chapter')
+        && !sc_coach_can_manage_attendance_for_course_chapter($course_id, $current_coach_id_for_assignment, $chapter_name, $group_name)
     ) {
-        $message = 'کمک‌مربی امکان ثبت حضور و غیاب ندارد. فقط مربی اصلی می‌تواند حضور و غیاب را ثبت کند.';
+        $message = function_exists('sc_coach_is_assistant_only_for_course_chapter')
+            && sc_coach_is_assistant_only_for_course_chapter($course_id, $current_coach_id_for_assignment, $chapter_name)
+            && !(function_exists('sc_assistant_coach_attendance_enabled') && sc_assistant_coach_attendance_enabled())
+            ? 'کمک‌مربی امکان ثبت حضور و غیاب ندارد. فقط مربی اصلی می‌تواند حضور و غیاب را ثبت کند.'
+            : 'شما به این دوره دسترسی ثبت حضور و غیاب ندارید.';
         $message_type = 'error';
     } else {
         // اعتبارسنجی تاریخ مربی باید فقط در صورت خطا متوقف کند؛ در حالت مجاز باید به ذخیره برسد.
@@ -206,12 +210,15 @@ if (
 
                 // مربی فقط بازیکن خودش یا بدون انتساب را می‌تواند ثبت کند؛ غیرمجاز را رد کن.
                 if ($current_coach_id_for_assignment > 0) {
+                    $scope_coach_id = function_exists('sc_attendance_assistant_effective_primary_coach_id')
+                        ? sc_attendance_assistant_effective_primary_coach_id($course_id, $current_coach_id_for_assignment, $chapter_name, $group_name)
+                        : $current_coach_id_for_assignment;
                     $member_scope = function_exists('sc_attendance_member_scope_sql')
-                        ? sc_attendance_member_scope_sql($course_id, $current_coach_id_for_assignment, $chapter_name)
+                        ? sc_attendance_member_scope_sql($course_id, $scope_coach_id, $chapter_name)
                         : [
                             'coach_scope_where' => '(coach_id = %d OR coach_id IS NULL OR coach_id = 0)',
                             'chapter_where' => '',
-                            'prepare_args' => [$current_coach_id_for_assignment],
+                            'prepare_args' => [$scope_coach_id],
                         ];
                     $group_filter = function_exists('sc_attendance_member_group_filter_sql')
                         ? sc_attendance_member_group_filter_sql($group_name, $course_id)
@@ -240,7 +247,7 @@ if (
                     if (!$can_touch) {
                         continue;
                     }
-                    // بازیکن بدون مربی را با اولین ثبت حضور توسط این مربی به خودش منتسب کن.
+                    // بازیکن بدون مربی را با اولین ثبت حضور توسط مربی اصلی به او منتسب کن (نه کمک‌مربی).
                     if ($chapter_name !== '') {
                         $wpdb->query($wpdb->prepare(
                             "UPDATE $member_courses_table
@@ -249,7 +256,7 @@ if (
                                AND course_id = %d
                                AND (coach_id IS NULL OR coach_id = 0)
                                AND (chapter = %s OR chapter IS NULL OR chapter = '')",
-                            $current_coach_id_for_assignment,
+                            $scope_coach_id,
                             $chapter_name,
                             current_time('mysql'),
                             $member_id,
@@ -263,13 +270,19 @@ if (
                              WHERE member_id = %d
                                AND course_id = %d
                                AND (coach_id IS NULL OR coach_id = 0)",
-                            $current_coach_id_for_assignment,
+                            $scope_coach_id,
                             current_time('mysql'),
                             $member_id,
                             $course_id
                         ));
                     }
                 }
+
+                $recorded_by_assistant = (
+                    $current_coach_id_for_assignment > 0
+                    && function_exists('sc_attendance_is_assistant_recorder')
+                    && sc_attendance_is_assistant_recorder($course_id, $current_coach_id_for_assignment, $chapter_name)
+                ) ? 1 : 0;
 
                 // بررسی وجود رکورد قبلی
                 $existing = $wpdb->get_var($wpdb->prepare(
@@ -317,6 +330,7 @@ if (
                     'status' => $status,
                     'user_id' => $current_user_id,
                     'record_method' => 'manual',
+                    'recorded_by_assistant' => $recorded_by_assistant,
                     'updated_at' => current_time('mysql')
                 );
 
@@ -356,6 +370,7 @@ if (
                         // فقط اگر ثبت‌کننده قبلاً مشخص نشده باشد مقدار بده
                         if (empty($current_record->user_id)) {
                             $update_data['user_id'] = $current_user_id;
+                            $update_data['recorded_by_assistant'] = $recorded_by_assistant;
                         }
 
                     if ($current_record && $current_record->status == 'absent' && $status == 'present') {
@@ -364,7 +379,7 @@ if (
 
                     $update_formats = [];
                     foreach (array_keys($update_data) as $update_key) {
-                        $update_formats[] = in_array($update_key, ['user_id', 'absence_sms_sent'], true) ? '%d' : '%s';
+                        $update_formats[] = in_array($update_key, ['user_id', 'absence_sms_sent', 'recorded_by_assistant'], true) ? '%d' : '%s';
                     }
 
                     $wpdb->update(
@@ -384,7 +399,7 @@ if (
                     $inserted_id = $wpdb->insert(
                         $attendances_table,
                         $data,
-                        array('%d', '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s')
+                        array('%d', '%d', '%d', '%s', '%s', '%d', '%s', '%d', '%s', '%s')
                     );
 
                     if ($inserted_id) {
@@ -487,7 +502,7 @@ if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
     if ($coach) {
         $coach_id = $coach->id;
         $current_coach_id = $coach_id;
-        // دریافت دوره‌های مربی اصلی (کمک‌مربی در لیست حضور و غیاب نمی‌آید)
+        // دریافت دوره‌های مربی اصلی (+ دوره‌های کمک‌مربی در صورت فعال بودن دسترسی کمک‌مربی)
         $courses = $wpdb->get_results($wpdb->prepare(
             "SELECT c.id, c.title, c.course_type, cc.chapter_name
              FROM $courses_table c
@@ -497,6 +512,33 @@ if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
              ORDER BY c.title ASC, cc.chapter_name ASC",
             $coach_id
         ));
+
+        if (function_exists('sc_assistant_coach_attendance_enabled') && sc_assistant_coach_attendance_enabled()
+            && function_exists('sc_course_assistant_coaches_table_ready') && sc_course_assistant_coaches_table_ready()) {
+            $assistant_table = sc_course_assistant_coaches_table();
+            $assistant_courses = $wpdb->get_results($wpdb->prepare(
+                "SELECT c.id, c.title, c.course_type, a.chapter_name, a.group_name
+                 FROM $courses_table c
+                 INNER JOIN `$assistant_table` a ON a.course_id = c.id AND a.assistant_coach_id = %d
+                 WHERE c.deleted_at IS NULL
+                 AND c.is_active = 1
+                 ORDER BY c.title ASC, a.chapter_name ASC, a.group_name ASC",
+                $coach_id
+            ));
+            if (!empty($assistant_courses)) {
+                $existing_keys = [];
+                foreach ((array) $courses as $course_row_item) {
+                    $existing_keys[$course_row_item->id . '|' . (string) ($course_row_item->chapter_name ?? '') . '|' . (string) ($course_row_item->group_name ?? '')] = true;
+                }
+                foreach ($assistant_courses as $assistant_course_row) {
+                    $row_key = $assistant_course_row->id . '|' . (string) ($assistant_course_row->chapter_name ?? '') . '|' . (string) ($assistant_course_row->group_name ?? '');
+                    if (empty($existing_keys[$row_key])) {
+                        $courses[] = $assistant_course_row;
+                        $existing_keys[$row_key] = true;
+                    }
+                }
+            }
+        }
     } else {
         // اگر مربی در جدول coaches وجود نداشت، لیست خالی
         $courses = [];
@@ -586,13 +628,18 @@ $coach_attendance_access = [
 ];
 
 if ($is_coach_attendance_user && $selected_course_id > 0
-    && function_exists('sc_coach_is_assistant_only_for_course_chapter')
-    && sc_coach_is_assistant_only_for_course_chapter($selected_course_id, $current_coach_id, $selected_chapter_name)
+    && function_exists('sc_coach_can_manage_attendance_for_course_chapter')
+    && !sc_coach_can_manage_attendance_for_course_chapter($selected_course_id, $current_coach_id, $selected_chapter_name, $selected_group_name)
 ) {
+    $is_assistant_blocked = function_exists('sc_coach_is_assistant_only_for_course_chapter')
+        && sc_coach_is_assistant_only_for_course_chapter($selected_course_id, $current_coach_id, $selected_chapter_name)
+        && !(function_exists('sc_assistant_coach_attendance_enabled') && sc_assistant_coach_attendance_enabled());
     $coach_attendance_access = [
         'allowed' => false,
-        'code' => 'assistant_no_attendance',
-        'message' => 'کمک‌مربی امکان ثبت حضور و غیاب ندارد. فقط مربی اصلی می‌تواند حضور و غیاب را ثبت کند.',
+        'code' => $is_assistant_blocked ? 'assistant_no_attendance' : 'attendance_forbidden',
+        'message' => $is_assistant_blocked
+            ? 'کمک‌مربی امکان ثبت حضور و غیاب ندارد. فقط مربی اصلی می‌تواند حضور و غیاب را ثبت کند.'
+            : 'شما به این دوره دسترسی ثبت حضور و غیاب ندارید.',
         'config' => $coach_attendance_access['config'],
     ];
 } elseif ($is_coach_attendance_user && $selected_course_id > 0 && $selected_date !== '' && function_exists('sc_validate_coach_attendance_date_access')) {
@@ -652,12 +699,15 @@ if ($selected_course_id && !empty($coach_attendance_access['allowed'])) {
             ));
         }
     } elseif (function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_only_for_attendance()) {
+        $scope_coach_id_list = function_exists('sc_attendance_assistant_effective_primary_coach_id')
+            ? sc_attendance_assistant_effective_primary_coach_id($selected_course_id, $current_coach_id, $selected_chapter_name, $selected_group_name)
+            : $current_coach_id;
         $member_scope = function_exists('sc_attendance_member_scope_sql')
-            ? sc_attendance_member_scope_sql($selected_course_id, $current_coach_id, $selected_chapter_name)
+            ? sc_attendance_member_scope_sql($selected_course_id, $scope_coach_id_list, $selected_chapter_name)
             : [
                 'coach_scope_where' => '(mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0)',
                 'chapter_where' => '',
-                'prepare_args' => [$current_coach_id],
+                'prepare_args' => [$scope_coach_id_list],
             ];
         $members_sql = "SELECT m.id, m.first_name, m.last_name, m.national_id
              FROM $member_courses_table mc

@@ -27,16 +27,43 @@ if (!function_exists('sc_attendance_where_coach_member_scope_list')) {
             return '1=1';
         }
 
+        $scope_coach_ids = [$coach_id];
+        if (function_exists('sc_assistant_coach_attendance_enabled') && sc_assistant_coach_attendance_enabled()
+            && function_exists('sc_course_assistant_coaches_table_ready') && sc_course_assistant_coaches_table_ready()) {
+            $assistant_table = sc_course_assistant_coaches_table();
+            $primary_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT primary_coach_id FROM `$assistant_table` WHERE assistant_coach_id = %d",
+                $coach_id
+            ));
+            $scope_coach_ids = array_merge($scope_coach_ids, array_map('absint', (array) $primary_ids));
+        }
+        $scope_coach_ids = array_values(array_unique(array_filter($scope_coach_ids)));
+
+        if (count($scope_coach_ids) === 1) {
+            return $wpdb->prepare(
+                "EXISTS (SELECT 1 FROM `$mc` mc WHERE mc.member_id = a.member_id AND mc.course_id = a.course_id AND mc.status = %s AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '' OR (mc.course_status_flags NOT LIKE %s AND mc.course_status_flags NOT LIKE %s AND mc.course_status_flags NOT LIKE %s)) AND (mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0))",
+                'active',
+                '%paused%',
+                '%completed%',
+                '%canceled%',
+                $scope_coach_ids[0]
+            );
+        }
+
+        $placeholders = implode(',', array_fill(0, count($scope_coach_ids), '%d'));
         return $wpdb->prepare(
-            "EXISTS (SELECT 1 FROM `$mc` mc WHERE mc.member_id = a.member_id AND mc.course_id = a.course_id AND mc.status = %s AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '' OR (mc.course_status_flags NOT LIKE %s AND mc.course_status_flags NOT LIKE %s AND mc.course_status_flags NOT LIKE %s)) AND (mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0))",
-            'active',
-            '%paused%',
-            '%completed%',
-            '%canceled%',
-            $coach_id
+            "EXISTS (SELECT 1 FROM `$mc` mc WHERE mc.member_id = a.member_id AND mc.course_id = a.course_id AND mc.status = %s AND (mc.course_status_flags IS NULL OR mc.course_status_flags = '' OR (mc.course_status_flags NOT LIKE %s AND mc.course_status_flags NOT LIKE %s AND mc.course_status_flags NOT LIKE %s)) AND (mc.coach_id IN ($placeholders) OR mc.coach_id IS NULL OR mc.coach_id = 0))",
+            array_merge(
+                ['active', '%paused%', '%completed%', '%canceled%'],
+                $scope_coach_ids
+            )
         );
     }
 }
+
+$sc_attendance_recorded_by_name_expr = function_exists('sc_attendance_recorded_by_name_sql')
+    ? sc_attendance_recorded_by_name_sql()
+    : "COALESCE(CONCAT(rec_coach.first_name, ' ', rec_coach.last_name), rec_user.display_name, '-')";
 
 // دریافت تب فعال
 $active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'individual';
@@ -234,17 +261,32 @@ if (function_exists('sc_user_is_secretary_only') && sc_user_is_secretary_only()
     
     if ($coach) {
         $coach_id = $coach->id;
-        // دریافت دوره‌های مربی که فعال هستند
-        $courses = $wpdb->get_results($wpdb->prepare(
-            "SELECT c.id, c.title 
-             FROM $courses_table c
-             INNER JOIN $course_coaches_table cc ON c.id = cc.course_id
-             WHERE cc.coach_id = %d
-             AND c.deleted_at IS NULL 
-             AND c.is_active = 1 
-             ORDER BY c.title ASC",
-            $coach_id
-        ));
+        $accessible_course_ids = function_exists('sc_coach_attendance_accessible_course_ids')
+            ? sc_coach_attendance_accessible_course_ids((int) $coach_id)
+            : [];
+        if (!empty($accessible_course_ids)) {
+            $placeholders_courses = implode(',', array_fill(0, count($accessible_course_ids), '%d'));
+            $courses = $wpdb->get_results($wpdb->prepare(
+                "SELECT DISTINCT c.id, c.title
+                 FROM $courses_table c
+                 WHERE c.id IN ($placeholders_courses)
+                 AND c.deleted_at IS NULL
+                 AND c.is_active = 1
+                 ORDER BY c.title ASC",
+                $accessible_course_ids
+            ));
+        } else {
+            $courses = $wpdb->get_results($wpdb->prepare(
+                "SELECT c.id, c.title 
+                 FROM $courses_table c
+                 INNER JOIN $course_coaches_table cc ON c.id = cc.course_id
+                 WHERE cc.coach_id = %d
+                 AND c.deleted_at IS NULL 
+                 AND c.is_active = 1 
+                 ORDER BY c.title ASC",
+                $coach_id
+            ));
+        }
     } else {
         // اگر مربی در جدول coaches وجود نداشت، لیست خالی
         $courses = [];
@@ -268,12 +310,25 @@ if (function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_
 if ($coach_scope_members_list_id > 0) {
     $_ccb_ml = $wpdb->prefix . 'sc_course_coaches';
     $_mcb_ml = $wpdb->prefix . 'sc_member_courses';
-    $_coach_course_ids_ml = $wpdb->get_col($wpdb->prepare(
-        "SELECT course_id FROM $_ccb_ml WHERE coach_id = %d",
-        $coach_scope_members_list_id
-    ));
+    $_coach_course_ids_ml = function_exists('sc_coach_attendance_accessible_course_ids')
+        ? sc_coach_attendance_accessible_course_ids($coach_scope_members_list_id)
+        : $wpdb->get_col($wpdb->prepare(
+            "SELECT course_id FROM $_ccb_ml WHERE coach_id = %d",
+            $coach_scope_members_list_id
+        ));
+    $_scope_coach_ids_ml = [$coach_scope_members_list_id];
+    if (function_exists('sc_assistant_coach_attendance_enabled') && sc_assistant_coach_attendance_enabled()
+        && function_exists('sc_course_assistant_coaches_table_ready') && sc_course_assistant_coaches_table_ready()) {
+        $assistant_table_ml = sc_course_assistant_coaches_table();
+        $primary_ids_ml = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT primary_coach_id FROM `$assistant_table_ml` WHERE assistant_coach_id = %d",
+            $coach_scope_members_list_id
+        ));
+        $_scope_coach_ids_ml = array_values(array_unique(array_merge($_scope_coach_ids_ml, array_map('absint', (array) $primary_ids_ml))));
+    }
     if (!empty($_coach_course_ids_ml)) {
         $_ph_ml = implode(',', array_fill(0, count($_coach_course_ids_ml), '%d'));
+        $_ph_scope_ml = implode(',', array_fill(0, count($_scope_coach_ids_ml), '%d'));
         $members = $wpdb->get_results($wpdb->prepare(
             "SELECT DISTINCT m.id, m.first_name, m.last_name, m.national_id
              FROM $members_table m
@@ -281,7 +336,7 @@ if ($coach_scope_members_list_id > 0) {
              WHERE m.is_active = 1
                AND mc.course_id IN ($_ph_ml)
                AND mc.status = 'active'
-               AND (mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0)
+               AND (mc.coach_id IN ($_ph_scope_ml) OR mc.coach_id IS NULL OR mc.coach_id = 0)
                AND (
                  mc.course_status_flags IS NULL OR mc.course_status_flags = ''
                  OR (
@@ -293,8 +348,8 @@ if ($coach_scope_members_list_id > 0) {
              ORDER BY m.last_name ASC, m.first_name ASC",
             array_merge(
                 $_coach_course_ids_ml,
+                $_scope_coach_ids_ml,
                 [
-                    $coach_scope_members_list_id,
                     '%paused%',
                     '%completed%',
                     '%canceled%',
@@ -385,7 +440,9 @@ if ($active_tab === 'individual') {
         if ($coach) {
             $coach_id = $coach->id;
             // دریافت لیست course_id های مربی
-            $coach_course_ids = $wpdb->get_col($wpdb->prepare(
+            $coach_course_ids = function_exists('sc_coach_attendance_accessible_course_ids')
+                ? sc_coach_attendance_accessible_course_ids((int) $coach_id)
+                : $wpdb->get_col($wpdb->prepare(
                 "SELECT course_id FROM $course_coaches_table WHERE coach_id = %d",
                 $coach_id
             ));
@@ -476,7 +533,7 @@ if ($active_tab === 'individual') {
                      c.title as course_title,
                      mc.chapter as member_chapter,
                      mc.group_name as member_group_name,
-                     COALESCE(CONCAT(rec_coach.first_name, ' ', rec_coach.last_name), rec_user.display_name, '-') as recorded_by_name
+                     {$sc_attendance_recorded_by_name_expr} as recorded_by_name
               FROM $attendances_table a
               INNER JOIN $members_table m ON a.member_id = m.id
               INNER JOIN $courses_table c ON a.course_id = c.id
@@ -545,7 +602,9 @@ if ($active_tab === 'absents') {
         ));
         if ($coach_abs) {
             $coach_id_abs = (int) $coach_abs->id;
-            $coach_course_ids_abs = $wpdb->get_col($wpdb->prepare(
+            $coach_course_ids_abs = function_exists('sc_coach_attendance_accessible_course_ids')
+                ? sc_coach_attendance_accessible_course_ids($coach_id_abs)
+                : $wpdb->get_col($wpdb->prepare(
                 "SELECT course_id FROM $course_coaches_table_abs WHERE coach_id = %d",
                 $coach_id_abs
             ));
@@ -608,7 +667,7 @@ if ($active_tab === 'absents') {
     $query = "SELECT a.*,
                      m.first_name, m.last_name, m.national_id,
                      c.title as course_title,
-                     COALESCE(CONCAT(rec_coach.first_name, ' ', rec_coach.last_name), rec_user.display_name, '-') as recorded_by_name
+                     {$sc_attendance_recorded_by_name_expr} as recorded_by_name
               FROM $attendances_table a
               INNER JOIN $members_table m ON a.member_id = m.id
               INNER  JOIN $courses_table c ON a.course_id = c.id
@@ -672,7 +731,9 @@ if ($active_tab === 'grouped') {
         if ($coach) {
             $coach_id = $coach->id;
             // دریافت لیست course_id های مربی
-            $coach_course_ids = $wpdb->get_col($wpdb->prepare(
+            $coach_course_ids = function_exists('sc_coach_attendance_accessible_course_ids')
+                ? sc_coach_attendance_accessible_course_ids((int) $coach_id)
+                : $wpdb->get_col($wpdb->prepare(
                 "SELECT course_id FROM $course_coaches_table WHERE coach_id = %d",
                 $coach_id
             ));
@@ -753,7 +814,7 @@ if ($active_tab === 'grouped') {
                 COUNT(CASE WHEN a.status = 'present' THEN 1 END) as present_count,
                 COUNT(CASE WHEN a.status = 'absent' THEN 1 END) as absent_count,
                 COUNT(*) as total_count,
-                GROUP_CONCAT(DISTINCT COALESCE(CONCAT(rec_coach.first_name, ' ', rec_coach.last_name), rec_user.display_name, '-') SEPARATOR '، ') as recorded_by_names
+                GROUP_CONCAT(DISTINCT {$sc_attendance_recorded_by_name_expr} SEPARATOR '، ') as recorded_by_names
               FROM $attendances_table a
               INNER JOIN $courses_table c ON a.course_id = c.id
               LEFT JOIN $member_courses_table mc ON mc.member_id = a.member_id AND mc.course_id = a.course_id AND mc.status = 'active'
@@ -827,7 +888,9 @@ if ($active_tab === 'overall') {
         if ($coach) {
             $coach_id = $coach->id;
             // دریافت لیست course_id های مربی
-            $coach_course_ids = $wpdb->get_col($wpdb->prepare(
+            $coach_course_ids = function_exists('sc_coach_attendance_accessible_course_ids')
+                ? sc_coach_attendance_accessible_course_ids((int) $coach_id)
+                : $wpdb->get_col($wpdb->prepare(
                 "SELECT course_id FROM $course_coaches_table WHERE coach_id = %d",
                 $coach_id
             ));
@@ -1325,7 +1388,9 @@ if (function_exists('sc_user_is_coach_only_for_attendance') && sc_user_is_coach_
     ));
     if ($coach_abs_tab4) {
         $coach_id_abs_tab4 = (int) $coach_abs_tab4->id;
-        $coach_course_ids_abs_tab4 = $wpdb->get_col($wpdb->prepare(
+        $coach_course_ids_abs_tab4 = function_exists('sc_coach_attendance_accessible_course_ids')
+            ? sc_coach_attendance_accessible_course_ids($coach_id_abs_tab4)
+            : $wpdb->get_col($wpdb->prepare(
             "SELECT course_id FROM $course_coaches_table_abs_tab4 WHERE coach_id = %d",
             $coach_id_abs_tab4
         ));

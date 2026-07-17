@@ -150,6 +150,54 @@ if ($pending_invoices_count > 0) {
     ];
 }
 
+// 1-g) امتیازدهی به مربیان
+if (function_exists('sc_is_pro_feature_coach_rating_enabled')
+    && sc_is_pro_feature_coach_rating_enabled()
+    && function_exists('sc_coach_rating_member_has_pending')
+    && sc_coach_rating_member_has_pending($member_id)) {
+    $pending_coach_ratings = function_exists('sc_coach_rating_member_pending_count')
+        ? (int) sc_coach_rating_member_pending_count($member_id)
+        : 1;
+    $coach_rating_url = function_exists('sc_panel_endpoint_url')
+        ? sc_panel_endpoint_url('sc-coach-rating')
+        : wc_get_account_endpoint_url('sc-coach-rating');
+    $tasks[] = [
+        'icon'        => '⭐',
+        'title'       => 'امتیازدهی به مربیان',
+        'description' => sprintf(
+            'هنوز به %s مربی امتیاز نداده‌اید. لطفاً با صداقت، امتیاز شایسته مربیان خود را ثبت کنید.',
+            number_format_i18n($pending_coach_ratings)
+        ),
+        'btn_label'   => 'ثبت امتیاز',
+        'btn_url'     => $coach_rating_url,
+        'color'       => 'purple',
+    ];
+}
+
+// 1-g) امتیازدهی به مربیان
+if (function_exists('sc_is_pro_feature_coach_rating_enabled')
+    && sc_is_pro_feature_coach_rating_enabled()
+    && function_exists('sc_coach_rating_member_has_pending')
+    && sc_coach_rating_member_has_pending($member_id)) {
+    $pending_coach_ratings = function_exists('sc_coach_rating_member_pending_count')
+        ? (int) sc_coach_rating_member_pending_count($member_id)
+        : 1;
+    $coach_rating_url = function_exists('sc_panel_endpoint_url')
+        ? sc_panel_endpoint_url('sc-coach-rating')
+        : wc_get_account_endpoint_url('sc-coach-rating');
+    $tasks[] = [
+        'icon'        => '⭐',
+        'title'       => 'امتیازدهی به مربیان',
+        'description' => sprintf(
+            'شما هنوز به %s مربی امتیاز نداده‌اید. لطفاً با صداقت نظر خود را ثبت کنید.',
+            number_format_i18n($pending_coach_ratings)
+        ),
+        'btn_label'   => 'ثبت امتیاز',
+        'btn_url'     => $coach_rating_url,
+        'color'       => 'purple',
+    ];
+}
+
 /* ====================================================================
  * 2) آخرین تیکت‌ها (۳ مورد)
  * ================================================================= */

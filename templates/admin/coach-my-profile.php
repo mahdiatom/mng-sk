@@ -65,6 +65,28 @@ if ($view_initials === '') {
         </div>
     <?php endif; ?>
 
+    <?php
+    if (function_exists('sc_is_pro_feature_coach_rating_enabled') && sc_is_pro_feature_coach_rating_enabled()) {
+        $coach_rating_stats = sc_coach_rating_get_coach_average($coach_id);
+        ?>
+        <div class="sc-coach-my-profile-rating-card">
+            <h3>میانگین امتیاز بازیکنان</h3>
+            <?php if ($coach_rating_stats['count'] > 0) : ?>
+                <div class="sc-coach-my-profile-rating-value">
+                    <?php echo sc_coach_rating_render_stars_html($coach_rating_stats['average']); ?>
+                    <span><?php echo esc_html(number_format_i18n($coach_rating_stats['average'], 1)); ?> از ۵</span>
+                </div>
+                <p class="sc-coach-my-profile-rating-meta">
+                    بر اساس <?php echo esc_html(number_format_i18n($coach_rating_stats['count'])); ?> امتیاز ثبت‌شده
+                </p>
+            <?php else : ?>
+                <p class="sc-coach-my-profile-rating-meta">هنوز امتیازی برای شما ثبت نشده است.</p>
+            <?php endif; ?>
+        </div>
+        <?php
+    }
+    ?>
+
     <?php if ($is_edit) : ?>
         <form method="post" action="" enctype="multipart/form-data" class="sc-coach-my-profile-form" id="sc-coach-my-profile-form">
             <?php wp_nonce_field('sc_coach_profile_edit', 'sc_coach_profile_nonce'); ?>

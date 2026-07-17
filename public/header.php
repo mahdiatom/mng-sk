@@ -391,8 +391,8 @@ function sc_render_public_announcement() {
         will-change: transform;
     }
     @keyframes sc-marquee { 
-        0%   { transform: translateX(100%); } 
-        100% { transform: translateX(-100%); } 
+        0%   { transform: translateX(-100%); } 
+        100% { transform: translateX(100%); } 
     }
     
     /* جلوه‌ها (با marquee تداخل کمتری داشته باشند) */

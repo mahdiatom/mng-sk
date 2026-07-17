@@ -939,10 +939,13 @@ function sc_export_attendance_to_excel() {
     $where_clause = implode(' AND ', $where_conditions);
     
     // دریافت داده‌ها (با ستون ثبت‌کننده)
+    $recorded_by_name_expr = function_exists('sc_attendance_recorded_by_name_sql')
+        ? sc_attendance_recorded_by_name_sql()
+        : "COALESCE(CONCAT(rec_coach.first_name, ' ', rec_coach.last_name), rec_user.display_name, '-')";
     $query = "SELECT a.*, 
                      m.first_name, m.last_name, m.national_id,
                      c.title as course_title,
-                     COALESCE(CONCAT(rec_coach.first_name, ' ', rec_coach.last_name), rec_user.display_name, '-') as recorded_by_name
+                     {$recorded_by_name_expr} as recorded_by_name
               FROM $attendances_table a
               INNER JOIN $members_table m ON a.member_id = m.id
               INNER JOIN $courses_table c ON a.course_id = c.id

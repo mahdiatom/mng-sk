@@ -356,3 +356,355 @@ function sc_metric_fields_for_js($fields) {
     }
     return $out;
 }
+
+/**
+ * Format a metric entry value for display/export.
+ */
+function sc_metric_format_entry_value($entry) {
+    if (!$entry) {
+        return '';
+    }
+    if (isset($entry->field_type) && $entry->field_type === 'number' && $entry->value_numeric !== null) {
+        $formatted = rtrim(rtrim(number_format((float) $entry->value_numeric, 4, '.', ''), '0'), '.');
+        if (!empty($entry->unit)) {
+            $formatted .= ' ' . $entry->unit;
+        }
+        return $formatted;
+    }
+    return isset($entry->value_text) ? (string) $entry->value_text : '';
+}
+
+/**
+ * Admin: list metric entries across members with filters.
+ *
+ * @param array $args {
+ *     @type int   $member_id
+ *     @type array $field_ids
+ *     @type string $date_from Y-m-d
+ *     @type string $date_to   Y-m-d
+ *     @type int   $limit
+ *     @type int   $offset
+ *     @type bool  $count_only
+ * }
+ */
+function sc_metric_get_admin_entries($args = []) {
+    global $wpdb;
+
+    $entries_table = $wpdb->prefix . 'sc_member_metric_entries';
+    $fields_table  = $wpdb->prefix . 'sc_metric_fields';
+    $members_table = $wpdb->prefix . 'sc_members';
+
+    $where  = ['1=1'];
+    $params = [];
+
+    if (!empty($args['member_id'])) {
+        $where[]  = 'e.member_id = %d';
+        $params[] = absint($args['member_id']);
+    }
+    if (!empty($args['field_ids'])) {
+        $field_ids = array_values(array_filter(array_map('absint', (array) $args['field_ids'])));
+        if (!empty($field_ids)) {
+            $where[] = 'e.field_id IN (' . implode(', ', array_fill(0, count($field_ids), '%d')) . ')';
+            $params  = array_merge($params, $field_ids);
+        }
+    } elseif (!empty($args['field_id'])) {
+        $where[]  = 'e.field_id = %d';
+        $params[] = absint($args['field_id']);
+    }
+    if (!empty($args['date_from'])) {
+        $where[]  = 'e.entry_date >= %s';
+        $params[] = sanitize_text_field($args['date_from']);
+    }
+    if (!empty($args['date_to'])) {
+        $where[]  = 'e.entry_date <= %s';
+        $params[] = sanitize_text_field($args['date_to']);
+    }
+
+    $where_sql = implode(' AND ', $where);
+
+    if (!empty($args['count_only'])) {
+        $sql = "SELECT COUNT(*)
+                FROM $entries_table e
+                INNER JOIN $fields_table f ON f.id = e.field_id
+                INNER JOIN $members_table m ON m.id = e.member_id
+                WHERE $where_sql";
+        if (!empty($params)) {
+            return (int) $wpdb->get_var($wpdb->prepare($sql, ...$params));
+        }
+        return (int) $wpdb->get_var($sql);
+    }
+
+    $sql = "SELECT e.*,
+                   f.title AS field_title,
+                   f.field_type,
+                   f.unit,
+                   m.first_name,
+                   m.last_name,
+                   m.national_id,
+                   m.player_phone,
+                   m.personal_photo
+            FROM $entries_table e
+            INNER JOIN $fields_table f ON f.id = e.field_id
+            INNER JOIN $members_table m ON m.id = e.member_id
+            WHERE $where_sql
+            ORDER BY e.entry_date DESC, e.id DESC";
+
+    if (isset($args['limit'])) {
+        $limit  = max(1, absint($args['limit']));
+        $offset = isset($args['offset']) ? max(0, absint($args['offset'])) : 0;
+        $sql   .= $wpdb->prepare(' LIMIT %d OFFSET %d', $limit, $offset);
+    }
+
+    if (!empty($params)) {
+        return $wpdb->get_results($wpdb->prepare($sql, ...$params));
+    }
+    return $wpdb->get_results($sql);
+}
+
+/**
+ * Admin summary stats for filtered metric entries.
+ */
+function sc_metric_get_admin_stats($args = []) {
+    global $wpdb;
+
+    $entries_table = $wpdb->prefix . 'sc_member_metric_entries';
+    $fields_table  = $wpdb->prefix . 'sc_metric_fields';
+    $members_table = $wpdb->prefix . 'sc_members';
+
+    $where  = ['1=1'];
+    $params = [];
+
+    if (!empty($args['member_id'])) {
+        $where[]  = 'e.member_id = %d';
+        $params[] = absint($args['member_id']);
+    }
+    if (!empty($args['field_ids'])) {
+        $field_ids = array_values(array_filter(array_map('absint', (array) $args['field_ids'])));
+        if (!empty($field_ids)) {
+            $where[] = 'e.field_id IN (' . implode(', ', array_fill(0, count($field_ids), '%d')) . ')';
+            $params  = array_merge($params, $field_ids);
+        }
+    }
+    if (!empty($args['date_from'])) {
+        $where[]  = 'e.entry_date >= %s';
+        $params[] = sanitize_text_field($args['date_from']);
+    }
+    if (!empty($args['date_to'])) {
+        $where[]  = 'e.entry_date <= %s';
+        $params[] = sanitize_text_field($args['date_to']);
+    }
+
+    $where_sql = implode(' AND ', $where);
+    $sql = "SELECT
+                COUNT(*) AS total_entries,
+                COUNT(DISTINCT e.member_id) AS unique_members,
+                COUNT(DISTINCT e.entry_date) AS unique_dates,
+                COUNT(DISTINCT e.field_id) AS unique_fields
+            FROM $entries_table e
+            INNER JOIN $fields_table f ON f.id = e.field_id
+            INNER JOIN $members_table m ON m.id = e.member_id
+            WHERE $where_sql";
+
+    if (!empty($params)) {
+        $row = $wpdb->get_row($wpdb->prepare($sql, ...$params));
+    } else {
+        $row = $wpdb->get_row($sql);
+    }
+
+    return [
+        'total_entries'  => $row ? (int) $row->total_entries : 0,
+        'unique_members' => $row ? (int) $row->unique_members : 0,
+        'unique_dates'   => $row ? (int) $row->unique_dates : 0,
+        'unique_fields'  => $row ? (int) $row->unique_fields : 0,
+    ];
+}
+
+/**
+ * Admin chart payloads: daily activity + per-field counts + optional member trend.
+ */
+function sc_metric_get_admin_chart_payloads($args = []) {
+    global $wpdb;
+
+    $entries_table = $wpdb->prefix . 'sc_member_metric_entries';
+    $fields_table  = $wpdb->prefix . 'sc_metric_fields';
+    $members_table = $wpdb->prefix . 'sc_members';
+
+    $where  = ['1=1'];
+    $params = [];
+
+    if (!empty($args['member_id'])) {
+        $where[]  = 'e.member_id = %d';
+        $params[] = absint($args['member_id']);
+    }
+    if (!empty($args['field_ids'])) {
+        $field_ids = array_values(array_filter(array_map('absint', (array) $args['field_ids'])));
+        if (!empty($field_ids)) {
+            $where[] = 'e.field_id IN (' . implode(', ', array_fill(0, count($field_ids), '%d')) . ')';
+            $params  = array_merge($params, $field_ids);
+        }
+    }
+    if (!empty($args['date_from'])) {
+        $where[]  = 'e.entry_date >= %s';
+        $params[] = sanitize_text_field($args['date_from']);
+    }
+    if (!empty($args['date_to'])) {
+        $where[]  = 'e.entry_date <= %s';
+        $params[] = sanitize_text_field($args['date_to']);
+    }
+
+    $where_sql = implode(' AND ', $where);
+
+    $daily_sql = "SELECT e.entry_date, COUNT(*) AS cnt
+                  FROM $entries_table e
+                  INNER JOIN $fields_table f ON f.id = e.field_id
+                  INNER JOIN $members_table m ON m.id = e.member_id
+                  WHERE $where_sql
+                  GROUP BY e.entry_date
+                  ORDER BY e.entry_date ASC";
+
+    $field_sql = "SELECT f.id, f.title, f.unit, COUNT(*) AS cnt
+                  FROM $entries_table e
+                  INNER JOIN $fields_table f ON f.id = e.field_id
+                  INNER JOIN $members_table m ON m.id = e.member_id
+                  WHERE $where_sql
+                  GROUP BY f.id, f.title, f.unit
+                  ORDER BY cnt DESC, f.sort_order ASC";
+
+    if (!empty($params)) {
+        $daily_rows = $wpdb->get_results($wpdb->prepare($daily_sql, ...$params));
+        $field_rows = $wpdb->get_results($wpdb->prepare($field_sql, ...$params));
+    } else {
+        $daily_rows = $wpdb->get_results($daily_sql);
+        $field_rows = $wpdb->get_results($field_sql);
+    }
+
+    $daily_labels = [];
+    $daily_counts = [];
+    foreach ((array) $daily_rows as $row) {
+        $daily_labels[] = function_exists('sc_date_shamsi_date_only')
+            ? sc_date_shamsi_date_only($row->entry_date)
+            : $row->entry_date;
+        $daily_counts[] = (int) $row->cnt;
+    }
+
+    $field_labels = [];
+    $field_counts = [];
+    foreach ((array) $field_rows as $row) {
+        $label = $row->title;
+        if (!empty($row->unit)) {
+            $label .= ' (' . $row->unit . ')';
+        }
+        $field_labels[] = $label;
+        $field_counts[] = (int) $row->cnt;
+    }
+
+    $member_trend = ['labels' => [], 'datasets' => []];
+    if (!empty($args['member_id']) && !empty($args['chart_field_ids'])) {
+        $member_trend = sc_metric_get_chart_data(
+            absint($args['member_id']),
+            $args['chart_field_ids'],
+            isset($args['date_from']) ? $args['date_from'] : '',
+            isset($args['date_to']) ? $args['date_to'] : ''
+        );
+    }
+
+    return [
+        'daily_activity' => [
+            'labels' => $daily_labels,
+            'counts' => $daily_counts,
+        ],
+        'by_field' => [
+            'labels' => $field_labels,
+            'counts' => $field_counts,
+        ],
+        'member_trend' => $member_trend,
+    ];
+}
+
+/**
+ * Export daily metrics report to Excel.
+ */
+function sc_export_daily_metrics_to_excel() {
+    if (!function_exists('sc_check_phpspreadsheet')) {
+        wp_die('خروجی اکسل در دسترس نیست.');
+    }
+    sc_check_phpspreadsheet();
+
+    $date_filters = sc_metric_parse_date_filters_from_request();
+    $filter_member = isset($_GET['filter_member']) ? absint($_GET['filter_member']) : 0;
+    $field_ids = [];
+    if (isset($_GET['chart_field_ids'])) {
+        $field_ids = array_values(array_filter(array_map('absint', (array) wp_unslash($_GET['chart_field_ids']))));
+    }
+
+    $query_args = [
+        'date_from' => $date_filters['from'],
+        'date_to'   => $date_filters['to'],
+    ];
+    if ($filter_member > 0) {
+        $query_args['member_id'] = $filter_member;
+    }
+    if (!empty($field_ids)) {
+        $query_args['field_ids'] = $field_ids;
+    }
+
+    $entries = sc_metric_get_admin_entries($query_args);
+
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setRightToLeft(true);
+    $sheet->setTitle('ثبت اطلاعات');
+
+    $headers = ['ردیف', 'تاریخ', 'نام و نام خانوادگی', 'کد ملی', 'شماره تماس', 'فیلد', 'مقدار'];
+    $col = 1;
+    foreach ($headers as $header) {
+        $sheet->setCellValueByColumnAndRow($col++, 1, $header);
+    }
+    if (function_exists('sc_get_excel_header_style')) {
+        $sheet->getStyle('A1:G1')->applyFromArray(sc_get_excel_header_style());
+    }
+
+    $row = 2;
+    $index = 1;
+    foreach ($entries as $entry) {
+        $full_name = trim(($entry->first_name ?? '') . ' ' . ($entry->last_name ?? ''));
+        $date_label = function_exists('sc_date_shamsi_date_only')
+            ? sc_date_shamsi_date_only($entry->entry_date)
+            : $entry->entry_date;
+
+        $col = 1;
+        $sheet->setCellValueByColumnAndRow($col++, $row, $index++);
+        $sheet->setCellValueByColumnAndRow($col++, $row, $date_label);
+        $sheet->setCellValueByColumnAndRow($col++, $row, $full_name);
+        $sheet->setCellValueByColumnAndRow($col++, $row, $entry->national_id ?? '');
+        $sheet->setCellValueByColumnAndRow($col++, $row, $entry->player_phone ?? '');
+        $sheet->setCellValueByColumnAndRow($col++, $row, $entry->field_title ?? '');
+        $sheet->setCellValueByColumnAndRow($col++, $row, sc_metric_format_entry_value($entry));
+
+        if (function_exists('sc_get_excel_data_style')) {
+            $data_style = sc_get_excel_data_style();
+            if ($row % 2 === 0 && function_exists('sc_get_excel_alternate_row_style')) {
+                $data_style = array_merge($data_style, sc_get_excel_alternate_row_style());
+            }
+            $sheet->getStyle("A$row:G$row")->applyFromArray($data_style);
+        }
+        $row++;
+    }
+
+    if (function_exists('sc_auto_size_columns')) {
+        sc_auto_size_columns($sheet, 7);
+    }
+
+    $filename = 'daily_metrics_' . date('Ymd_His') . '.xlsx';
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment;filename="' . $filename . '"');
+    header('Cache-Control: max-age=0');
+    header('Pragma: public');
+
+    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+    $writer->save('php://output');
+    exit;
+}

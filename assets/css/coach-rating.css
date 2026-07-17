@@ -1,0 +1,367 @@
+/* Coach rating — player panel + admin */
+
+.sc-coach-rating-page {
+    --sc-cr-primary: var(--sc-portal-primary, #6d34ff);
+    --sc-cr-primary-soft: rgba(109, 52, 255, 0.1);
+    --sc-cr-border: rgba(15, 23, 42, 0.08);
+    --sc-cr-text: #0f172a;
+    --sc-cr-muted: #64748b;
+    --sc-cr-success: #16a34a;
+    --sc-cr-warning: #d97706;
+}
+
+.sc-coach-rating-page-header .sc-invoices-page-desc {
+    margin: 6px 0 0;
+    color: var(--sc-cr-muted);
+}
+
+.sc-coach-rating-privacy-card {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+    border-radius: 16px;
+    border: 1px solid rgba(109, 52, 255, 0.18);
+    background: linear-gradient(135deg, rgba(109, 52, 255, 0.08), rgba(14, 165, 233, 0.06));
+}
+
+.sc-coach-rating-privacy-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    font-size: 22px;
+    flex-shrink: 0;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.sc-coach-rating-privacy-body h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+    color: var(--sc-cr-text);
+}
+
+.sc-coach-rating-privacy-body p {
+    margin: 0;
+    line-height: 1.9;
+    color: var(--sc-cr-muted);
+    font-size: 14px;
+}
+
+.sc-coach-rating-quick-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.sc-coach-rating-quick-stat {
+    background: #fff;
+    border: 1px solid var(--sc-cr-border);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.sc-coach-rating-quick-stat-value {
+    display: block;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--sc-cr-primary);
+    line-height: 1.2;
+}
+
+.sc-coach-rating-quick-stat-label {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--sc-cr-muted);
+}
+
+.sc-coach-rating-cards {
+    display: grid;
+    gap: 16px;
+}
+
+.sc-coach-rating-card {
+    background: #fff;
+    border: 1px solid var(--sc-cr-border);
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
+}
+
+.sc-coach-rating-card.is-completed {
+    border-color: rgba(22, 163, 74, 0.22);
+    background: linear-gradient(180deg, rgba(22, 163, 74, 0.04), #fff 42%);
+}
+
+.sc-coach-rating-card-head {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.sc-coach-rating-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--sc-cr-primary-soft);
+    flex-shrink: 0;
+}
+
+.sc-coach-rating-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sc-coach-rating-avatar--initials {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--sc-cr-primary);
+}
+
+.sc-coach-rating-card-name {
+    margin: 0 0 8px;
+    font-size: 17px;
+    color: var(--sc-cr-text);
+}
+
+.sc-coach-rating-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.sc-coach-rating-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    background: var(--sc-cr-primary-soft);
+    color: var(--sc-cr-primary);
+    font-weight: 600;
+}
+
+.sc-coach-rating-tag.is-soft {
+    background: #f8fafc;
+    color: var(--sc-cr-muted);
+    font-weight: 500;
+}
+
+.sc-coach-rating-stars-input-label,
+.sc-coach-rating-comment-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--sc-cr-text);
+}
+
+.sc-coach-rating-stars-picker {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.sc-coach-rating-star-option {
+    position: relative;
+    margin: 0;
+}
+
+.sc-coach-rating-star-option input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sc-coach-rating-star-btn {
+    display: inline-flex;
+    width: 42px;
+    height: 42px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    border: 1px solid var(--sc-cr-border);
+    background: #fff;
+    color: #cbd5e1;
+    font-size: 22px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.sc-coach-rating-star-btn.is-active,
+.sc-coach-rating-star-btn:hover {
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.35);
+    background: rgba(245, 158, 11, 0.08);
+    transform: translateY(-1px);
+}
+
+.sc-coach-rating-control {
+    width: 100%;
+    border: 1px solid var(--sc-cr-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 92px;
+}
+
+.sc-coach-rating-comment-field {
+    margin-top: 16px;
+}
+
+.sc-coach-rating-form-actions {
+    margin-top: 16px;
+}
+
+.sc-coach-rating-btn-primary {
+    border-radius: 12px !important;
+    min-height: 44px;
+    padding-inline: 22px !important;
+}
+
+.sc-coach-rating-completed-box {
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(22, 163, 74, 0.06);
+    border: 1px solid rgba(22, 163, 74, 0.14);
+}
+
+.sc-coach-rating-completed-score {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.sc-coach-rating-completed-score strong {
+    color: var(--sc-cr-success);
+}
+
+.sc-coach-rating-completed-comment {
+    margin: 0 0 8px;
+    color: var(--sc-cr-text);
+    line-height: 1.8;
+    white-space: pre-wrap;
+}
+
+.sc-coach-rating-completed-note {
+    margin: 0;
+    font-size: 13px;
+    color: var(--sc-cr-muted);
+}
+
+.sc-coach-rating-stars {
+    display: inline-flex;
+    gap: 2px;
+    vertical-align: middle;
+}
+
+.sc-coach-rating-star.is-full {
+    color: #f59e0b;
+}
+
+.sc-coach-rating-star.is-half {
+    color: #fbbf24;
+}
+
+.sc-coach-rating-star.is-empty {
+    color: #e2e8f0;
+}
+
+.sc-coach-rating-empty-state {
+    text-align: center;
+    padding: 36px 20px;
+}
+
+.sc-coach-rating-empty-icon {
+    font-size: 42px;
+    margin-bottom: 10px;
+}
+
+/* Admin */
+.sc-coach-rating-admin-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.sc-coach-rating-admin-summary-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+
+.sc-coach-rating-admin-summary-card strong {
+    display: block;
+    font-size: 24px;
+    margin-top: 4px;
+    color: #6d34ff;
+}
+
+.sc-coach-rating-admin-table .sc-coach-rating-comment-cell {
+    max-width: 320px;
+    white-space: pre-wrap;
+    line-height: 1.7;
+}
+
+.sc-coach-rating-admin-avg {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+}
+
+.sc-coach-my-profile-rating-card {
+    margin: 0 0 20px;
+    padding: 18px 20px;
+    border-radius: 14px;
+    border: 1px solid rgba(109, 52, 255, 0.16);
+    background: linear-gradient(135deg, rgba(109, 52, 255, 0.07), rgba(14, 165, 233, 0.05));
+}
+
+.sc-coach-my-profile-rating-card h3 {
+    margin: 0 0 8px;
+}
+
+.sc-coach-my-profile-rating-value {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 28px;
+    font-weight: 800;
+    color: #6d34ff;
+}
+
+.sc-coach-my-profile-rating-meta {
+    margin: 8px 0 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+@media (max-width: 768px) {
+    .sc-coach-rating-quick-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .sc-coach-rating-privacy-card {
+        flex-direction: column;
+    }
+}

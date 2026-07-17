@@ -724,6 +724,8 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
             $assistant_salary_payout_mode = 'direct';
         }
         sc_update_setting('assistant_salary_payout_mode', $assistant_salary_payout_mode, 'coach_salary');
+        $assistant_coach_attendance_enabled = isset($_POST['assistant_coach_attendance_enabled']) ? 1 : 0;
+        sc_update_setting('assistant_coach_attendance_enabled', (string) $assistant_coach_attendance_enabled, 'coach_salary');
         if (function_exists('sc_log_activity')) {
             sc_log_activity('updated', 'settings', 0, 'تنظیمات تب دستمزد مربی ذخیره شد', null, ['tab' => 'coach_salary']);
         }
@@ -785,6 +787,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     $pro_feature_certificates = isset($_POST['pro_feature_certificates']) ? (int) $_POST['pro_feature_certificates'] : 0;
     $pro_feature_specialized_programs = isset($_POST['pro_feature_specialized_programs']) ? (int) $_POST['pro_feature_specialized_programs'] : 0;
     $pro_feature_daily_metrics = isset($_POST['pro_feature_daily_metrics']) ? (int) $_POST['pro_feature_daily_metrics'] : 0;
+    $pro_feature_coach_rating = isset($_POST['pro_feature_coach_rating']) ? (int) $_POST['pro_feature_coach_rating'] : 0;
     $pro_feature_attendance = isset($_POST['pro_feature_attendance']) ? (int) $_POST['pro_feature_attendance'] : 0;
     $pro_feature_attendance_qr = isset($_POST['pro_feature_attendance_qr']) ? (int) $_POST['pro_feature_attendance_qr'] : 0;
     $pro_feature_tarddod = isset($_POST['pro_feature_tarddod']) ? (int) $_POST['pro_feature_tarddod'] : 0;
@@ -817,6 +820,7 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     sc_update_setting('pro_feature_certificates', $pro_feature_certificates, 'pro_features');
     sc_update_setting('pro_feature_specialized_programs', $pro_feature_specialized_programs, 'pro_features');
     sc_update_setting('pro_feature_daily_metrics', $pro_feature_daily_metrics, 'pro_features');
+    sc_update_setting('pro_feature_coach_rating', $pro_feature_coach_rating, 'pro_features');
     sc_update_setting('pro_feature_attendance', $pro_feature_attendance, 'pro_features');
     sc_update_setting('pro_feature_attendance_qr', $pro_feature_attendance_qr, 'pro_features');
     sc_update_setting('pro_feature_tarddod', $pro_feature_tarddod, 'pro_features');
@@ -835,11 +839,21 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     sc_update_setting('pro_feature_nav_menus', $pro_feature_nav_menus, 'pro_features');
     sc_update_setting('pro_feature_permalinks', $pro_feature_permalinks, 'pro_features');
     sc_update_setting('pro_feature_surveys', $pro_feature_surveys, 'pro_features');
+
+    $registration_limit_enabled = isset($_POST['registration_limit_enabled']) ? (int) $_POST['registration_limit_enabled'] : 0;
+    $registration_limit_max_raw = isset($_POST['registration_limit_max_users']) ? wp_unslash($_POST['registration_limit_max_users']) : '0';
+    if (function_exists('fa_to_en_digits')) {
+        $registration_limit_max_raw = fa_to_en_digits($registration_limit_max_raw);
+    }
+    $registration_limit_max_users = max(0, absint($registration_limit_max_raw));
+    sc_update_setting('registration_limit_enabled', $registration_limit_enabled ? 1 : 0, 'pro_features');
+    sc_update_setting('registration_limit_max_users', $registration_limit_max_users, 'pro_features');
+
     if (function_exists('sc_log_activity')) {
         sc_log_activity('updated', 'settings', 0, 'تنظیمات تب امکانات پرو ذخیره شد', null, ['tab' => 'pro_features']);
     }
     echo '<div class="notice notice-success is-dismissible"><p>تنظیمات امکانات پرو با موفقیت ذخیره شد.</p></div>';
-}
+    }
     elseif ($current_tab === 'log') {
         $log_day = isset($_POST['activity_log_cleanup_day']) ? absint($_POST['activity_log_cleanup_day']) : 1;
         $log_day = max(1, min(28, $log_day));
@@ -1296,6 +1310,7 @@ $pro_feature_bulk_actions = (int) sc_get_setting('pro_feature_bulk_actions', 1);
 $pro_feature_certificates = (int) sc_get_setting('pro_feature_certificates', 1);
 $pro_feature_specialized_programs = (int) sc_get_setting('pro_feature_specialized_programs', 1);
 $pro_feature_daily_metrics = (int) sc_get_setting('pro_feature_daily_metrics', 1);
+$pro_feature_coach_rating = (int) sc_get_setting('pro_feature_coach_rating', 0);
 $pro_feature_attendance = (int) sc_get_setting('pro_feature_attendance', 1);
 $pro_feature_attendance_qr = (int) sc_get_setting('pro_feature_attendance_qr', 1);
 $pro_feature_tarddod = (int) sc_get_setting('pro_feature_tarddod', 1);
@@ -1314,6 +1329,11 @@ $pro_feature_faq = (int) sc_get_setting('pro_feature_faq', 1);
 $pro_feature_nav_menus = (int) sc_get_setting('pro_feature_nav_menus', 1);
 $pro_feature_permalinks = (int) sc_get_setting('pro_feature_permalinks', 1);
 $pro_feature_surveys = (int) sc_get_setting('pro_feature_surveys', 0);
+$registration_limit_enabled = (int) sc_get_setting('registration_limit_enabled', 0);
+$registration_limit_max_users = (int) sc_get_setting('registration_limit_max_users', 0);
+$registration_limit_status = function_exists('sc_registration_limit_get_status')
+    ? sc_registration_limit_get_status()
+    : ['enabled' => false, 'max' => 0, 'current' => 0, 'remaining' => -1, 'reached' => false];
 $wallet_enabled = (int) sc_get_setting('wallet_enabled', 0);
 
 $activity_log_cleanup_day = max(1, min(28, (int) sc_get_setting('activity_log_cleanup_day', '1')));
@@ -4864,8 +4884,23 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                                     <strong>از طریق مربی اصلی:</strong> کل سهم ابتدا به کیف پول مربی اصلی واریز می‌شود، سپس سهم کمک‌مربی از او کسر و به کیف پول کمک‌مربی منتقل می‌شود.
                                 </label>
                             </fieldset>
-                            <p class="description">اگر برای یک کلاس کمک‌مربی تعریف نشده باشد، کل دستمزد فقط به مربی اصلی واریز می‌شود. کمک‌مربی امکان ثبت حضور و غیاب ندارد.</p>
+                            <p class="description">اگر برای یک کلاس کمک‌مربی تعریف نشده باشد، کل دستمزد فقط به مربی اصلی واریز می‌شود.</p>
                             <?php endif; ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">دسترسی کمک‌مربی به حضور و غیاب</th>
+                        <td>
+                            <?php $assistant_coach_attendance_enabled = (int) sc_get_setting('assistant_coach_attendance_enabled', '0'); ?>
+                            <label>
+                                <input type="checkbox" name="assistant_coach_attendance_enabled" value="1" <?php checked($assistant_coach_attendance_enabled, 1); ?>>
+                                کمک‌مربی بتواند برای دوره‌هایی که در آن‌ها کمک‌مربی است حضور و غیاب ثبت کند
+                            </label>
+                            <p class="description">
+                                در صورت فعال بودن، کمک‌مربی به لیست بازیکنان و ثبت حضور و غیاب دوره‌های خود (با همان برنامه هفتگی و مهلت مربی اصلی) دسترسی دارد و در گزارش‌ها مشخص می‌شود که ثبت توسط کمک‌مربی انجام شده است.
+                                در صورت غیرفعال بودن، مانند قبل فقط مربی اصلی می‌تواند حضور و غیاب ثبت کند.
+                                این گزینه هیچ تاثیری در محاسبه دستمزد ندارد.
+                            </p>
                         </td>
                     </tr>
                 </table>
@@ -4879,7 +4914,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 <h3>اطلاعات</h3>
                 <ul>
                     <li><strong>دستمزد درصدی:</strong> در زمان ثبت حضور و غیاب، به صورت خودکار محاسبه و به کیف پول مربی واریز می‌شود.</li>
-                    <li><strong>کمک‌مربی:</strong> در فرم دوره می‌توان برای هر مربی اصلی در هر شعبه، کمک‌مربی و درصد سهم او از دستمزد مربی اصلی تعریف کرد. اگر کمک‌مربی نباشد، کل مبلغ به مربی اصلی می‌رسد.</li>
+                    <li><strong>کمک‌مربی:</strong> در فرم دوره می‌توان برای هر مربی اصلی در هر شعبه، کمک‌مربی و درصد سهم او از دستمزد مربی اصلی تعریف کرد. اگر کمک‌مربی نباشد، کل مبلغ به مربی اصلی می‌رسد. دسترسی کمک‌مربی به حضور و غیاب از همین تب قابل فعال‌سازی است و در گزارش‌ها مشخص می‌شود.</li>
                     <li><strong>دستمزد ثابت:</strong> در روز مشخص‌شده در تنظیمات (یا آخر ماه در صورت خالی بودن) به صورت خودکار به کیف پول مربی واریز می‌شود.</li>
                     <li><strong>درخواست برداشت:</strong> مربی می‌تواند از کیف پول خود درخواست برداشت کند که نیاز به تایید مدیر دارد.</li>
                     <li><strong>مدیریت کیف پول:</strong> مدیر می‌تواند به صورت دستی کیف پول مربی را شارژ یا برداشت کند.</li>
@@ -5302,6 +5337,17 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 </td>
             </tr>
             <tr>
+                <th scope="row">امتیازدهی مربیان</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_coach_rating" value="0">
+                        <input type="checkbox" name="pro_feature_coach_rating" value="1" <?php checked($pro_feature_coach_rating, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                    <p class="description">امکان ثبت امتیاز ۱ تا ۵ توسط بازیکنان برای مربی و کمک‌مربی، نمایش در پنل بازیکن، گزارش مدیریت و میانگین در پروفایل مربی</p>
+                </td>
+            </tr>
+            <tr>
                 <th scope="row">حضور و غیاب</th>
                 <td>
                     <label class="switch">
@@ -5476,6 +5522,70 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                 </td>
             </tr>
         </table>
+
+        <?php
+        $sc_reg_current = (int) ($registration_limit_status['current'] ?? 0);
+        $sc_reg_max = (int) ($registration_limit_max_users > 0 ? $registration_limit_max_users : ($registration_limit_status['max'] ?? 0));
+        $sc_reg_remaining = ($registration_limit_enabled && $sc_reg_max > 0) ? max(0, $sc_reg_max - $sc_reg_current) : null;
+        $sc_reg_reached = $registration_limit_enabled && $sc_reg_max > 0 && $sc_reg_current >= $sc_reg_max;
+        ?>
+        <div class="sc-reg-limit-card">
+            <div class="sc-reg-limit-card__head">
+                <div>
+                    <h3 class="sc-reg-limit-card__title">محدودسازی ثبت‌نام</h3>
+                    <p class="sc-reg-limit-card__desc">
+                        با فعال‌سازی این بخش، وقتی تعداد کاربران سایت به سقف تعیین‌شده برسد، ثبت کاربر جدید در فرم عضویت، اقدامات سریع، افزودن بازیکن/مربی و صفحه کاربران وردپرس متوقف می‌شود.
+                        ورود کاربران فعلی همچنان فعال می‌ماند.
+                    </p>
+                </div>
+                <div class="sc-reg-limit-stats">
+                    <div class="sc-reg-limit-stat">
+                        <span class="sc-reg-limit-stat__val"><?php echo esc_html(number_format_i18n($sc_reg_current)); ?></span>
+                        <span class="sc-reg-limit-stat__lbl">کاربر فعلی</span>
+                    </div>
+                    <div class="sc-reg-limit-stat">
+                        <span class="sc-reg-limit-stat__val"><?php echo $sc_reg_max > 0 ? esc_html(number_format_i18n($sc_reg_max)) : '—'; ?></span>
+                        <span class="sc-reg-limit-stat__lbl">سقف مجاز</span>
+                    </div>
+                    <div class="sc-reg-limit-stat <?php echo $sc_reg_reached ? 'is-danger' : 'is-ok'; ?>">
+                        <span class="sc-reg-limit-stat__val">
+                            <?php
+                            if ($sc_reg_remaining === null) {
+                                echo '—';
+                            } else {
+                                echo esc_html(number_format_i18n($sc_reg_remaining));
+                            }
+                            ?>
+                        </span>
+                        <span class="sc-reg-limit-stat__lbl"><?php echo $sc_reg_reached ? 'ظرفیت تکمیل' : 'ظرفیت باقی‌مانده'; ?></span>
+                    </div>
+                </div>
+            </div>
+            <div class="sc-reg-limit-fields">
+                <div class="sc-reg-limit-field">
+                    <label for="registration_limit_enabled">فعال‌سازی محدودیت</label>
+                    <label class="switch">
+                        <input type="hidden" name="registration_limit_enabled" value="0">
+                        <input type="checkbox" id="registration_limit_enabled" name="registration_limit_enabled" value="1" <?php checked($registration_limit_enabled, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                    <p class="description">در صورت غیرفعال بودن، هیچ سقفی اعمال نمی‌شود.</p>
+                </div>
+                <div class="sc-reg-limit-field">
+                    <label for="registration_limit_max_users">حداکثر تعداد کاربران</label>
+                    <input type="number" class="regular-text" id="registration_limit_max_users" name="registration_limit_max_users"
+                           min="1" step="1" value="<?php echo $registration_limit_max_users > 0 ? esc_attr((string) $registration_limit_max_users) : ''; ?>"
+                           placeholder="مثال: ۱۰۰">
+                    <p class="description">با رسیدن به این عدد، ایجاد کاربر بعدی (نفر بعد از سقف) مسدود می‌شود.</p>
+                </div>
+            </div>
+            <?php if ($sc_reg_reached) : ?>
+                <div class="sc-reg-limit-blocked-banner" style="margin-top:16px;">
+                    <strong>وضعیت فعلی:</strong>
+                    ظرفیت کاربران تکمیل شده است. برای ثبت کاربران جدید، سقف را افزایش دهید یا با پشتیبانی برای ارتقای سامانه هماهنگ کنید.
+                </div>
+            <?php endif; ?>
+        </div>
 
         <p class="submit">
             <input type="submit" name="sc_save_settings" class="button button-primary" value="ذخیره تنظیمات امکانات پرو">

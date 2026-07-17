@@ -16,6 +16,7 @@ class Coaches_List_Table extends WP_List_Table {
             'specialization' => 'تخصص',
             'coaching_level' => 'سطح مربیگری',
             'courses_count' => 'تعداد دوره‌ها',
+            'avg_rating' => 'میانگین امتیاز',
             'is_active' => 'وضعیت'
         ];
     }
@@ -114,6 +115,19 @@ class Coaches_List_Table extends WP_List_Table {
                     $item->id
                 ));
                 return $count ?: 0;
+            case 'avg_rating':
+                if (!function_exists('sc_is_pro_feature_coach_rating_enabled') || !sc_is_pro_feature_coach_rating_enabled()) {
+                    return '<span class="sc-badge sc-badge--muted">غیرفعال</span>';
+                }
+                $stats = sc_coach_rating_get_coach_average((int) $item->id);
+                if ($stats['count'] <= 0) {
+                    return '<span class="sc-badge sc-badge--muted">بدون امتیاز</span>';
+                }
+                return '<span class="sc-coach-rating-admin-avg">'
+                    . sc_coach_rating_render_stars_html($stats['average'])
+                    . '<span>' . esc_html(number_format_i18n($stats['average'], 1)) . '</span>'
+                    . '<small>(' . esc_html(number_format_i18n($stats['count'])) . ')</small>'
+                    . '</span>';
             case 'is_active':
                 return !empty($item->is_active)
                     ? '<span class="sc-badge sc-badge--success">فعال</span>'

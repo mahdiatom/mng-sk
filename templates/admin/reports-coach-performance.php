@@ -322,6 +322,25 @@ $page_url = admin_url('admin.php?page=sc-reports-coach-performance');
                 <div class="sc-reports-list-stat-value is-purple"><?php echo (int) $active_players_now; ?></div>
                 <p class="description">ثبت‌نام فعال در دوره‌هایی که این مربی روی آن‌ها تعریف شده است.</p>
             </div>
+            <?php if (function_exists('sc_is_pro_feature_coach_rating_enabled') && sc_is_pro_feature_coach_rating_enabled()) :
+                $coach_rating_stats = sc_coach_rating_get_coach_average($filter_coach_id);
+                $coach_ratings_rows = sc_coach_rating_get_coach_ratings($filter_coach_id, [
+                    'date_from' => $filter_date_from,
+                    'date_to'   => $filter_date_to,
+                ]);
+                ?>
+            <div class="sc-reports-list-stat-card">
+                <div class="sc-reports-list-stat-label">میانگین امتیاز بازیکنان</div>
+                <div class="sc-reports-list-stat-value is-blue">
+                    <?php echo $coach_rating_stats['count'] > 0 ? esc_html(number_format_i18n($coach_rating_stats['average'], 1)) : '—'; ?>
+                </div>
+                <p class="description">
+                    <?php echo $coach_rating_stats['count'] > 0
+                        ? esc_html(number_format_i18n($coach_rating_stats['count'])) . ' امتیاز ثبت‌شده'
+                        : 'هنوز امتیازی ثبت نشده است.'; ?>
+                </p>
+            </div>
+            <?php endif; ?>
             <div class="sc-reports-list-stat-card">
                 <div class="sc-reports-list-stat-label">درآمد مربی (دستمزد در بازه)</div>
                 <div class="sc-reports-list-stat-value is-blue"><?php echo esc_html(number_format($coach_income_period, 0, '.', ',')); ?> تومان</div>
@@ -438,6 +457,50 @@ $page_url = admin_url('admin.php?page=sc-reports-coach-performance');
             </table>
             </div>
         </div>
+
+        <?php if (function_exists('sc_is_pro_feature_coach_rating_enabled') && sc_is_pro_feature_coach_rating_enabled()) : ?>
+        <div class="sc-reports-list-panel" style="margin-top:16px;">
+            <div class="sc-reports-list-panel-header"><h2>امتیازهای ثبت‌شده توسط بازیکنان</h2></div>
+            <div class="sc-reports-list-table-card sc-coach-rating-admin-table" style="margin:0;box-shadow:none;border:none;padding:0;">
+                <?php if (empty($coach_ratings_rows)) : ?>
+                    <div class="sc-reports-empty">در بازه انتخاب‌شده امتیازی ثبت نشده است.</div>
+                <?php else : ?>
+                    <table class="wp-list-table widefat fixed striped">
+                        <thead>
+                            <tr>
+                                <th>بازیکن</th>
+                                <th>دوره</th>
+                                <th>نقش</th>
+                                <th>امتیاز</th>
+                                <th>توضیحات</th>
+                                <th>تاریخ ثبت</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($coach_ratings_rows as $rating_row) :
+                                $member_name = trim(($rating_row->first_name ?? '') . ' ' . ($rating_row->last_name ?? ''));
+                                if ($member_name === '') {
+                                    $member_name = sc_coach_rating_get_member_display_name((int) $rating_row->member_id);
+                                }
+                                ?>
+                                <tr>
+                                    <td><?php echo esc_html($member_name); ?></td>
+                                    <td><?php echo esc_html($rating_row->course_title ?: ('#' . (int) $rating_row->course_id)); ?></td>
+                                    <td><?php echo esc_html(sc_coach_rating_role_label($rating_row->coach_role)); ?></td>
+                                    <td>
+                                        <?php echo sc_coach_rating_render_stars_html((int) $rating_row->rating); ?>
+                                        <strong><?php echo esc_html(number_format_i18n((int) $rating_row->rating)); ?></strong>
+                                    </td>
+                                    <td class="sc-coach-rating-comment-cell"><?php echo $rating_row->comment ? esc_html($rating_row->comment) : '—'; ?></td>
+                                    <td><?php echo esc_html(function_exists('sc_date_shamsi') ? sc_date_shamsi($rating_row->created_at, 'Y/m/d - H:i') : $rating_row->created_at); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <script src="<?php echo esc_url(SC_ASSETS_URL . 'js/vendor/chart.min.js'); ?>"></script>
         <script>

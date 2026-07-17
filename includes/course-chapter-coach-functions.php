@@ -1015,6 +1015,13 @@ function sc_attendance_build_course_dropdown_options($courses) {
 
         if (function_exists('sc_course_has_grouping_enabled') && sc_course_has_grouping_enabled($course_id)) {
             $groups = function_exists('sc_get_course_groups') ? sc_get_course_groups($course_id) : [];
+            $group_filter_from_row = isset($course->group_name) ? sanitize_text_field((string) $course->group_name) : '';
+            if ($group_filter_from_row !== '') {
+                $groups = array_values(array_filter((array) $groups, static function ($grow) use ($group_filter_from_row) {
+                    $gitem = function_exists('sc_format_course_group_item') ? sc_format_course_group_item($grow) : ['name' => (string) ($grow->group_name ?? ''), 'chapter_name' => '', 'coach_id' => 0];
+                    return (string) ($gitem['name'] ?? '') === $group_filter_from_row;
+                }));
+            }
             if (empty($groups)) {
                 $value = sc_attendance_course_option_value($course_id, $chapter_from_row, '');
                 $label = sc_attendance_course_option_label($title, $chapter_from_row, '');

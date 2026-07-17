@@ -600,6 +600,10 @@ function sc_login_register_sync_member_profile($user_id, $args = []) {
  * Create WP user and let plugin create member (display_name + billing_phone)
  */
 function sc_login_register_create_user($phone, $first_name, $last_name, $password) {
+    if (function_exists('sc_registration_limit_can_create_user') && !sc_registration_limit_can_create_user()) {
+        return ['success' => false, 'message' => function_exists('sc_registration_limit_public_message') ? sc_registration_limit_public_message() : 'امکان ثبت‌نام وجود ندارد.'];
+    }
+
     $mobile = sc_login_register_normalize_phone($phone);
     if (!$mobile || !preg_match('/^09\d{9}$/', $mobile)) {
         return ['success' => false, 'message' => 'شماره موبایل معتبر نیست.'];
@@ -649,6 +653,10 @@ function sc_login_register_create_user($phone, $first_name, $last_name, $passwor
  * Create WP user with national_id as username
  */
 function sc_login_register_create_user_by_national_id($national_id, $phone, $first_name, $last_name, $password) {
+    if (function_exists('sc_registration_limit_can_create_user') && !sc_registration_limit_can_create_user()) {
+        return ['success' => false, 'message' => function_exists('sc_registration_limit_public_message') ? sc_registration_limit_public_message() : 'امکان ثبت‌نام وجود ندارد.'];
+    }
+
     $nid = sc_login_register_normalize_national_id($national_id);
     $mobile = sc_login_register_normalize_phone($phone);
 
@@ -715,6 +723,14 @@ function sc_ajax_login_register_check_phone() {
     $users = sc_login_register_get_users_by_phone($mobile);
     $count = count($users);
     if ($count < 1) {
+        if (function_exists('sc_registration_limit_can_create_user') && !sc_registration_limit_can_create_user()) {
+            wp_send_json_error([
+                'message' => function_exists('sc_registration_limit_public_message')
+                    ? sc_registration_limit_public_message()
+                    : 'در حال حاضر امکان ثبت‌نام کاربر جدید وجود ندارد.',
+                'registration_blocked' => true,
+            ]);
+        }
         wp_send_json_success(['exists' => false]);
     }
 
@@ -861,6 +877,14 @@ add_action('wp_ajax_sc_login_register_register', 'sc_ajax_login_register_registe
 add_action('wp_ajax_nopriv_sc_login_register_register', 'sc_ajax_login_register_register');
 function sc_ajax_login_register_register() {
     check_ajax_referer('sc_login_register', 'nonce');
+    if (function_exists('sc_registration_limit_can_create_user') && !sc_registration_limit_can_create_user()) {
+        wp_send_json_error([
+            'message' => function_exists('sc_registration_limit_public_message')
+                ? sc_registration_limit_public_message()
+                : 'در حال حاضر امکان ثبت‌نام کاربر جدید وجود ندارد.',
+            'registration_blocked' => true,
+        ]);
+    }
     $phone      = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
     $first_name = isset($_POST['first_name']) ? sanitize_text_field($_POST['first_name']) : '';
     $last_name  = isset($_POST['last_name']) ? sanitize_text_field($_POST['last_name']) : '';
@@ -911,6 +935,15 @@ function sc_ajax_login_register_check_national_id() {
 
     if (sc_login_register_national_id_registered($nid)) {
         wp_send_json_success(['exists' => true]);
+    }
+
+    if (function_exists('sc_registration_limit_can_create_user') && !sc_registration_limit_can_create_user()) {
+        wp_send_json_error([
+            'message' => function_exists('sc_registration_limit_public_message')
+                ? sc_registration_limit_public_message()
+                : 'در حال حاضر امکان ثبت‌نام کاربر جدید وجود ندارد.',
+            'registration_blocked' => true,
+        ]);
     }
 
     $available = sc_login_register_check_national_id_available($nid);
@@ -986,6 +1019,14 @@ add_action('wp_ajax_sc_login_register_register_nid', 'sc_ajax_login_register_reg
 add_action('wp_ajax_nopriv_sc_login_register_register_nid', 'sc_ajax_login_register_register_nid');
 function sc_ajax_login_register_register_nid() {
     check_ajax_referer('sc_login_register', 'nonce');
+    if (function_exists('sc_registration_limit_can_create_user') && !sc_registration_limit_can_create_user()) {
+        wp_send_json_error([
+            'message' => function_exists('sc_registration_limit_public_message')
+                ? sc_registration_limit_public_message()
+                : 'در حال حاضر امکان ثبت‌نام کاربر جدید وجود ندارد.',
+            'registration_blocked' => true,
+        ]);
+    }
     $national_id = isset($_POST['national_id']) ? sanitize_text_field($_POST['national_id']) : '';
     $phone       = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
     $first_name  = isset($_POST['first_name']) ? sanitize_text_field($_POST['first_name']) : '';

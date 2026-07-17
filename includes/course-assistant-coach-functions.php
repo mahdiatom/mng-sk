@@ -472,3 +472,201 @@ function sc_split_primary_salary_with_assistants($gross_amount, array $assistant
     $out['primary_net'] = max(0, round($gross_amount - $assistant_total, 2));
     return $out;
 }
+
+/**
+ * آیا دسترسی کمک‌مربی به ثبت حضور و غیاب فعال است؟ (تنظیمات مربی)
+ * پیش‌فرض غیرفعال = رفتار قبلی (فقط مربی اصلی).
+ *
+ * @return bool
+ */
+function sc_assistant_coach_attendance_enabled() {
+    if (!function_exists('sc_get_setting')) {
+        return false;
+    }
+    return (int) sc_get_setting('assistant_coach_attendance_enabled', '0') === 1;
+}
+
+/**
+ * شناسه مربی اصلی مؤثر برای محدوده حضور و غیاب.
+ * اگر مربی فقط کمک‌مربی این دوره/شعبه باشد و دسترسی کمک‌مربی فعال باشد،
+ * شناسه مربی اصلی برمی‌گردد (برای برنامه هفتگی و محدوده بازیکنان)؛ وگرنه همان شناسه ورودی.
+ *
+ * @param int    $course_id
+ * @param int    $coach_id
+ * @param string $chapter_name
+ * @param string $group_name
+ * @return int
+ */
+function sc_attendance_assistant_effective_primary_coach_id($course_id, $coach_id, $chapter_name = '', $group_name = '') {
+    global $wpdb;
+    $course_id = absint($course_id);
+    $coach_id = absint($coach_id);
+    $chapter_name = sanitize_text_field((string) $chapter_name);
+    $group_name = sanitize_text_field((string) $group_name);
+
+    if (!$course_id || !$coach_id || !sc_assistant_coach_attendance_enabled()) {
+        return $coach_id;
+    }
+    if (!sc_coach_is_assistant_only_for_course_chapter($course_id, $coach_id, $chapter_name)) {
+        return $coach_id;
+    }
+
+    $t = sc_course_assistant_coaches_table();
+    $sql = "SELECT primary_coach_id FROM `$t` WHERE course_id = %d AND assistant_coach_id = %d";
+    $args = [$course_id, $coach_id];
+    if ($chapter_name !== '') {
+        $sql .= ' AND chapter_name = %s';
+        $args[] = $chapter_name;
+    }
+    if ($group_name !== '') {
+        $sql .= ' ORDER BY (group_name = %s) DESC, id ASC';
+        $args[] = $group_name;
+    } else {
+        $sql .= ' ORDER BY id ASC';
+    }
+    $sql .= ' LIMIT 1';
+
+    $primary = (int) $wpdb->get_var($wpdb->prepare($sql, $args));
+    return $primary > 0 ? $primary : $coach_id;
+}
+
+/**
+ * SQL برای نمایش نام ثبت‌کننده حضور و غیاب (با برچسب کمک‌مربی در صورت نیاز).
+ *
+ * @param string $attendance_alias
+ * @param string $coach_alias
+ * @param string $user_alias
+ * @return string
+ */
+function sc_attendance_recorded_by_name_sql($attendance_alias = 'a', $coach_alias = 'rec_coach', $user_alias = 'rec_user') {
+    $attendance_alias = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $attendance_alias);
+    $coach_alias = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $coach_alias);
+    $user_alias = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $user_alias);
+    $base = "COALESCE(CONCAT({$coach_alias}.first_name, ' ', {$coach_alias}.last_name), {$user_alias}.display_name, '-')";
+    return "CASE WHEN {$attendance_alias}.recorded_by_assistant = 1 THEN CONCAT({$base}, ' (کمک‌مربی)') ELSE {$base} END";
+}
+
+/**
+ * آیا ثبت‌کننده فعلی برای این دوره/شعبه کمک‌مربی است؟
+ *
+ * @param int    $course_id
+ * @param int    $coach_id
+ * @param string $chapter_name
+ * @return bool
+ */
+function sc_attendance_is_assistant_recorder($course_id, $coach_id, $chapter_name = '') {
+    if (!$course_id || !$coach_id || !sc_assistant_coach_attendance_enabled()) {
+        return false;
+    }
+    return sc_coach_is_assistant_only_for_course_chapter($course_id, $coach_id, $chapter_name);
+}
+
+/**
+ * آیا مربی (اصلی یا کمک‌مربی مجاز) می‌تواند برای این دوره/شعبه/گروه حضور ثبت کند؟
+ *
+ * @param int    $course_id
+ * @param int    $coach_id
+ * @param string $chapter_name
+ * @param string $group_name
+ * @return bool
+ */
+function sc_coach_can_manage_attendance_for_course_chapter($course_id, $coach_id, $chapter_name = '', $group_name = '') {
+    global $wpdb;
+    $course_id = absint($course_id);
+    $coach_id = absint($coach_id);
+    $chapter_name = sanitize_text_field((string) $chapter_name);
+    $group_name = sanitize_text_field((string) $group_name);
+
+    if (!$course_id || !$coach_id) {
+        return false;
+    }
+
+    $cc = $wpdb->prefix . 'sc_course_coaches';
+    if ($chapter_name !== '') {
+        $is_primary = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM `$cc` WHERE course_id = %d AND coach_id = %d AND chapter_name = %s",
+            $course_id,
+            $coach_id,
+            $chapter_name
+        )) > 0;
+    } else {
+        $is_primary = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM `$cc` WHERE course_id = %d AND coach_id = %d AND chapter_name != ''",
+            $course_id,
+            $coach_id
+        )) > 0;
+    }
+    if ($is_primary) {
+        return true;
+    }
+
+    if (!sc_assistant_coach_attendance_enabled() || !sc_course_assistant_coaches_table_ready()) {
+        return false;
+    }
+
+    if (function_exists('sc_course_has_grouping_enabled') && sc_course_has_grouping_enabled($course_id) && $group_name === '') {
+        return false;
+    }
+
+    $t = sc_course_assistant_coaches_table();
+    $sql = "SELECT COUNT(*) FROM `$t` WHERE course_id = %d AND assistant_coach_id = %d";
+    $args = [$course_id, $coach_id];
+    if ($chapter_name !== '') {
+        $sql .= ' AND chapter_name = %s';
+        $args[] = $chapter_name;
+    }
+    if ($group_name !== '') {
+        $sql .= ' AND group_name = %s';
+        $args[] = $group_name;
+    }
+
+    return (int) $wpdb->get_var($wpdb->prepare($sql, $args)) > 0;
+}
+
+/**
+ * شناسه دوره‌هایی که مربی در آن‌ها کمک‌مربی است (برای دسترسی حضور و غیاب).
+ * فقط وقتی دسترسی کمک‌مربی به حضور و غیاب فعال باشد مقدار برمی‌گرداند.
+ *
+ * @param int $coach_id
+ * @return int[]
+ */
+function sc_coach_assistant_attendance_course_ids($coach_id) {
+    global $wpdb;
+    $coach_id = absint($coach_id);
+    if (!$coach_id || !sc_assistant_coach_attendance_enabled() || !sc_course_assistant_coaches_table_ready()) {
+        return [];
+    }
+    $t = sc_course_assistant_coaches_table();
+    $ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT DISTINCT course_id FROM `$t` WHERE assistant_coach_id = %d",
+        $coach_id
+    ));
+    return array_values(array_filter(array_map('absint', (array) $ids)));
+}
+
+/**
+ * شناسه دوره‌هایی که مربی (اصلی یا کمک‌مربی) به حضور و غیاب آن‌ها دسترسی دارد.
+ *
+ * @param int $coach_id
+ * @return int[]
+ */
+function sc_coach_attendance_accessible_course_ids($coach_id) {
+    global $wpdb;
+    $coach_id = absint($coach_id);
+    if (!$coach_id) {
+        return [];
+    }
+
+    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+    $ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT DISTINCT course_id FROM $course_coaches_table WHERE coach_id = %d",
+        $coach_id
+    ));
+    $ids = array_map('absint', (array) $ids);
+
+    if (function_exists('sc_coach_assistant_attendance_course_ids')) {
+        $ids = array_merge($ids, sc_coach_assistant_attendance_course_ids($coach_id));
+    }
+
+    return array_values(array_unique(array_filter($ids)));
+}

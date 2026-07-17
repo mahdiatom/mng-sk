@@ -116,7 +116,7 @@ input , textarea {
     
 }
 input[type=text]{
-       border: 1px solid #fdfdfd !important;
+       border: 1px solid #c9c8c8 !important;
         border-radius: 10px !important;
 }
 select{

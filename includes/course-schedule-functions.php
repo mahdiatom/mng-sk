@@ -476,6 +476,10 @@ function sc_get_coach_attendance_allowed_weekdays($coach_id, $course_id, $chapte
         return [];
     }
 
+    if (function_exists('sc_attendance_assistant_effective_primary_coach_id')) {
+        $coach_id = sc_attendance_assistant_effective_primary_coach_id($course_id, $coach_id, $chapter_name, $group_name);
+    }
+
     $cc = $wpdb->prefix . 'sc_course_coaches';
     $sch = $wpdb->prefix . 'sc_course_weekly_schedule';
     $has_chapter_coach = function_exists('sc_course_schedule_has_chapter_coach_columns') && sc_course_schedule_has_chapter_coach_columns();

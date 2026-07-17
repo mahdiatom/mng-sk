@@ -1305,6 +1305,14 @@ function sc_pbs_resolve_or_create_shop_customer($first_name, $last_name, $mobile
             ));
         }
     } else {
+        if (function_exists('sc_registration_limit_can_create_user') && !sc_registration_limit_can_create_user()) {
+            return new WP_Error(
+                'sc_registration_limit',
+                function_exists('sc_registration_limit_admin_message')
+                    ? sc_registration_limit_admin_message()
+                    : 'ظرفیت کاربران سامانه تکمیل شده است.'
+            );
+        }
         if (username_exists($mobile) || email_exists($mobile . '@sportclub.local')) {
             return new WP_Error('exists', 'این شماره قبلاً ثبت شده ولی پروفایل بازیکن یافت نشد.');
         }

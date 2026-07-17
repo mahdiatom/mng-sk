@@ -104,6 +104,7 @@ function sc_panel_get_tab_hero_map() {
         'sc-private-notes'   => ['یادداشت‌های من', 'گفتگوها و یادداشت‌های خصوصی شما با کادر باشگاه.', 'notes'],
         'sc-my-programs'     => ['برنامه‌های تخصصی من', 'برنامه‌های تمرینی روزانه خود را ببینید و تمرین‌های امروز را تیک بزنید.', 'courses'],
         'sc-daily-metrics'   => ['ثبت اطلاعات', 'اطلاعات روزانه خود (مثل قد و وزن) را ثبت کنید و روند آن را در نمودار ببینید.', 'courses'],
+        'sc-coach-rating'    => ['امتیاز به مربیان', 'با صداقت و شفافیت به مربی و کمک‌مربی خود امتیاز دهید و نظر خود را ثبت کنید.', 'courses'],
         'sc-private-classes' => ['کلاس‌های خصوصی', 'درخواست و پیگیری جلسات کلاس خصوصی خود را انجام دهید.', 'private'],
         'sc-my-honors'       => ['افتخارات من', 'افتخارات و دستاوردهای ورزشی ثبت‌شده برای شما.', 'honors'],
         'sc-my-certificates' => ['گواهینامه‌های من', 'گواهینامه‌های صادرشده خود را مشاهده و دانلود کنید.', 'certificates'],
@@ -114,6 +115,9 @@ function sc_panel_get_tab_hero_map() {
     }
     if (function_exists('sc_is_pro_feature_daily_metrics_enabled') && !sc_is_pro_feature_daily_metrics_enabled()) {
         unset($map['sc-daily-metrics']);
+    }
+    if (function_exists('sc_is_pro_feature_coach_rating_enabled') && !sc_is_pro_feature_coach_rating_enabled()) {
+        unset($map['sc-coach-rating']);
     }
 
     return apply_filters('sc_panel_tab_hero_map', $map);
@@ -174,6 +178,7 @@ function sc_portal_menu_icon($slug) {
         'sc-private-notes'    => 'dafter.svg',
         'sc-my-programs'      => 'layers.svg',
         'sc-daily-metrics'    => 'dafter.svg',
+        'sc-coach-rating'     => 'member.svg',
         'sc-private-classes'  => 'member.svg',
         'sc-faq'              => 'dafter.svg',
         'bot-connect'         => 'massege.svg',
@@ -224,7 +229,7 @@ function sc_portal_header_tab_visible($slug, $verification_gate_locked = false) 
     $locked_slugs = [
         'edit-account', 'bot-connect', 'sc-enroll-course', 'sc-private-classes',
         'sc-my-courses', 'sc-my-attendances', 'sc-events', 'sc-my-events', 'sc-invoices',
-        'sc-my-honors', 'sc-my-certificates', 'sc-private-notes', 'sc-my-programs', 'sc-daily-metrics', 'sc-notifications',
+        'sc-my-honors', 'sc-my-certificates', 'sc-private-notes', 'sc-my-programs', 'sc-daily-metrics', 'sc-coach-rating', 'sc-notifications',
         'sc-wallet', 'sc-support-tickets', 'sc-faq', 'sc-surveys',
     ];
     if ($verification_gate_locked && in_array($slug, $locked_slugs, true)) {
@@ -237,6 +242,9 @@ function sc_portal_header_tab_visible($slug, $verification_gate_locked = false) 
         return false;
     }
     if ($slug === 'sc-daily-metrics' && !(function_exists('sc_is_pro_feature_daily_metrics_enabled') && sc_is_pro_feature_daily_metrics_enabled())) {
+        return false;
+    }
+    if ($slug === 'sc-coach-rating' && !(function_exists('sc_is_pro_feature_coach_rating_enabled') && sc_is_pro_feature_coach_rating_enabled())) {
         return false;
     }
     if ($slug === 'sc-wallet' && !sc_get_setting('pro_feature_players_wallet')) {

@@ -1459,6 +1459,17 @@ function sc_register_admin_menu() {
                 );
             }
         }
+
+        if (function_exists('sc_is_pro_feature_daily_metrics_enabled') && sc_is_pro_feature_daily_metrics_enabled()) {
+            add_submenu_page(
+                'sc-reports',
+                'گزارش ثبت اطلاعات',
+                'گزارش ثبت اطلاعات',
+                'manage_options',
+                'sc-reports-daily-metrics',
+                'sc_admin_reports_daily_metrics_page'
+            );
+        }
     }
 
     if (function_exists('sc_is_pro_feature_permalinks_enabled') && sc_is_pro_feature_permalinks_enabled()) {
@@ -1540,6 +1551,14 @@ function sc_register_admin_menu() {
             'manage_options',
             'sc-daily-metrics',
             'sc_admin_daily_metrics_fields_page'
+        );
+        add_submenu_page(
+            'sc-daily-metrics',
+            'گزارش ثبت اطلاعات',
+            'گزارش',
+            'manage_options',
+            'sc-reports-daily-metrics',
+            'sc_admin_reports_daily_metrics_page'
         );
     }
 
@@ -1712,7 +1731,7 @@ function sc_block_disabled_pro_feature_admin_pages() {
     }
 
     if (
-        $page === 'sc-daily-metrics'
+        ($page === 'sc-daily-metrics' || $page === 'sc-reports-daily-metrics')
         && function_exists('sc_is_pro_feature_daily_metrics_enabled')
         && !sc_is_pro_feature_daily_metrics_enabled()
     ) {
@@ -4576,6 +4595,10 @@ function callback_add_member_sufix(){
                         }
                     } else {
                         // اگر user_id وجود ندارد، کاربر جدید ایجاد کن
+                        if (function_exists('sc_registration_limit_can_create_user') && !sc_registration_limit_can_create_user()) {
+                            wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=registration_limit&player_id=' . $player_id));
+                            exit;
+                        }
                         // اگر username وارد نشده، به صورت خودکار از کد ملی یا شماره تماس استفاده می‌کنیم
                         if (empty($username)) {
                             // اول از کد ملی استفاده می‌کنیم
@@ -4704,6 +4727,10 @@ function callback_add_member_sufix(){
         } 
         // اضافه کردن جدید
         else {
+            if (function_exists('sc_registration_limit_can_create_user') && !sc_registration_limit_can_create_user()) {
+                wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=registration_limit'));
+                exit;
+            }
             // بررسی تکراری بودن کد ملی
             $existing = $wpdb->get_var($wpdb->prepare(
                 "SELECT id FROM $table_name WHERE national_id = %s",
@@ -5549,6 +5576,12 @@ function sc_sprot_notices(){
             $type='error';
             $messege=" اخطار:  بازیکن اضافه نشد لطفا فیلد های ورودی رو بررسی کنید و دوباره تلاش کنید.";
 
+        }
+        if($status == 'registration_limit'){
+            $type='error';
+            $messege = function_exists('sc_registration_limit_admin_message')
+                ? esc_html(sc_registration_limit_admin_message())
+                : 'ظرفیت کاربران سامانه تکمیل شده است. امکان ثبت کاربر جدید وجود ندارد.';
         }
         if($status == 'validation_error'){
             $type='error';
@@ -6540,6 +6573,10 @@ function callback_add_coach_sufix() {
             }
         } else {
             // افزودن جدید
+            if (function_exists('sc_registration_limit_can_create_user') && !sc_registration_limit_can_create_user()) {
+                wp_redirect(admin_url('admin.php?page=sc-add-coach&sc_status=registration_limit'));
+                exit;
+            }
             $data['created_at'] = current_time('mysql');
             $insert_format = [];
             foreach ($data as $field_key => $field_value) {
@@ -6587,6 +6624,9 @@ function callback_add_coach_sufix() {
  * Create WordPress user for coach
  */
 function sc_create_coach_wp_user($coach_id, $data, $username = '', $password = '') {
+    if (function_exists('sc_registration_limit_can_create_user') && !sc_registration_limit_can_create_user()) {
+        return false;
+    }
     if (empty($username)) {
         $username = sanitize_user($data['national_id'], true);
     }

@@ -196,6 +196,7 @@ $sql = "CREATE TABLE `$table_name` (
     `status` enum('present','absent','excused') NOT NULL DEFAULT 'present',
     `user_id` bigint(20) unsigned DEFAULT NULL,
     `record_method` varchar(20) NOT NULL DEFAULT 'manual' COMMENT 'manual|qr|api|auto_absent',
+    `recorded_by_assistant` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'ثبت توسط کمک‌مربی',
     `scan_photo` varchar(255) DEFAULT NULL COMMENT 'عکس لحظه اسکن QR',
     `scan_photo_front` varchar(255) DEFAULT NULL COMMENT 'عکس دوربین جلو',
     `absence_sms_sent` tinyint(1) DEFAULT 0,
@@ -1162,6 +1163,38 @@ function sc_create_member_metric_entries_table() {
 }
 
 /**
+ * Create coach ratings table (امتیازدهی مربیان)
+ */
+function sc_create_coach_ratings_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_coach_ratings';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `member_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه بازیکن',
+        `coach_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه مربی',
+        `course_id` bigint(20) unsigned NOT NULL COMMENT 'شناسه دوره',
+        `chapter` varchar(255) NOT NULL DEFAULT '' COMMENT 'شعبه',
+        `group_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'گروه',
+        `coach_role` varchar(20) NOT NULL DEFAULT 'primary' COMMENT 'primary=مربی, assistant=کمک‌مربی',
+        `rating` tinyint(1) unsigned NOT NULL COMMENT 'امتیاز ۱ تا ۵',
+        `comment` text DEFAULT NULL COMMENT 'توضیحات بازیکن',
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_member_coach_course_ctx` (`member_id`, `coach_id`, `course_id`, `chapter`, `group_name`, `coach_role`),
+        KEY `idx_coach_id` (`coach_id`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_course_id` (`course_id`),
+        KEY `idx_created_at` (`created_at`)
+    ) $charset_collate";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
+/**
  * Create support tickets table (تیکت پشتیبانی)
  */
 function sc_create_support_tickets_table() {
@@ -1732,6 +1765,7 @@ function sc_update_database() {
         sc_create_survey_eligibility_table();
         sc_create_metric_fields_table();
         sc_create_member_metric_entries_table();
+        sc_create_coach_ratings_table();
         sc_create_support_tickets_table();
         sc_create_support_ticket_messages_table();
         sc_create_private_notes_table();
@@ -2873,12 +2907,32 @@ function sc_update_database() {
         update_option('sc_qr_scan_photo_front_columns_added', '1');
     }
 
+    // جدول امتیازدهی مربیان
+    if (get_option('sc_coach_ratings_table_v1', '0') !== '1') {
+        if (function_exists('sc_create_coach_ratings_table')) {
+            sc_create_coach_ratings_table();
+        }
+        update_option('sc_coach_ratings_table_v1', '1');
+    }
+
     // جدول کمک‌مربی‌های دوره
     if (get_option('sc_course_assistant_coaches_table_v1', '0') !== '1') {
         if (function_exists('sc_create_course_assistant_coaches_table')) {
             sc_create_course_assistant_coaches_table();
         }
         update_option('sc_course_assistant_coaches_table_v1', '1');
+    }
+
+    // ستون «ثبت توسط کمک‌مربی» در جدول حضور و غیاب
+    if (get_option('sc_attendances_recorded_by_assistant_col_v1', '0') !== '1') {
+        $att = $wpdb->prefix . 'sc_attendances';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $att)) === $att) {
+            $col = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM `$att` LIKE %s", 'recorded_by_assistant'));
+            if (empty($col)) {
+                $wpdb->query("ALTER TABLE `$att` ADD COLUMN `recorded_by_assistant` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'ثبت توسط کمک‌مربی' AFTER `record_method`");
+            }
+        }
+        update_option('sc_attendances_recorded_by_assistant_col_v1', '1');
     }
 
     // فیلدهای نمایشی شعبه برای API عمومی

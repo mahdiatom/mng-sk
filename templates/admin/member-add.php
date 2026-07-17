@@ -1,10 +1,21 @@
 <?php 
 if ( ! defined('ABSPATH') ) exit;
 if(!isset($_GET['player_id'])){
+    $sc_reg_blocked = function_exists('sc_registration_limit_can_create_user') && !sc_registration_limit_can_create_user();
 ?>
     <h1>افزودن بازیکن جدید</h1>
-    <p>لطفا برای افزودن بازیکن جدید به بخش کاربران بروید</p>
-    <a class="sc_button" href="<?php echo admin_url('user-new.php'); ?>">بخش کاربران</a>
+    <?php if ($sc_reg_blocked) : ?>
+        <div class="sc-reg-limit-blocked-banner">
+            <strong>ثبت بازیکن جدید غیرفعال است.</strong>
+            <?php echo esc_html(function_exists('sc_registration_limit_admin_message') ? sc_registration_limit_admin_message() : 'ظرفیت کاربران سامانه تکمیل شده است.'); ?>
+        </div>
+        <p>
+            <a class="button button-secondary" href="<?php echo esc_url(admin_url('admin.php?page=sc_setting&tab=pro_features')); ?>">تنظیمات محدودیت ثبت‌نام</a>
+        </p>
+    <?php else : ?>
+        <p>لطفا برای افزودن بازیکن جدید به بخش کاربران بروید</p>
+        <a class="sc_button" href="<?php echo admin_url('user-new.php'); ?>">بخش کاربران</a>
+    <?php endif; ?>
 <?php
     exit;
 }

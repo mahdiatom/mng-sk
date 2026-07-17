@@ -451,6 +451,11 @@
 
     function runValidate(tab, collectData, $msg, $validation) {
         unlockAudio();
+        if (tab === 'new' && cfg.registrationBlocked) {
+            showMsg($msg, cfg.registrationBlockedMessage || 'ثبت بازیکن جدید غیرفعال است.', false);
+            playSound('error');
+            return;
+        }
         var btns = tabButtons(tab);
         var $check = btns.$check;
         var $confirm = btns.$confirm;
@@ -504,6 +509,11 @@
 
     function runEnroll(tab, collectData, $msg, $validation) {
         unlockAudio();
+        if (tab === 'new' && cfg.registrationBlocked) {
+            showMsg($msg, cfg.registrationBlockedMessage || 'ثبت بازیکن جدید غیرفعال است.', false);
+            playSound('error');
+            return;
+        }
         var btns = tabButtons(tab);
         var $check = btns.$check;
         var $confirm = btns.$confirm;
