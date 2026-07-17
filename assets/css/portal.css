@@ -1086,7 +1086,9 @@
 .sc-portal-app .sc-events-filters button,
 .sc-portal-app .sc-invoices-filters button,
 .sc-portal-app #button_filter_custom,
-.sc-portal-app .button_filter_custom {
+.sc-portal-app .button_filter_custom,
+.sc-portal-app .sc-shop-filter-submit,
+.sc-portal-app .sc-shop-empty-btn {
     background: var(--sc-portal-gradient) !important;
     border: none !important;
     color: var(--sc-portal-primary-text) !important;

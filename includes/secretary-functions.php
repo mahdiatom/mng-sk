@@ -151,6 +151,12 @@ function sc_secretary_get_allowed_admin_pages() {
         'sc-courses',
         'sc-events',
         'sc-event-registrations',
+        'sc-programs',
+        'sc-program-library',
+        'sc-program-templates',
+        'sc-programs-assign',
+        'sc-program-edit',
+        'sc-programs-report',
         'index.php',
         'profile.php',
     ];

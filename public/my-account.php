@@ -524,7 +524,12 @@ function sc_add_my_account_menu_item($items) {
     $items['sc-support-tickets'] = $unread_ticket > 0 ? sprintf('تیکت پشتیبانی  (%d)', $unread_ticket) : 'تیکت پشتیبانی ';
     $notes_count = function_exists('sc_private_notes_count_user_notes') ? sc_private_notes_count_user_notes(get_current_user_id()) : 0;
     $items['sc-private-notes'] = $notes_count > 0 ? sprintf('یادداشت های من (%d)', $notes_count) : 'یادداشت های من';
-    $items['sc-my-programs'] = 'برنامه‌های تخصصی من';
+    if (function_exists('sc_is_pro_feature_specialized_programs_enabled') && sc_is_pro_feature_specialized_programs_enabled()) {
+        $items['sc-my-programs'] = 'برنامه‌های تخصصی من';
+    }
+    if (function_exists('sc_is_pro_feature_daily_metrics_enabled') && sc_is_pro_feature_daily_metrics_enabled()) {
+        $items['sc-daily-metrics'] = 'ثبت اطلاعات';
+    }
 
 
     $items['sc-faq'] = ' سوالات متداول ';
@@ -579,6 +584,7 @@ function sc_add_my_account_endpoint() {
     add_rewrite_endpoint('sc-support-tickets', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-private-notes', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('sc-my-programs', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('sc-daily-metrics', EP_ROOT | EP_PAGES);
 
     if (get_option('sc_surveys_endpoint_flushed') !== 'yes') {
         flush_rewrite_rules();
@@ -587,6 +593,10 @@ function sc_add_my_account_endpoint() {
     if (get_option('sc_my_programs_endpoint_flushed') !== 'yes') {
         flush_rewrite_rules();
         update_option('sc_my_programs_endpoint_flushed', 'yes');
+    }
+    if (get_option('sc_daily_metrics_endpoint_flushed') !== 'yes') {
+        flush_rewrite_rules();
+        update_option('sc_daily_metrics_endpoint_flushed', 'yes');
     }
 }
 
@@ -618,6 +628,8 @@ function sc_add_my_account_query_vars($vars) {
     $vars[] = 'sc-support-tickets';
     $vars[] = 'sc-private-notes';
     $vars[] = 'sc-my-programs';
+    $vars[] = 'sc-daily-metrics';
+    $vars[] = 'chart_field_ids';
     $vars[] = 'my-orders';
     return $vars;
 }
@@ -637,6 +649,7 @@ function sc_my_account_preserve_filter_query_args($redirect_url, $requested_url)
         'filter_date_to',
         'filter_date_from_shamsi',
         'filter_date_to_shamsi',
+        'chart_field_ids',
         'filter_status',
         'invoice_search',
         'course_search',
@@ -700,6 +713,7 @@ add_filter('woocommerce_endpoint_sc-surveys_title', function() { return 'نظر�
 add_filter('woocommerce_endpoint_sc-support-tickets_title', function() { return 'تیکت پشتیبانی'; });
 add_filter('woocommerce_endpoint_sc-private-notes_title', function() { return 'یادداشت های من'; });
 add_filter('woocommerce_endpoint_sc-my-programs_title', function() { return 'برنامه‌های تخصصی من'; });
+add_filter('woocommerce_endpoint_sc-daily-metrics_title', function() { return 'ثبت اطلاعات'; });
 add_filter('woocommerce_endpoint_sc-my-certificates_title', function() { return 'گواهینامه‌ها'; });
 function sc_invoices_endpoint_title($title) {
     return 'صورت حساب‌ها';
@@ -3394,6 +3408,10 @@ function sc_my_account_private_notes_content() {
 
 add_action('woocommerce_account_sc-my-programs_endpoint', 'sc_my_account_programs_content');
 function sc_my_account_programs_content() {
+    if (function_exists('sc_is_pro_feature_specialized_programs_enabled') && !sc_is_pro_feature_specialized_programs_enabled()) {
+        echo '<div class="woocommerce-info">امکان برنامه تخصصی در تنظیمات امکانات پرو غیرفعال شده است.</div>';
+        return;
+    }
     sc_check_and_create_tables();
     if (!is_user_logged_in()) {
         return;
@@ -3403,6 +3421,23 @@ function sc_my_account_programs_content() {
         return;
     }
     include SC_TEMPLATES_PUBLIC_DIR . 'my-programs.php';
+}
+
+add_action('woocommerce_account_sc-daily-metrics_endpoint', 'sc_my_account_daily_metrics_content');
+function sc_my_account_daily_metrics_content() {
+    if (function_exists('sc_is_pro_feature_daily_metrics_enabled') && !sc_is_pro_feature_daily_metrics_enabled()) {
+        echo '<div class="woocommerce-info">امکان ثبت اطلاعات در تنظیمات امکانات پرو غیرفعال شده است.</div>';
+        return;
+    }
+    sc_check_and_create_tables();
+    if (!is_user_logged_in()) {
+        return;
+    }
+    $player = sc_check_user_active_status();
+    if (!$player) {
+        return;
+    }
+    include SC_TEMPLATES_PUBLIC_DIR . 'my-daily-metrics.php';
 }
 
 add_action('woocommerce_account_my-orders_endpoint', 'sc_my_account_my_orders_content');

@@ -1,0 +1,1093 @@
+/* ============================================================
+   Daily Metrics — Admin + Public (ثبت اطلاعات)
+   Matches sc-reports-list / sc-members-list / portal palette
+   ============================================================ */
+
+/* ---- Admin page shell (mirrors reports list) ---- */
+body.toplevel_page_sc-daily-metrics #wpcontent {
+    background: #f4f2fa;
+}
+
+body.toplevel_page_sc-daily-metrics .sc-daily-metrics-admin-wrap {
+    margin-block: 16px 24px;
+    margin-inline-start: 0;
+    margin-inline-end: 20px;
+    padding: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    background: transparent !important;
+}
+
+body.toplevel_page_sc-daily-metrics .sc-reports-list-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+body.toplevel_page_sc-daily-metrics .sc-reports-list-title {
+    margin: 0 0 6px;
+    padding: 0;
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #1e1b2e;
+    line-height: 1.3;
+}
+
+body.toplevel_page_sc-daily-metrics .sc-reports-list-desc {
+    margin: 0;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+body.toplevel_page_sc-daily-metrics .sc-reports-list-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+body.toplevel_page_sc-daily-metrics .sc-reports-list-add-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff !important;
+    font-weight: 700;
+    font-size: 13px;
+    text-decoration: none;
+    box-shadow: 0 8px 22px rgba(109, 52, 255, 0.28);
+    cursor: pointer;
+}
+
+body.toplevel_page_sc-daily-metrics .sc-reports-list-add-btn:hover {
+    filter: brightness(1.05);
+    color: #fff !important;
+}
+
+body.toplevel_page_sc-daily-metrics .sc-reports-list-table-card {
+    margin-bottom: 16px;
+    padding: 16px 18px 18px;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid rgba(109, 52, 255, 0.1);
+    box-shadow: 0 10px 40px rgba(74, 31, 184, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
+    box-sizing: border-box;
+}
+
+body.toplevel_page_sc-daily-metrics .sc-reports-note {
+    margin: 0;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+body.toplevel_page_sc-daily-metrics .sc-reports-empty,
+body.toplevel_page_sc-daily-metrics .sc-daily-metrics-empty {
+    text-align: center;
+    padding: 32px 20px;
+    color: #6b7280;
+    font-size: 14px;
+    background: linear-gradient(145deg, #faf9ff 0%, #f3f0ff 100%);
+    border-radius: 12px;
+    border: 1px dashed rgba(109, 52, 255, 0.2);
+}
+
+/* Admin stat cards */
+.sc-daily-metrics-admin-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.sc-daily-metrics-stat-card {
+    padding: 18px 20px;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid rgba(109, 52, 255, 0.1);
+    box-shadow: 0 8px 28px rgba(74, 31, 184, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sc-daily-metrics-stat-card--active {
+    background: linear-gradient(145deg, #ffffff 0%, #f0ebff 100%);
+}
+
+.sc-daily-metrics-stat-card--chart {
+    background: linear-gradient(145deg, #ffffff 0%, #eef8ff 100%);
+}
+
+.sc-daily-metrics-stat-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: #4a1fb8;
+    line-height: 1.2;
+}
+
+.sc-daily-metrics-stat-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+}
+
+.sc-daily-metrics-admin-notice {
+    border-radius: 12px !important;
+    margin-bottom: 16px !important;
+}
+
+.sc-daily-metrics-card-head {
+    margin-bottom: 14px;
+}
+
+.sc-daily-metrics-card-head h2 {
+    margin: 0 0 6px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #1e1b2e;
+}
+
+.sc-daily-metrics-table-scroll {
+    overflow-x: auto;
+}
+
+/* Admin fields table */
+body.toplevel_page_sc-daily-metrics .sc-metric-fields-table {
+    border: none !important;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 0 !important;
+}
+
+body.toplevel_page_sc-daily-metrics .sc-metric-fields-table thead th {
+    background: #faf9ff !important;
+    color: #4a1fb8 !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    padding: 14px 12px !important;
+    border-bottom: 2px solid #efeafc !important;
+    white-space: nowrap;
+}
+
+body.toplevel_page_sc-daily-metrics .sc-metric-fields-table tbody td {
+    padding: 12px !important;
+    vertical-align: middle !important;
+    border-bottom: 1px solid #f0eef8 !important;
+    background: #fff;
+}
+
+body.toplevel_page_sc-daily-metrics .sc-metric-fields-table tbody tr:hover td {
+    background: #faf9ff;
+}
+
+.sc-metric-col-center {
+    text-align: center;
+    width: 72px;
+}
+
+.sc-metric-input {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid rgba(109, 52, 255, 0.18);
+    border-radius: 10px;
+    font-size: 13px;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sc-metric-input:focus {
+    border-color: #6d34ff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12);
+}
+
+.sc-metric-input--unit {
+    max-width: 90px;
+}
+
+.sc-metric-textarea {
+    min-height: 56px;
+    resize: vertical;
+}
+
+.sc-metric-field-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #9ca3af;
+}
+
+.sc-metric-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.sc-metric-toggle input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.sc-metric-toggle-ui {
+    width: 44px;
+    height: 24px;
+    border-radius: 999px;
+    background: #e5e7eb;
+    position: relative;
+    transition: background 0.2s ease;
+}
+
+.sc-metric-toggle-ui::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s ease;
+}
+
+.sc-metric-toggle input:checked + .sc-metric-toggle-ui {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+}
+
+.sc-metric-toggle input:checked + .sc-metric-toggle-ui::after {
+    transform: translateX(-20px);
+}
+
+.sc-metric-remove-btn {
+    min-width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    border: 1px solid rgba(220, 53, 69, 0.25) !important;
+    background: #fff !important;
+    color: #dc3545 !important;
+    font-size: 20px !important;
+    line-height: 1 !important;
+}
+
+.sc-metric-remove-btn:hover {
+    background: #fff5f5 !important;
+    border-color: #dc3545 !important;
+}
+
+.sc-daily-metrics-admin-footer {
+    display: flex;
+    justify-content: flex-start;
+    padding: 4px 0 20px;
+}
+
+body.toplevel_page_sc-daily-metrics .sc-daily-metrics-save-btn {
+    min-height: 44px !important;
+    padding: 10px 28px !important;
+    border-radius: 999px !important;
+    font-weight: 700 !important;
+    box-shadow: 0 8px 22px rgba(109, 52, 255, 0.25);
+}
+
+/* ============================================================
+   Public / User panel
+   ============================================================ */
+
+.sc-daily-metrics-page {
+    max-width: 1100px;
+}
+
+.sc-daily-metrics-page-header {
+    margin-bottom: 24px;
+}
+
+.sc-daily-metrics-notice {
+    margin-bottom: 20px;
+    border-radius: 12px !important;
+}
+
+.sc-daily-metrics-empty-state {
+    margin-top: 8px;
+}
+
+/* Quick stats row */
+.sc-daily-metrics-quick-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.sc-daily-metrics-quick-stat {
+    background: #fff;
+    border: 1px solid rgba(109, 52, 255, 0.1);
+    border-radius: 16px;
+    padding: 16px 18px;
+    box-shadow: 0 6px 24px rgba(109, 52, 255, 0.06);
+    text-align: center;
+}
+
+.sc-daily-metrics-quick-stat-value {
+    display: block;
+    font-size: 26px;
+    font-weight: 800;
+    color: #6d34ff;
+    line-height: 1.2;
+}
+
+.sc-daily-metrics-quick-stat-label {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+}
+
+/* Section cards */
+.sc-daily-metrics-entry-card,
+.sc-daily-metrics-chart-card,
+.sc-daily-metrics-history-card {
+    margin-bottom: 24px;
+}
+
+.sc-daily-metrics-chart-card {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 16px;
+    padding: 22px 24px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+    overflow: visible;
+}
+
+.sc-daily-metrics-history-card {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 16px;
+    padding: 22px 24px 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+}
+
+.sc-daily-metrics-section-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.sc-daily-metrics-section-head--chart {
+    margin-bottom: 12px;
+}
+
+.sc-daily-metrics-section-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    background: rgba(109, 52, 255, 0.1);
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.sc-daily-metrics-section-title {
+    margin: 0 0 4px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e1b2e;
+}
+
+.sc-daily-metrics-section-desc {
+    margin: 0;
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+.sc-daily-metrics-entry-card .sc-daily-metrics-section-head {
+    margin-bottom: 14px;
+}
+
+/* Unified controls — light border + radius (override portal/org colors) */
+.sc-daily-metrics-page .sc-daily-metrics-control,
+.sc-daily-metrics-page input.sc-daily-metrics-control,
+.sc-daily-metrics-page select.sc-daily-metrics-control,
+.sc-daily-metrics-page textarea.sc-daily-metrics-control,
+.sc-daily-metrics-page button.sc-daily-metrics-control,
+.sc-portal-app .sc-daily-metrics-page .sc-daily-metrics-control,
+.sc-portal-app .sc-daily-metrics-page input.sc-daily-metrics-control,
+.sc-portal-app .sc-daily-metrics-page select.sc-daily-metrics-control {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 44px !important;
+    height: auto !important;
+    padding: 10px 12px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 10px !important;
+    background: #fff !important;
+    color: #1f2937 !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    line-height: 1.4 !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    outline: none !important;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sc-daily-metrics-page select.sc-daily-metrics-control {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%239ca3af' d='M1.4.3 6 4.9 10.6.3l1.4 1.4L6 7.7.0 1.7z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: left 12px center !important;
+    padding-left: 34px !important;
+}
+
+.sc-daily-metrics-page .sc-daily-metrics-control:hover {
+    border-color: #c4c4c4 !important;
+}
+
+.sc-daily-metrics-page .sc-daily-metrics-control:focus,
+.sc-daily-metrics-page .sc-daily-metrics-control:focus-visible {
+    border-color: #b0b0b0 !important;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+.sc-daily-metrics-page .sc-daily-metrics-control:disabled {
+    background: #f7f7f8 !important;
+    color: #9ca3af !important;
+    cursor: not-allowed;
+}
+
+.sc-daily-metrics-filter-field {
+    margin: 0;
+    min-width: 0;
+}
+
+.sc-daily-metrics-filter-field > label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #444;
+}
+
+.sc-daily-metrics-entry-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px 16px;
+    align-items: end;
+    margin-bottom: 14px;
+}
+
+.sc-daily-metrics-entry-actions {
+    margin: 0;
+}
+
+.sc-daily-metrics-btn-primary {
+    min-height: 42px !important;
+    padding: 10px 22px !important;
+    border-radius: 10px !important;
+    border: none !important;
+}
+
+.sc-daily-metrics-btn-secondary {
+    min-height: 42px !important;
+    padding: 10px 18px !important;
+    border-radius: 10px !important;
+    border: 1px solid #ddd !important;
+    background: #fff !important;
+    color: #374151 !important;
+}
+
+.sc-daily-metrics-btn-secondary:hover {
+    background: #f9fafb !important;
+    border-color: #c4c4c4 !important;
+    color: #111827 !important;
+}
+
+/* Collapsible chart filters shell */
+.sc-daily-metrics-filters-shell {
+    margin-bottom: 16px;
+    border: 1px solid #e9e4fb;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 4px 18px rgba(74, 31, 184, 0.06);
+    overflow: visible;
+    transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.sc-daily-metrics-filters-shell.is-open {
+    position: relative;
+    z-index: 50;
+    border-color: #d9cffb;
+    box-shadow: 0 10px 30px rgba(74, 31, 184, 0.12);
+}
+
+.sc-daily-metrics-filters-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 58px;
+    padding: 12px 18px;
+    border: none;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    color: #fff;
+    cursor: pointer;
+    text-align: right;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+    transition: filter 0.2s ease, transform 0.15s ease;
+}
+
+.sc-daily-metrics-filters-toggle::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: -60%;
+    width: 45%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+    transform: skewX(-18deg);
+    transition: right 0.6s ease;
+    pointer-events: none;
+}
+
+.sc-daily-metrics-filters-toggle:hover {
+    filter: brightness(1.06);
+}
+
+.sc-daily-metrics-filters-toggle:hover::after {
+    right: 120%;
+}
+
+.sc-daily-metrics-filters-toggle:active {
+    transform: scale(0.99);
+}
+
+.sc-daily-metrics-filters-shell.is-open .sc-daily-metrics-filters-toggle {
+    border-radius: 16px 16px 0 0;
+}
+
+.sc-daily-metrics-filters-toggle-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+}
+
+.sc-daily-metrics-filters-toggle-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    flex-shrink: 0;
+    transition: transform 0.3s ease, background 0.2s ease;
+}
+
+.sc-daily-metrics-filters-shell.is-open .sc-daily-metrics-filters-toggle-icon {
+    transform: rotate(90deg);
+    background: rgba(255, 255, 255, 0.26);
+}
+
+.sc-daily-metrics-filters-toggle-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.sc-daily-metrics-filters-toggle-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.2px;
+}
+
+.sc-daily-metrics-filters-badge {
+    flex-shrink: 0;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: #fff;
+    color: #4a1fb8;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 24px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.sc-daily-metrics-filters-chevron {
+    flex-shrink: 0;
+    width: 9px;
+    height: 9px;
+    border-right: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(45deg);
+    transition: transform 0.3s ease, margin 0.3s ease;
+}
+
+.sc-daily-metrics-filters-shell.is-open .sc-daily-metrics-filters-chevron {
+    transform: rotate(-135deg);
+    margin-top: 5px;
+}
+
+.sc-daily-metrics-filters-body {
+    padding: 18px;
+    background: linear-gradient(180deg, #faf9ff 0%, #ffffff 60%);
+    border-top: 1px solid #f0ecfb;
+    border-radius: 0 0 16px 16px;
+    animation: scDailyMetricsFilterSlide 0.28s ease;
+}
+
+@keyframes scDailyMetricsFilterSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.sc-daily-metrics-filters-body[hidden] {
+    display: none !important;
+}
+
+.sc-daily-metrics-chart-filters-grid {
+    display: grid;
+    grid-template-columns: minmax(260px, 1.2fr) minmax(220px, 1fr);
+    gap: 16px 20px;
+    align-items: end;
+    margin-bottom: 14px;
+}
+
+.sc-daily-metrics-date-range {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.sc-daily-metrics-date-sep {
+    color: #9ca3af;
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+.sc-daily-metrics-fields-picker-wrap {
+    margin: 0;
+    min-width: 0;
+}
+
+.sc-daily-metrics-fields-accordion {
+    position: relative;
+}
+
+/* Neutral professional fields picker (no org/primary color bleed) */
+.sc-daily-metrics-fields-trigger.sc-daily-metrics-control {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100% !important;
+    min-height: 44px !important;
+    padding: 8px 12px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 10px !important;
+    background: #fff !important;
+    color: #1f2937 !important;
+    cursor: pointer;
+    text-align: right;
+    box-shadow: none !important;
+}
+
+.sc-daily-metrics-fields-trigger.sc-daily-metrics-control:hover {
+    border-color: #c4c4c4 !important;
+}
+
+.sc-daily-metrics-fields-accordion.is-open .sc-daily-metrics-fields-trigger.sc-daily-metrics-control {
+    border-color: #b0b0b0 !important;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04) !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+.sc-daily-metrics-fields-trigger-inner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+}
+
+.sc-daily-metrics-fields-summary {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sc-daily-metrics-fields-count {
+    flex-shrink: 0;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #4b5563;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 22px;
+    text-align: center;
+    border: 1px solid #e5e7eb;
+}
+
+.sc-daily-metrics-fields-count:empty,
+.sc-daily-metrics-fields-count[style*="display: none"] {
+    display: none !important;
+}
+
+.sc-daily-metrics-fields-chevron {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    margin-left: 2px;
+    border-right: 2px solid #9ca3af;
+    border-bottom: 2px solid #9ca3af;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+}
+
+.sc-daily-metrics-fields-accordion.is-open .sc-daily-metrics-fields-chevron {
+    transform: rotate(-135deg);
+    margin-top: 4px;
+}
+
+.sc-daily-metrics-fields-panel {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    z-index: 100;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1);
+    overflow: hidden;
+}
+
+.sc-daily-metrics-fields-panel-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #f9fafb;
+    border-bottom: 1px solid #eee;
+}
+
+.sc-daily-metrics-fields-panel-hint {
+    font-size: 11px;
+    color: #9ca3af;
+    font-weight: 600;
+}
+
+.sc-daily-metrics-fields-panel-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.sc-daily-metrics-fields-action {
+    border: none;
+    background: transparent;
+    color: #4b5563;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+}
+
+.sc-daily-metrics-fields-action:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.sc-daily-metrics-fields-list {
+    list-style: none;
+    margin: 0;
+    padding: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.sc-daily-metrics-fields-list li {
+    margin: 0;
+}
+
+.sc-daily-metrics-field-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.sc-daily-metrics-field-option:hover {
+    background: #f9fafb;
+}
+
+.sc-daily-metrics-field-option input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.sc-daily-metrics-field-option-box {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 5px;
+    background: #fff;
+    position: relative;
+    transition: all 0.15s ease;
+}
+
+.sc-daily-metrics-field-option input:checked + .sc-daily-metrics-field-option-box {
+    background: #374151;
+    border-color: #374151;
+}
+
+.sc-daily-metrics-field-option input:checked + .sc-daily-metrics-field-option-box::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: 5px;
+    width: 4px;
+    height: 8px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.sc-daily-metrics-field-option-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    line-height: 1.4;
+}
+
+.sc-daily-metrics-field-option input:checked ~ .sc-daily-metrics-field-option-text {
+    color: #111827;
+}
+
+.sc-daily-metrics-chart-filter-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0;
+    padding-top: 2px;
+}
+
+.sc-daily-metrics-value-field {
+    min-width: 0;
+}
+
+.sc-daily-metrics-chart-wrap {
+    position: relative;
+    min-height: 320px;
+    height: 320px;
+    margin-top: 8px;
+    padding: 8px 4px 0;
+}
+
+.sc-daily-metrics-chart-no-data {
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+    margin: 12px 0 0;
+    padding: 16px;
+    background: #f9fafb;
+    border-radius: 12px;
+}
+
+.sc-daily-metrics-chart-empty {
+    margin-top: 8px;
+}
+
+/* History table */
+.sc-daily-metrics-table-wrap {
+    margin-top: 4px;
+}
+
+.sc-daily-metrics-table thead {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+}
+
+.sc-daily-metrics-table th {
+    color: #fff !important;
+    border-bottom: none !important;
+}
+
+.sc-daily-metrics-field-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(109, 52, 255, 0.1);
+    color: #4a1fb8;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.sc-daily-metrics-value-display {
+    color: #1e1b2e;
+    font-size: 15px;
+}
+
+.sc-daily-metrics-unit {
+    font-weight: 500;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.sc-daily-metrics-entry-card {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 16px;
+    padding: 22px 24px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+    margin-bottom: 24px;
+}
+
+/* Portal overrides */
+.sc-portal-app .sc-daily-metrics-page .sc-daily-metrics-btn-primary,
+.sc-portal-app .sc-daily-metrics-page .button-primary {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    border: none !important;
+    color: #fff !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 14px rgba(109, 52, 255, 0.28);
+}
+
+.sc-portal-app .sc-daily-metrics-entry-card,
+.sc-portal-app .sc-daily-metrics-chart-card,
+.sc-portal-app .sc-daily-metrics-history-card,
+.sc-portal-app .sc-daily-metrics-filters-shell {
+    border-color: #e5e7eb;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+}
+
+/* Keep fields picker neutral inside portal */
+.sc-portal-app .sc-daily-metrics-fields-trigger.sc-daily-metrics-control,
+.sc-portal-app .sc-daily-metrics-fields-panel,
+.sc-portal-app .sc-daily-metrics-fields-count,
+.sc-portal-app .sc-daily-metrics-field-option-box {
+    background-image: none !important;
+}
+
+.sc-portal-app .sc-daily-metrics-fields-trigger.sc-daily-metrics-control {
+    border-color: #ddd !important;
+    background: #fff !important;
+    color: #1f2937 !important;
+    box-shadow: none !important;
+}
+
+.sc-portal-app .sc-daily-metrics-field-option input:checked + .sc-daily-metrics-field-option-box {
+    background: #374151 !important;
+    border-color: #374151 !important;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .sc-daily-metrics-admin-stats,
+    .sc-daily-metrics-quick-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .sc-daily-metrics-chart-filters-grid,
+    .sc-daily-metrics-entry-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 782px) {
+    body.toplevel_page_sc-daily-metrics .sc-daily-metrics-admin-wrap {
+        margin-inline-end: 10px;
+    }
+
+    body.toplevel_page_sc-daily-metrics .sc-metric-fields-table thead {
+        display: none;
+    }
+
+    body.toplevel_page_sc-daily-metrics .sc-metric-fields-table tbody tr {
+        display: block;
+        margin-bottom: 14px;
+        padding: 14px;
+        border: 1px solid rgba(109, 52, 255, 0.12);
+        border-radius: 14px;
+        background: #fff;
+    }
+
+    body.toplevel_page_sc-daily-metrics .sc-metric-fields-table tbody td {
+        display: block;
+        padding: 8px 0 !important;
+        border: none !important;
+    }
+
+    body.toplevel_page_sc-daily-metrics .sc-metric-fields-table tbody td::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        color: #6d34ff;
+        margin-bottom: 6px;
+        text-transform: none;
+    }
+
+    .sc-daily-metrics-chart-wrap {
+        min-height: 260px;
+        height: 260px;
+    }
+
+    .sc-daily-metrics-chart-card,
+    .sc-daily-metrics-history-card,
+    .sc-daily-metrics-entry-card {
+        padding: 16px !important;
+    }
+}

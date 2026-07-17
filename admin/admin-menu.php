@@ -210,64 +210,66 @@ function sc_register_admin_menu() {
     }
 
     /* ================= Specialized Programs ================= */
-    add_menu_page(
-        'برنامه تخصصی',
-        'برنامه تخصصی',
-        $sc_staff_cap,
-        'sc-programs',
-        'sc_admin_programs_list_page',
-        'dashicons-calendar-alt',
-        19.5
-    );
-    add_submenu_page(
-        'sc-programs',
-        'برنامه‌های اعضا',
-        'برنامه‌های اعضا',
-        $sc_staff_cap,
-        'sc-programs',
-        'sc_admin_programs_list_page'
-    );
-    add_submenu_page(
-        'sc-programs',
-        'کتابخانه تمرین',
-        'کتابخانه تمرین',
-        $sc_staff_cap,
-        'sc-program-library',
-        'sc_admin_program_library_page'
-    );
-    add_submenu_page(
-        'sc-programs',
-        'قالب‌های برنامه',
-        'قالب‌های برنامه',
-        $sc_staff_cap,
-        'sc-program-templates',
-        'sc_admin_program_templates_page'
-    );
-    add_submenu_page(
-        'sc-programs',
-        'اختصاص برنامه',
-        'اختصاص برنامه',
-        $sc_staff_cap,
-        'sc-programs-assign',
-        'sc_admin_programs_assign_page'
-    );
-    // Hidden edit screen: parent null keeps page registered without submenu (remove_submenu_page breaks WP access check)
-    add_submenu_page(
-        null,
-        'ویرایش برنامه',
-        'ویرایش برنامه',
-        $sc_staff_cap,
-        'sc-program-edit',
-        'sc_admin_program_edit_page'
-    );
-    add_submenu_page(
-        'sc-programs',
-        'گزارش برنامه تخصصی',
-        'گزارش برنامه تخصصی',
-        $sc_staff_cap,
-        'sc-programs-report',
-        'sc_admin_programs_report_page'
-    );
+    if (function_exists('sc_is_pro_feature_specialized_programs_enabled') && sc_is_pro_feature_specialized_programs_enabled()) {
+        add_menu_page(
+            'برنامه تخصصی',
+            'برنامه تخصصی',
+            $sc_staff_cap,
+            'sc-programs',
+            'sc_admin_programs_list_page',
+            'dashicons-calendar-alt',
+            19.5
+        );
+        add_submenu_page(
+            'sc-programs',
+            'برنامه‌های اعضا',
+            'برنامه‌های اعضا',
+            $sc_staff_cap,
+            'sc-programs',
+            'sc_admin_programs_list_page'
+        );
+        add_submenu_page(
+            'sc-programs',
+            'کتابخانه تمرین',
+            'کتابخانه تمرین',
+            $sc_staff_cap,
+            'sc-program-library',
+            'sc_admin_program_library_page'
+        );
+        add_submenu_page(
+            'sc-programs',
+            'قالب‌های برنامه',
+            'قالب‌های برنامه',
+            $sc_staff_cap,
+            'sc-program-templates',
+            'sc_admin_program_templates_page'
+        );
+        add_submenu_page(
+            'sc-programs',
+            'اختصاص برنامه',
+            'اختصاص برنامه',
+            $sc_staff_cap,
+            'sc-programs-assign',
+            'sc_admin_programs_assign_page'
+        );
+        // Hidden edit screen: parent null keeps page registered without submenu (remove_submenu_page breaks WP access check)
+        add_submenu_page(
+            null,
+            'ویرایش برنامه',
+            'ویرایش برنامه',
+            $sc_staff_cap,
+            'sc-program-edit',
+            'sc_admin_program_edit_page'
+        );
+        add_submenu_page(
+            'sc-programs',
+            'گزارش برنامه تخصصی',
+            'گزارش برنامه تخصصی',
+            $sc_staff_cap,
+            'sc-programs-report',
+            'sc_admin_programs_report_page'
+        );
+    }
 
     /* ================= Members ================= */
 
@@ -678,63 +680,65 @@ function sc_register_admin_menu() {
         );
     }
 
-    add_menu_page(
-        'برنامه تخصصی',
-        'برنامه تخصصی',
-        'sc_view_coach_salary',
-        'sc-coach-programs',
-        'sc_admin_coach_programs_list_page',
-        'dashicons-calendar-alt',
-        28.87
-    );
-    add_submenu_page(
-        'sc-coach-programs',
-        'برنامه‌های بازیکنان',
-        'برنامه‌های بازیکنان',
-        'sc_view_coach_salary',
-        'sc-coach-programs',
-        'sc_admin_coach_programs_list_page'
-    );
-    add_submenu_page(
-        'sc-coach-programs',
-        'کتابخانه تمرین',
-        'کتابخانه تمرین',
-        'sc_view_coach_salary',
-        'sc-coach-program-library',
-        'sc_admin_coach_program_library_page'
-    );
-    add_submenu_page(
-        'sc-coach-programs',
-        'قالب‌های برنامه',
-        'قالب‌های برنامه',
-        'sc_view_coach_salary',
-        'sc-coach-program-templates',
-        'sc_admin_coach_program_templates_page'
-    );
-    add_submenu_page(
-        'sc-coach-programs',
-        'اختصاص برنامه',
-        'اختصاص برنامه',
-        'sc_view_coach_salary',
-        'sc-coach-programs-assign',
-        'sc_admin_coach_programs_assign_page'
-    );
-    add_submenu_page(
-        null,
-        'ویرایش برنامه',
-        'ویرایش برنامه',
-        'sc_view_coach_salary',
-        'sc-coach-program-edit',
-        'sc_admin_coach_program_edit_page'
-    );
-    add_submenu_page(
-        'sc-coach-programs',
-        'گزارش برنامه',
-        'گزارش برنامه',
-        'sc_view_coach_salary',
-        'sc-coach-programs-report',
-        'sc_admin_coach_programs_report_page'
-    );
+    if (function_exists('sc_is_pro_feature_specialized_programs_enabled') && sc_is_pro_feature_specialized_programs_enabled()) {
+        add_menu_page(
+            'برنامه تخصصی',
+            'برنامه تخصصی',
+            'sc_view_coach_salary',
+            'sc-coach-programs',
+            'sc_admin_coach_programs_list_page',
+            'dashicons-calendar-alt',
+            28.87
+        );
+        add_submenu_page(
+            'sc-coach-programs',
+            'برنامه‌های بازیکنان',
+            'برنامه‌های بازیکنان',
+            'sc_view_coach_salary',
+            'sc-coach-programs',
+            'sc_admin_coach_programs_list_page'
+        );
+        add_submenu_page(
+            'sc-coach-programs',
+            'کتابخانه تمرین',
+            'کتابخانه تمرین',
+            'sc_view_coach_salary',
+            'sc-coach-program-library',
+            'sc_admin_coach_program_library_page'
+        );
+        add_submenu_page(
+            'sc-coach-programs',
+            'قالب‌های برنامه',
+            'قالب‌های برنامه',
+            'sc_view_coach_salary',
+            'sc-coach-program-templates',
+            'sc_admin_coach_program_templates_page'
+        );
+        add_submenu_page(
+            'sc-coach-programs',
+            'اختصاص برنامه',
+            'اختصاص برنامه',
+            'sc_view_coach_salary',
+            'sc-coach-programs-assign',
+            'sc_admin_coach_programs_assign_page'
+        );
+        add_submenu_page(
+            null,
+            'ویرایش برنامه',
+            'ویرایش برنامه',
+            'sc_view_coach_salary',
+            'sc-coach-program-edit',
+            'sc_admin_coach_program_edit_page'
+        );
+        add_submenu_page(
+            'sc-coach-programs',
+            'گزارش برنامه',
+            'گزارش برنامه',
+            'sc_view_coach_salary',
+            'sc-coach-programs-report',
+            'sc_admin_coach_programs_report_page'
+        );
+    }
 
     $pro_feature_surveys = (int) sc_get_setting('pro_feature_surveys', 0);
     if($pro_feature_surveys){
@@ -1517,6 +1521,28 @@ function sc_register_admin_menu() {
 
  /* ================= faq ================= */
 
+ /* ================= ثبت اطلاعات ================= */
+
+    if (function_exists('sc_is_pro_feature_daily_metrics_enabled') && sc_is_pro_feature_daily_metrics_enabled()) {
+        add_menu_page(
+            'ثبت اطلاعات',
+            'ثبت اطلاعات',
+            'manage_options',
+            'sc-daily-metrics',
+            'sc_admin_daily_metrics_fields_page',
+            'dashicons-chart-line',
+            29
+        );
+        add_submenu_page(
+            'sc-daily-metrics',
+            'تعریف فیلدها',
+            'تعریف فیلدها',
+            'manage_options',
+            'sc-daily-metrics',
+            'sc_admin_daily_metrics_fields_page'
+        );
+    }
+
     if (function_exists('sc_is_pro_feature_faq_enabled') && sc_is_pro_feature_faq_enabled()) {
         add_menu_page(
             ' سوالات متداول ',
@@ -1651,6 +1677,59 @@ function sc_register_admin_menu() {
     }
 
     add_action('load-toplevel_page_sc-coach-my-players', 'sc_coach_my_players_load');
+}
+
+add_action('admin_init', 'sc_block_disabled_pro_feature_admin_pages');
+function sc_block_disabled_pro_feature_admin_pages() {
+    if (!is_admin() || empty($_GET['page'])) {
+        return;
+    }
+
+    $page = sanitize_key(wp_unslash($_GET['page']));
+    $disabled_message = '';
+
+    $program_pages = [
+        'sc-programs',
+        'sc-program-library',
+        'sc-program-templates',
+        'sc-programs-assign',
+        'sc-program-edit',
+        'sc-programs-report',
+        'sc-coach-programs',
+        'sc-coach-program-library',
+        'sc-coach-program-templates',
+        'sc-coach-programs-assign',
+        'sc-coach-program-edit',
+        'sc-coach-programs-report',
+    ];
+
+    if (
+        in_array($page, $program_pages, true)
+        && function_exists('sc_is_pro_feature_specialized_programs_enabled')
+        && !sc_is_pro_feature_specialized_programs_enabled()
+    ) {
+        $disabled_message = 'امکان برنامه تخصصی در تنظیمات امکانات پرو غیرفعال شده است.';
+    }
+
+    if (
+        $page === 'sc-daily-metrics'
+        && function_exists('sc_is_pro_feature_daily_metrics_enabled')
+        && !sc_is_pro_feature_daily_metrics_enabled()
+    ) {
+        $disabled_message = 'امکان ثبت اطلاعات در تنظیمات امکانات پرو غیرفعال شده است.';
+    }
+
+    if ($disabled_message === '') {
+        return;
+    }
+
+    wp_die(
+        '<div style="max-width:560px;margin:40px auto;padding:24px;font-family:Tahoma,sans-serif;direction:rtl;text-align:right;">'
+        . '<h2>امکان غیرفعال است</h2>'
+        . '<p>' . esc_html($disabled_message) . '</p></div>',
+        'امکان غیرفعال',
+        ['response' => 403, 'back_link' => true]
+    );
 }
 
 function sc_events_screen_options() {
@@ -3113,6 +3192,11 @@ function sc_admin_attendance_report_page() {
     sc_check_and_create_tables();
     include SC_TEMPLATES_ADMIN_DIR . 'attendance-report.php';
 }
+function sc_admin_daily_metrics_fields_page() {
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'daily-metrics-fields.php';
+}
+
 function sc_admin_faq() {
     
     sc_check_and_create_tables();

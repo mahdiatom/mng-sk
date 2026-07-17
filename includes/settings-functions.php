@@ -432,6 +432,14 @@ function sc_is_pro_feature_certificates_enabled() {
     return (int) sc_get_setting('pro_feature_certificates', '1') === 1;
 }
 
+function sc_is_pro_feature_specialized_programs_enabled() {
+    return (int) sc_get_setting('pro_feature_specialized_programs', '1') === 1;
+}
+
+function sc_is_pro_feature_daily_metrics_enabled() {
+    return (int) sc_get_setting('pro_feature_daily_metrics', '1') === 1;
+}
+
 function sc_is_pro_feature_attendance_enabled() {
     return (int) sc_get_setting('pro_feature_attendance', '1') === 1;
 }

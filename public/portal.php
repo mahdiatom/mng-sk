@@ -90,7 +90,7 @@ function sc_panel_render_section_hero($title, $desc = '', $type = 'default') {
  * Dashboard keeps its personalized greeting and is excluded too.
  */
 function sc_panel_get_tab_hero_map() {
-    return apply_filters('sc_panel_tab_hero_map', [
+    $map = [
         'sc-enroll-course'   => ['ثبت‌نام در دوره', 'دوره مورد نظر را انتخاب کنید، شعبه و مربی را مشخص کنید و ثبت‌نام را تکمیل نمایید.', 'enroll'],
         'sc-my-courses'      => ['دوره‌های من و برنامه هفتگی', 'دوره‌های ثبت‌نامی و برنامه تمرینی هفتگی خود را در این بخش مشاهده کنید.', 'courses'],
         'sc-my-attendances'  => ['حضور و غیاب من', 'لیست جلسات ثبت‌شده همراه با وضعیت حضور، شعبه و مربی شما.', 'attendances'],
@@ -103,10 +103,20 @@ function sc_panel_get_tab_hero_map() {
         'sc-surveys'         => ['نظرسنجی‌ها', 'در نظرسنجی‌های فعال باشگاه شرکت کنید و دیدگاه خود را ثبت کنید.', 'surveys'],
         'sc-private-notes'   => ['یادداشت‌های من', 'گفتگوها و یادداشت‌های خصوصی شما با کادر باشگاه.', 'notes'],
         'sc-my-programs'     => ['برنامه‌های تخصصی من', 'برنامه‌های تمرینی روزانه خود را ببینید و تمرین‌های امروز را تیک بزنید.', 'courses'],
+        'sc-daily-metrics'   => ['ثبت اطلاعات', 'اطلاعات روزانه خود (مثل قد و وزن) را ثبت کنید و روند آن را در نمودار ببینید.', 'courses'],
         'sc-private-classes' => ['کلاس‌های خصوصی', 'درخواست و پیگیری جلسات کلاس خصوصی خود را انجام دهید.', 'private'],
         'sc-my-honors'       => ['افتخارات من', 'افتخارات و دستاوردهای ورزشی ثبت‌شده برای شما.', 'honors'],
         'sc-my-certificates' => ['گواهینامه‌های من', 'گواهینامه‌های صادرشده خود را مشاهده و دانلود کنید.', 'certificates'],
-    ]);
+    ];
+
+    if (function_exists('sc_is_pro_feature_specialized_programs_enabled') && !sc_is_pro_feature_specialized_programs_enabled()) {
+        unset($map['sc-my-programs']);
+    }
+    if (function_exists('sc_is_pro_feature_daily_metrics_enabled') && !sc_is_pro_feature_daily_metrics_enabled()) {
+        unset($map['sc-daily-metrics']);
+    }
+
+    return apply_filters('sc_panel_tab_hero_map', $map);
 }
 
 /**
@@ -163,6 +173,7 @@ function sc_portal_menu_icon($slug) {
         'sc-support-tickets'  => 'ticket-1.svg',
         'sc-private-notes'    => 'dafter.svg',
         'sc-my-programs'      => 'layers.svg',
+        'sc-daily-metrics'    => 'dafter.svg',
         'sc-private-classes'  => 'member.svg',
         'sc-faq'              => 'dafter.svg',
         'bot-connect'         => 'massege.svg',
@@ -193,7 +204,9 @@ function sc_portal_get_profile_dropdown_links($verification_gate_locked = false)
         }
         $links[] = ['slug' => 'sc-my-events', 'label' => 'رویداد های من'];
         $links[] = ['slug' => 'sc-private-notes', 'label' => 'یادداشت های من'];
-        $links[] = ['slug' => 'sc-my-programs', 'label' => 'برنامه‌های تخصصی من'];
+        if (function_exists('sc_is_pro_feature_specialized_programs_enabled') && sc_is_pro_feature_specialized_programs_enabled()) {
+            $links[] = ['slug' => 'sc-my-programs', 'label' => 'برنامه‌های تخصصی من'];
+        }
     }
     $links[] = ['slug' => 'edit-account', 'label' => 'تغییر رمز ورود', 'hash' => '#password_current'];
     $links[] = ['slug' => 'home', 'label' => 'بازگشت به سایت', 'url' => home_url('/')];
@@ -211,13 +224,19 @@ function sc_portal_header_tab_visible($slug, $verification_gate_locked = false) 
     $locked_slugs = [
         'edit-account', 'bot-connect', 'sc-enroll-course', 'sc-private-classes',
         'sc-my-courses', 'sc-my-attendances', 'sc-events', 'sc-my-events', 'sc-invoices',
-        'sc-my-honors', 'sc-my-certificates', 'sc-private-notes', 'sc-my-programs', 'sc-notifications',
+        'sc-my-honors', 'sc-my-certificates', 'sc-private-notes', 'sc-my-programs', 'sc-daily-metrics', 'sc-notifications',
         'sc-wallet', 'sc-support-tickets', 'sc-faq', 'sc-surveys',
     ];
     if ($verification_gate_locked && in_array($slug, $locked_slugs, true)) {
         return false;
     }
     if ($slug === 'sc-notifications' && !(function_exists('sc_is_pro_feature_notifications_enabled') && sc_is_pro_feature_notifications_enabled())) {
+        return false;
+    }
+    if ($slug === 'sc-my-programs' && !(function_exists('sc_is_pro_feature_specialized_programs_enabled') && sc_is_pro_feature_specialized_programs_enabled())) {
+        return false;
+    }
+    if ($slug === 'sc-daily-metrics' && !(function_exists('sc_is_pro_feature_daily_metrics_enabled') && sc_is_pro_feature_daily_metrics_enabled())) {
         return false;
     }
     if ($slug === 'sc-wallet' && !sc_get_setting('pro_feature_players_wallet')) {
@@ -282,6 +301,7 @@ function sc_portal_preserve_filter_query_args($redirect_url, $requested_url) {
         'filter_date_to',
         'filter_date_from_shamsi',
         'filter_date_to_shamsi',
+        'chart_field_ids',
         'filter_status',
         'invoice_search',
         'course_search',

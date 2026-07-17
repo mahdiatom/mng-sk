@@ -48,23 +48,41 @@ window.addEventListener('scroll', function () {
 
 <script name="zaaaa">
 jQuery(document).ready(function($) {
+    const $products = $('.products');
+    const $filterBtn = $('#button_filter_custom');
+    const $clearBtn = $('#button_filter_clear');
 
-        
-    // فیلتر زنده با AJAX
+    function hasActiveFilters() {
+        return !!($('#filter-search').val() || $('#filter-category').val() || $('#filter-tag').val());
+    }
+
+    function toggleClearButton() {
+        if (!$clearBtn.length) return;
+        $clearBtn.toggleClass('is-hidden', !hasActiveFilters());
+    }
+
+    function setLoading(isLoading) {
+        $filterBtn.toggleClass('is-loading', isLoading);
+        $products.toggleClass('sc-shop-products-loading', isLoading);
+    }
+
     function applyFilter() {
         const $search = $('#filter-search').val();
         const $category = $('#filter-category').val();
         const $tag = $('#filter-tag').val();
-// ساخت URL جدید
+
         const url = new URL(window.location.href);
         url.searchParams.delete('s');
         url.searchParams.delete('product_cat');
         url.searchParams.delete('product_tag');
-if ($search) url.searchParams.set('s', $search);
+
+        if ($search) url.searchParams.set('s', $search);
         if ($category) url.searchParams.set('product_cat', $category);
         if ($tag) url.searchParams.set('product_tag', $tag);
-window.history.pushState({}, '', url.toString());
-// ارسال درخواست AJAX
+
+        window.history.pushState({}, '', url.toString());
+        setLoading(true);
+
         $.ajax({
             url: ajax_object.ajax_url,
             type: 'GET',
@@ -76,24 +94,47 @@ window.history.pushState({}, '', url.toString());
                 nonce: ajax_object.nonce
             },
             success: function(response) {
-                
-                $('.products').html(response.data.html).show();
-                $('p.woocommerce-result-count').html(response.data.count);
-                window.history.pushState({}, '', url.toString());
-                $('html, body').animate({ scrollTop: 0 }, 300);
+                if (response && response.data) {
+                    $products.html(response.data.html).show();
+                    $('p.woocommerce-result-count').html(response.data.count);
+                }
+                toggleClearButton();
+                $('html, body').animate({ scrollTop: $products.offset().top - 120 }, 300);
             },
             error: function() {
                 alert('خطا در بارگذاری محصولات. لطفاً دوباره تلاش کنید.');
+            },
+            complete: function() {
+                setLoading(false);
             }
         });
     }
-    $(document).on('click', '#button_filter_custom' , function(){
+
+    $(document).on('click', '#button_filter_custom', function(e) {
+        e.preventDefault();
+        applyFilter();
+    });
+
+    $(document).on('click', '#button_filter_clear', function(e) {
+        e.preventDefault();
+        $('#filter-search').val('');
+        $('#filter-category').val('');
+        $('#filter-tag').val('');
+        applyFilter();
+    });
+
+    $('#filter-search').on('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
             applyFilter();
-    } );
+        }
+    });
 
+    $('#filter-category, #filter-tag').on('change', toggleClearButton);
+    $('#filter-search').on('input', toggleClearButton);
+
+    toggleClearButton();
 });
-
-    
 </script>
 
 

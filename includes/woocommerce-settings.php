@@ -528,74 +528,117 @@ add_action('woocommerce_before_delete_order', function($order_id) {
 
 
 
-// افزودن فیلتر به صفحه دسته‌بندی ووکامرس
+// افزودن فیلتر به صفحه فروشگاه ووکامرس
 add_action( 'woocommerce_before_shop_loop', 'add_custom_category_tag_filter', 15 );
 function add_custom_category_tag_filter() {
-    global $wp_query;
-// فقط در صفحه دسته‌بندی (category) اجرا شود
-    // if ( ! is_product_category() ) {
-    //     return;
-    // }
-// دریافت دسته‌بندی فعلی
-    $current_category = get_queried_object();
-// فرم فیلتر
-    echo '<div class="custom-product-filter" style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px;">';
-    echo '<h4 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">فیلتر محصولات</h4>';
-// 1. فیلتر جستجو (Search)
-    echo '<div class="input_filters">';
-    echo '<div style="margin-bottom: 10px; ">';
-    echo '<label for="filter-search" style="display: block; margin-bottom: 5px; font-weight: 500;">جستجو:</label>';
-    echo '<input type="text" id="filter-search" name="s" placeholder="نام محصول را وارد کنید..." value="' . esc_attr( get_search_query() ) . '" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">';
-    echo '</div>';
-// 2. فیلتر دسته‌بندی (Categories)
-    echo '<div style="margin-bottom: 10px;">';
-    echo '<label for="filter-category" style="display: block; margin-bottom: 5px; font-weight: 500;">دسته‌بندی:</label>';
-    echo '<select id="filter-category" name="product_cat" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">';
-    echo '<option value="">همه دسته‌بندی‌ها</option>';
-// دریافت تمام دسته‌بندی‌های محصولات (فقط فرزندان دسته‌بندی فعلی یا زیرمجموعه‌های آن)
-    $args = array(
-        'taxonomy'     => 'product_cat',
-        'hide_empty'   => true,
-       // 'parent'       => $current_category->term_id,
-        'orderby'      => 'name',
-        'order'        => 'ASC'
-    );
-    $categories = get_categories( $args );
-foreach ( $categories as $cat ) {
-        $selected = ( get_query_var( 'product_cat' ) == $cat->slug ) ? 'selected' : '';
-        echo '<option value="' . esc_attr( $cat->slug ) . '" ' . $selected . '>' . esc_html( $cat->name ) . '</option>';
+    if ( ! function_exists( 'is_shop' ) ) {
+        return;
     }
-echo '</select>';
-    echo '</div>';
-// 3. فیلتر برچسب‌ها (Tags)
-    echo '<div style="margin-bottom: 10px;">';
-    echo '<label for="filter-tag" style="display: block; margin-bottom: 5px; font-weight: 500;">برچسب:</label>';
-    echo '<select id="filter-tag" name="product_tag" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">';
-    echo '<option value="">همه برچسب‌ها</option>';
-// دریافت تمام برچسب‌های محصولات (فقط برچسب‌های مرتبط با دسته‌بندی فعلی)
+
+    if ( ! is_shop() && ! is_product_category() && ! is_product_tag() && ! is_search() ) {
+        return;
+    }
+
+    $search_query   = get_search_query();
+    $current_cat    = get_query_var( 'product_cat' );
+    $current_tag    = get_query_var( 'product_tag' );
+    $has_active     = $search_query !== '' || $current_cat !== '' || $current_tag !== '';
+
+    $categories = get_categories( array(
+        'taxonomy'   => 'product_cat',
+        'hide_empty' => true,
+        'orderby'    => 'name',
+        'order'      => 'ASC',
+    ) );
+
     $tags = get_terms( array(
         'taxonomy'   => 'product_tag',
         'hide_empty' => true,
         'orderby'    => 'name',
-        'order'      => 'ASC'
+        'order'      => 'ASC',
     ) );
-foreach ( $tags as $tag ) {
-        $selected = ( get_query_var( 'product_tag' ) == $tag->slug ) ? 'selected' : '';
-        echo '<option value="' . esc_attr( $tag->slug ) . '" ' . $selected . '>' . esc_html( $tag->name ) . '</option>';
+    if ( is_wp_error( $tags ) ) {
+        $tags = array();
     }
-echo '</select>';
-    echo '</div>';
-    echo '</div>';
-// دکمه اعمال فیلتر (می‌توانید از فرم ارسال کنید)
-    echo '<button type="submit" id="button_filter_custom" class="button button-primary" >اعمال فیلتر</button>';
-    echo '<input type="hidden" name="filter" value="1" />'; // نشانه فیلتر فعال شده
-    echo '</div>';
-// اضافه کردن فرم جستجو به صفحه
-    echo '<form method="get" style="display: none;">';
-    echo '<input type="hidden" name="post_type" value="product" />';
-    echo '<input type="hidden" name="product_cat" value="' . esc_attr( get_query_var( 'product_cat' ) ) . '" />';
-    echo '<input type="hidden" name="product_tag" value="' . esc_attr( get_query_var( 'product_tag' ) ) . '" />';
-    echo '</form>';
+
+    ob_start();
+    ?>
+    <div class="sc-shop-filters custom-product-filter">
+        <div class="sc-shop-filters-header">
+            <div class="sc-shop-filters-icon" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 5h18M6 12h12M10 19h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="sc-shop-filters-heading">
+                <h3 class="sc-shop-filters-title">فیلتر محصولات</h3>
+                <p class="sc-shop-filters-subtitle">جستجو، دسته‌بندی و برچسب را انتخاب کنید</p>
+            </div>
+        </div>
+
+        <div class="sc-shop-filter-form">
+            <div class="sc-shop-filter-fields input_filters">
+                <div class="sc-shop-filter-field sc-shop-filter-field--search">
+                    <label for="filter-search">جستجو</label>
+                    <div class="sc-shop-filter-input-wrap">
+                        <span class="sc-shop-filter-input-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" stroke="currentColor" stroke-width="2"/>
+                                <path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <input
+                            type="search"
+                            id="filter-search"
+                            name="s"
+                            class="sc-shop-filter-control"
+                            placeholder="نام محصول را وارد کنید..."
+                            value="<?php echo esc_attr( $search_query ); ?>"
+                            autocomplete="off"
+                        >
+                    </div>
+                </div>
+
+                <div class="sc-shop-filter-field">
+                    <label for="filter-category">دسته‌بندی</label>
+                    <select id="filter-category" name="product_cat" class="sc-shop-filter-control">
+                        <option value="">همه دسته‌بندی‌ها</option>
+                        <?php foreach ( $categories as $cat ) : ?>
+                            <option value="<?php echo esc_attr( $cat->slug ); ?>" <?php selected( $current_cat, $cat->slug ); ?>>
+                                <?php echo esc_html( $cat->name ); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="sc-shop-filter-field">
+                    <label for="filter-tag">برچسب</label>
+                    <select id="filter-tag" name="product_tag" class="sc-shop-filter-control">
+                        <option value="">همه برچسب‌ها</option>
+                        <?php foreach ( $tags as $tag ) : ?>
+                            <option value="<?php echo esc_attr( $tag->slug ); ?>" <?php selected( $current_tag, $tag->slug ); ?>>
+                                <?php echo esc_html( $tag->name ); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+
+            <div class="sc-shop-filter-actions sc-invoices-filter-actions">
+                <button type="button" id="button_filter_custom" class="button button-primary sc-shop-filter-submit button_filter_custom">
+                    <span class="sc-shop-filter-btn-text">اعمال فیلتر</span>
+                    <span class="sc-shop-filter-btn-spinner" aria-hidden="true"></span>
+                </button>
+                <button
+                    type="button"
+                    id="button_filter_clear"
+                    class="button sc-shop-filter-reset<?php echo $has_active ? '' : ' is-hidden'; ?>"
+                >پاک کردن فیلترها</button>
+            </div>
+        </div>
+    </div>
+    <?php
+    echo ob_get_clean();
 }
 
 add_action( 'wp_enqueue_scripts', 'enqueue_custom_filter_script' );
@@ -686,13 +729,11 @@ $count = 'تعداد نتایج فیلتر شده : ' . $count;
     else{
           ob_start();
 ?>
-<div class="products-no-product">
-    <?php
-    $count = 0;
-    ?>
-        <div> محصولی در این فیلتر انتخابی وجود ندارد برای مشاهده تمامی محصولات به فروشگاه بروید.</div>
-        <a class="button button_filter_custom" href="<?php echo site_url('shop'); ?> " >  رفتن به فروشگاه </a>
-
+<div class="sc-shop-empty products-no-product">
+    <div class="sc-shop-empty-icon" aria-hidden="true">📦</div>
+    <p class="sc-shop-empty-text">محصولی با این فیلتر یافت نشد.</p>
+    <p class="sc-shop-empty-hint">فیلترها را تغییر دهید یا همه محصولات فروشگاه را ببینید.</p>
+    <a class="button button-primary button_filter_custom sc-shop-empty-btn" href="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>">مشاهده همه محصولات</a>
 </div>
 <?php
 $html = ob_get_clean();

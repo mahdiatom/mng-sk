@@ -783,6 +783,8 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     $pro_feature_users_export = isset($_POST['pro_feature_users_export']) ? (int) $_POST['pro_feature_users_export'] : 0;
     $pro_feature_bulk_actions = isset($_POST['pro_feature_bulk_actions']) ? (int) $_POST['pro_feature_bulk_actions'] : 0;
     $pro_feature_certificates = isset($_POST['pro_feature_certificates']) ? (int) $_POST['pro_feature_certificates'] : 0;
+    $pro_feature_specialized_programs = isset($_POST['pro_feature_specialized_programs']) ? (int) $_POST['pro_feature_specialized_programs'] : 0;
+    $pro_feature_daily_metrics = isset($_POST['pro_feature_daily_metrics']) ? (int) $_POST['pro_feature_daily_metrics'] : 0;
     $pro_feature_attendance = isset($_POST['pro_feature_attendance']) ? (int) $_POST['pro_feature_attendance'] : 0;
     $pro_feature_attendance_qr = isset($_POST['pro_feature_attendance_qr']) ? (int) $_POST['pro_feature_attendance_qr'] : 0;
     $pro_feature_tarddod = isset($_POST['pro_feature_tarddod']) ? (int) $_POST['pro_feature_tarddod'] : 0;
@@ -813,6 +815,8 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     sc_update_setting('pro_feature_users_export', $pro_feature_users_export, 'pro_features');
     sc_update_setting('pro_feature_bulk_actions', $pro_feature_bulk_actions, 'pro_features');
     sc_update_setting('pro_feature_certificates', $pro_feature_certificates, 'pro_features');
+    sc_update_setting('pro_feature_specialized_programs', $pro_feature_specialized_programs, 'pro_features');
+    sc_update_setting('pro_feature_daily_metrics', $pro_feature_daily_metrics, 'pro_features');
     sc_update_setting('pro_feature_attendance', $pro_feature_attendance, 'pro_features');
     sc_update_setting('pro_feature_attendance_qr', $pro_feature_attendance_qr, 'pro_features');
     sc_update_setting('pro_feature_tarddod', $pro_feature_tarddod, 'pro_features');
@@ -1290,6 +1294,8 @@ $pro_feature_user_alerts = (int) sc_get_setting('pro_feature_user_alerts', 1);
 $pro_feature_users_export = (int) sc_get_setting('pro_feature_users_export', 1);
 $pro_feature_bulk_actions = (int) sc_get_setting('pro_feature_bulk_actions', 1);
 $pro_feature_certificates = (int) sc_get_setting('pro_feature_certificates', 1);
+$pro_feature_specialized_programs = (int) sc_get_setting('pro_feature_specialized_programs', 1);
+$pro_feature_daily_metrics = (int) sc_get_setting('pro_feature_daily_metrics', 1);
 $pro_feature_attendance = (int) sc_get_setting('pro_feature_attendance', 1);
 $pro_feature_attendance_qr = (int) sc_get_setting('pro_feature_attendance_qr', 1);
 $pro_feature_tarddod = (int) sc_get_setting('pro_feature_tarddod', 1);
@@ -5271,6 +5277,28 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                         <input type="checkbox" name="pro_feature_certificates" value="1" <?php checked($pro_feature_certificates, 1); ?>>
                         <span class="slider round"></span>
                     </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">برنامه تخصصی</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_specialized_programs" value="0">
+                        <input type="checkbox" name="pro_feature_specialized_programs" value="1" <?php checked($pro_feature_specialized_programs, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                    <p class="description">منوهای برنامه تخصصی در مدیریت، پنل مربی و تب برنامه‌های تخصصی بازیکن</p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">ثبت اطلاعات</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_daily_metrics" value="0">
+                        <input type="checkbox" name="pro_feature_daily_metrics" value="1" <?php checked($pro_feature_daily_metrics, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                    <p class="description">تعریف فیلدهای ثبت اطلاعات در مدیریت و تب ثبت اطلاعات در پنل بازیکن</p>
                 </td>
             </tr>
             <tr>

@@ -1107,6 +1107,61 @@ function sc_create_survey_eligibility_table() {
 }
 
 /**
+ * Create daily metric field definitions table (ثبت اطلاعات روزانه)
+ */
+function sc_create_metric_fields_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_metric_fields';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `title` varchar(191) NOT NULL,
+        `field_type` varchar(30) NOT NULL DEFAULT 'number' COMMENT 'number, text, select',
+        `unit` varchar(50) DEFAULT NULL,
+        `options_json` longtext DEFAULT NULL,
+        `sort_order` int(11) NOT NULL DEFAULT 0,
+        `is_active` tinyint(1) NOT NULL DEFAULT 1,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `idx_is_active` (`is_active`),
+        KEY `idx_sort_order` (`sort_order`)
+    ) $charset_collate";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
+/**
+ * Create member daily metric entries table
+ */
+function sc_create_member_metric_entries_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'sc_member_metric_entries';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE `$table_name` (
+        `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        `member_id` bigint(20) unsigned NOT NULL,
+        `field_id` bigint(20) unsigned NOT NULL,
+        `entry_date` date NOT NULL,
+        `value_numeric` decimal(12,4) DEFAULT NULL,
+        `value_text` text DEFAULT NULL,
+        `created_at` datetime NOT NULL,
+        `updated_at` datetime NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `idx_member_field_date` (`member_id`, `field_id`, `entry_date`),
+        KEY `idx_member_id` (`member_id`),
+        KEY `idx_field_id` (`field_id`),
+        KEY `idx_entry_date` (`entry_date`)
+    ) $charset_collate";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
+/**
  * Create support tickets table (تیکت پشتیبانی)
  */
 function sc_create_support_tickets_table() {
@@ -1675,6 +1730,8 @@ function sc_update_database() {
         sc_create_survey_responses_table();
         sc_create_survey_answers_table();
         sc_create_survey_eligibility_table();
+        sc_create_metric_fields_table();
+        sc_create_member_metric_entries_table();
         sc_create_support_tickets_table();
         sc_create_support_ticket_messages_table();
         sc_create_private_notes_table();
