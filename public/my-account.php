@@ -4718,7 +4718,10 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
             }
             
             // فعال کردن دوره بعد از پرداخت موفق (فقط processing و completed)
-            if ($invoice->member_course_id && $invoice->type !== 'session_auto') {
+            // session_auto توسط sc_refill_sessions_after_payment شارژ می‌شود.
+            // اگر مانده منفی باشد، همان منفی از تعداد جلسات شارژ کم می‌شود.
+            $invoice_type = trim((string) $invoice->type);
+            if ($invoice->member_course_id && $invoice_type !== 'session_auto') {
                 $member_courses_table = $wpdb->prefix . 'sc_member_courses';
                 $courses_table = $wpdb->prefix . 'sc_courses';
                 $course = $wpdb->get_row($wpdb->prepare(
@@ -4735,6 +4738,11 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
                 } elseif ($course && !empty($course->sessions_count)) {
                     $total_sessions = (int) $course->sessions_count;
                 }
+                $current_remaining = $mc_pay ? (int) $mc_pay->remaining_sessions : 0;
+                // منفی = جلسات مصرف‌شده بعد از اتمام؛ از شارژ جدید کم می‌شود
+                $remaining_after_pay = ($current_remaining < 0)
+                    ? ($current_remaining + $total_sessions)
+                    : $total_sessions;
                 // بروزرسانی وضعیت دوره به active
                 $wpdb->update(
                     $member_courses_table,
@@ -4742,7 +4750,7 @@ function sc_update_invoice_status_on_payment($order_id, $old_status, $new_status
                         'status' => 'active',
                         'enrollment_date' => current_time('Y-m-d'),
                         'total_sessions' => $total_sessions,
-                        'remaining_sessions' => $total_sessions,
+                        'remaining_sessions' => $remaining_after_pay,
                         'updated_at' => current_time('mysql')
                     ],
                     ['id' => $invoice->member_course_id],

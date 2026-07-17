@@ -4574,50 +4574,8 @@ function callback_add_member_sufix(){
                     }
                 }
                 
-                // ذخیره دوره‌های بازیکن
-                $course_ids = isset($_POST['courses']) && is_array($_POST['courses']) ? array_map('absint', $_POST['courses']) : [];
-                $course_flags_raw = isset($_POST['course_flags']) && is_array($_POST['course_flags']) ? $_POST['course_flags'] : [];
-                $course_flags = sc_parse_member_course_flags_from_post($course_flags_raw, $course_ids);
-                $course_package_sessions = [];
-                if (isset($_POST['course_enrollment_package']) && is_array($_POST['course_enrollment_package'])) {
-                    foreach ($_POST['course_enrollment_package'] as $cid => $sess) {
-                        $course_package_sessions[absint($cid)] = absint($sess);
-                    }
-                }
-                foreach ($course_ids as $cid_pkg) {
-                    $cid_pkg = absint($cid_pkg);
-                    if (!$cid_pkg) {
-                        continue;
-                    }
-                    if (function_exists('sc_course_has_packages') && sc_course_has_packages($cid_pkg)) {
-                        $sel = isset($course_package_sessions[$cid_pkg]) ? absint($course_package_sessions[$cid_pkg]) : 0;
-                        // در ویرایش اگر پکیج عوض نشده، مقدار قبلی ثبت‌نام حفظ شود
-                        if (!$sel) {
-                            $existing_pkg = (int) $wpdb->get_var($wpdb->prepare(
-                                "SELECT enrollment_sessions FROM {$wpdb->prefix}sc_member_courses WHERE member_id = %d AND course_id = %d LIMIT 1",
-                                $player_id,
-                                $cid_pkg
-                            ));
-                            if ($existing_pkg > 0) {
-                                $course_package_sessions[$cid_pkg] = $existing_pkg;
-                                $sel = $existing_pkg;
-                            }
-                        }
-                        if (!$sel || !function_exists('sc_get_course_package_by_sessions') || !sc_get_course_package_by_sessions($cid_pkg, $sel)) {
-                            wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=member_pkg_error&player_id=' . $player_id));
-                            exit;
-                        }
-                    }
-                }
-                sc_save_member_courses($player_id, $course_ids, $course_flags, $course_package_sessions, sc_parse_member_course_assignments_from_post());
-                sc_update_profile_completed_status($player_id);
-                if (isset($old_member['identity_verified']) && (int)$old_member['identity_verified'] !== 1 && $new_identity_verified === 1 && function_exists('sc_send_identity_verified_notifications')) {
-                    sc_send_identity_verified_notifications($player_id);
-                }
-                if (function_exists('sc_log_activity') && $old_member) {
-                    sc_log_activity('updated', 'member', $player_id, 'عضو «' . ($data['first_name'] . ' ' . $data['last_name']) . '» ویرایش شد', $old_member, ['first_name' => $data['first_name'], 'last_name' => $data['last_name'], 'national_id' => $data['national_id'], 'is_active' => $data['is_active']]);
-                }
-
+                // بخش دوره‌های بازیکن در ویرایش فقط نمایشی است (مربی/گروه/پکیج/شعبه).
+                // فقط تعداد جلسات باقی‌مانده از این فرم ذخیره می‌شود؛ پکیج اجباری نیست.
                 if (isset($_POST['remaining_sessions']) && is_array($_POST['remaining_sessions'])) {
                     $member_id = (int) $player_id;
                     $table = $wpdb->prefix . 'sc_member_courses';
@@ -4627,21 +4585,26 @@ function callback_add_member_sufix(){
                             continue;
                         }
                         $remaining = (int) $remaining;
-                        if ($remaining < 0) {
-                            $remaining = 0;
-                        }
                         $wpdb->update(
                             $table,
-                            ['remaining_sessions' => $remaining],
+                            [
+                                'remaining_sessions' => $remaining,
+                                'updated_at' => current_time('mysql'),
+                            ],
                             ['member_id' => $member_id, 'course_id' => $course_id],
-                            ['%d'],
+                            ['%d', '%s'],
                             ['%d', '%d']
                         );
                     }
                 }
 
-
-
+                sc_update_profile_completed_status($player_id);
+                if (isset($old_member['identity_verified']) && (int)$old_member['identity_verified'] !== 1 && $new_identity_verified === 1 && function_exists('sc_send_identity_verified_notifications')) {
+                    sc_send_identity_verified_notifications($player_id);
+                }
+                if (function_exists('sc_log_activity') && $old_member) {
+                    sc_log_activity('updated', 'member', $player_id, 'عضو «' . ($data['first_name'] . ' ' . $data['last_name']) . '» ویرایش شد', $old_member, ['first_name' => $data['first_name'], 'last_name' => $data['last_name'], 'national_id' => $data['national_id'], 'is_active' => $data['is_active']]);
+                }
 
                 wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=updated&player_id=' . $player_id));
                 exit;

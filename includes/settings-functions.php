@@ -1085,8 +1085,15 @@ function get_cart_item_count() {
     return 0;
 }
 
-//کم کردن یک جلسه برای کاربر
-function sc_decrease_member_session($member_id, $course_id) {
+/**
+ * کم کردن یک جلسه برای کاربر
+ *
+ * @param int  $member_id
+ * @param int  $course_id
+ * @param bool $allow_negative اگر true باشد (حضور)، حتی از ۰ به منفی هم کم می‌شود.
+ *                             برای غیبت false بماند تا زیر صفر نرود.
+ */
+function sc_decrease_member_session($member_id, $course_id, $allow_negative = false) {
     global $wpdb;
 
     $table = $wpdb->prefix . 'sc_member_courses';
@@ -1104,11 +1111,14 @@ function sc_decrease_member_session($member_id, $course_id) {
         return false;
     }
 
-    if ($member_course->remaining_sessions <= 0) {
+    $remaining = (int) $member_course->remaining_sessions;
+
+    // غیبت: فقط وقتی جلسهٔ مثبت باقی مانده کم شود
+    if (!$allow_negative && $remaining <= 0) {
         return false;
     }
 
-    $was_last_session = ((int) $member_course->remaining_sessions === 1);
+    $was_last_session = ($remaining === 1);
 
     $wpdb->query($wpdb->prepare(
         "UPDATE $table

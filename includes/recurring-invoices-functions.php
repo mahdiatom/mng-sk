@@ -1027,11 +1027,14 @@ function sc_refill_sessions_after_payment($invoice_id) {
     }
 
     $mc_table = $wpdb->prefix . 'sc_member_courses';
+    $invoice_type = trim((string) $invoice->type);
+    // تمدید خودکار آستانه جلسات — همیشه remaining فعلی (حتی منفی) + تعداد شارژ
+    $should_refill = ($invoice_type === 'session_auto');
 
-    // فقط برای فاکتورهای حالت آستانه جلسات: شارژ مجدد جلسات
-    if ($invoice->type === 'session_auto') {
+    // شارژ جلسات در حالت آستانه: remaining فعلی (حتی منفی) + تعداد جلسات پکیج/دوره
+    if ($should_refill) {
         $member_course = $wpdb->get_row($wpdb->prepare(
-            "SELECT remaining_sessions, total_sessions, threshold_invoiced
+            "SELECT remaining_sessions, total_sessions, enrollment_sessions, threshold_invoiced, course_id
              FROM {$mc_table}
              WHERE id = %d",
             $invoice->member_course_id
@@ -1041,8 +1044,30 @@ function sc_refill_sessions_after_payment($invoice_id) {
             return;
         }
 
-        $new_remaining = (int) $member_course->remaining_sessions + (int) $member_course->total_sessions;
-        $new_total     = (int) $member_course->total_sessions;
+        $charge_sessions = 0;
+        if (!empty($invoice->billing_sessions_count)) {
+            $charge_sessions = (int) $invoice->billing_sessions_count;
+        }
+        if ($charge_sessions <= 0 && isset($member_course->enrollment_sessions) && $member_course->enrollment_sessions !== null && $member_course->enrollment_sessions !== '') {
+            $charge_sessions = (int) $member_course->enrollment_sessions;
+        }
+        if ($charge_sessions <= 0) {
+            $charge_sessions = (int) $member_course->total_sessions;
+        }
+        if ($charge_sessions <= 0 && !empty($member_course->course_id)) {
+            $course_sessions = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT sessions_count FROM {$wpdb->prefix}sc_courses WHERE id = %d LIMIT 1",
+                (int) $member_course->course_id
+            ));
+            if ($course_sessions > 0) {
+                $charge_sessions = $course_sessions;
+            }
+        }
+
+        $current_remaining = (int) $member_course->remaining_sessions;
+        // مثال: remaining=-1 و charge=10 → new=9
+        $new_remaining = $current_remaining + $charge_sessions;
+        $new_total = $charge_sessions > 0 ? $charge_sessions : (int) $member_course->total_sessions;
 
         $wpdb->update(
             $mc_table,
@@ -1050,13 +1075,21 @@ function sc_refill_sessions_after_payment($invoice_id) {
                 'total_sessions'     => $new_total,
                 'remaining_sessions' => $new_remaining,
                 'threshold_invoiced' => 0,
+                'status'             => 'active',
+                'updated_at'         => current_time('mysql'),
             ],
             ['id' => $invoice->member_course_id],
-            ['%d', '%d', '%d'],
+            ['%d', '%d', '%d', '%s', '%s'],
             ['%d']
         );
 
-        error_log("SC THRESHOLD: Sessions refilled and threshold reset for MC {$invoice->member_course_id}");
+        error_log(sprintf(
+            'SC THRESHOLD: Sessions refilled for MC %d — current=%d charge=%d new=%d',
+            (int) $invoice->member_course_id,
+            $current_remaining,
+            $charge_sessions,
+            $new_remaining
+        ));
         return;
     }
 

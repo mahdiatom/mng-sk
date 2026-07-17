@@ -160,7 +160,7 @@ $sql = "CREATE TABLE `$table_name` (
         `course_id` bigint(20) unsigned NOT NULL,
         `enrollment_date` date DEFAULT NULL,
         `total_sessions` bigint(20) unsigned NOT NULL,
-        `remaining_sessions` bigint(20) unsigned NOT NULL,
+        `remaining_sessions` bigint(20) NOT NULL DEFAULT 0 COMMENT 'می‌تواند منفی شود (حضور بعد از اتمام جلسات)',
         `threshold_invoiced` TINYINT(1) DEFAULT 0,
         `status` varchar(20) DEFAULT 'active',
         `course_status_flags` varchar(255) DEFAULT NULL,
@@ -2729,6 +2729,27 @@ function sc_update_database() {
             }
         }
         update_option('sc_member_courses_billing_deferred_added', '1');
+    }
+
+    // جلسات باقی‌مانده signed تا حضور بعد از صفر بتواند منفی شود
+    if (get_option('sc_member_courses_remaining_sessions_signed', '0') !== '1') {
+        $mc_tbl = $wpdb->prefix . 'sc_member_courses';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $mc_tbl)) === $mc_tbl) {
+            $col = $wpdb->get_row($wpdb->prepare("SHOW COLUMNS FROM `$mc_tbl` LIKE %s", 'remaining_sessions'));
+            if ($col && stripos((string) $col->Type, 'unsigned') !== false) {
+                $wpdb->query("ALTER TABLE `$mc_tbl` MODIFY COLUMN `remaining_sessions` bigint(20) NOT NULL DEFAULT 0 COMMENT 'می‌تواند منفی شود (حضور بعد از اتمام جلسات)'");
+            }
+        }
+        update_option('sc_member_courses_remaining_sessions_signed', '1');
+    } else {
+        // اگر قبلاً flag زده شده ولی ستون هنوز unsigned است، دوباره اصلاح کن
+        $mc_tbl = $wpdb->prefix . 'sc_member_courses';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $mc_tbl)) === $mc_tbl) {
+            $col = $wpdb->get_row($wpdb->prepare("SHOW COLUMNS FROM `$mc_tbl` LIKE %s", 'remaining_sessions'));
+            if ($col && stripos((string) $col->Type, 'unsigned') !== false) {
+                $wpdb->query("ALTER TABLE `$mc_tbl` MODIFY COLUMN `remaining_sessions` bigint(20) NOT NULL DEFAULT 0 COMMENT 'می‌تواند منفی شود (حضور بعد از اتمام جلسات)'");
+            }
+        }
     }
 
     if (get_option('sc_invoices_tax_column_added', '0') !== '1') {

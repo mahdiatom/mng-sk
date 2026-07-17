@@ -612,29 +612,13 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                         echo '<div style="padding: 15px; margin-bottom: 10px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">';
                         echo '<div style="margin-bottom: 10px;"><strong>' . esc_html($course->title) . '</strong></div>';
 
-                        // حفظ وضعیت فعال و فلگ‌ها هنگام ذخیره (قابل ویرایش نیستند)
-                        if ($is_active) {
-                            echo '<input type="hidden" name="courses[]" value="' . esc_attr((string) $cid) . '">';
-                        }
-                        if ($is_paused) {
-                            echo '<input type="hidden" name="course_flags[' . esc_attr((string) $cid) . '][paused]" value="1">';
-                        }
-                        if ($is_completed) {
-                            echo '<input type="hidden" name="course_flags[' . esc_attr((string) $cid) . '][completed]" value="1">';
-                        }
-                        if ($is_canceled) {
-                            echo '<input type="hidden" name="course_flags[' . esc_attr((string) $cid) . '][canceled]" value="1">';
-                        }
-                        echo '<input type="hidden" name="course_chapter[' . esc_attr((string) $cid) . ']" value="' . esc_attr($selected_chapter) . '">';
-                        echo '<input type="hidden" name="course_coach[' . esc_attr((string) $cid) . ']" value="' . esc_attr((string) $selected_coach) . '">';
-                        echo '<input type="hidden" name="course_group[' . esc_attr((string) $cid) . ']" value="' . esc_attr($selected_group) . '">';
-                        if ($selected_pkg_sessions > 0) {
-                            echo '<input type="hidden" name="course_enrollment_package[' . esc_attr((string) $cid) . ']" value="' . esc_attr((string) $selected_pkg_sessions) . '">';
-                        }
-
+                        // فقط نمایش — در ویرایش چیزی از مربی/گروه/پکیج/شعبه ذخیره نمی‌شود
                         echo '<div style="margin-top:8px;padding:10px;background:#f0f6fc;border:1px solid #c3d9e8;border-radius:4px;">';
                         echo '<div style="margin-bottom:6px;"><strong>مربی:</strong> ' . esc_html($coach_label) . '</div>';
                         echo '<div style="margin-bottom:6px;"><strong>گروه:</strong> ' . esc_html($group_label) . '</div>';
+                        if ($selected_chapter !== '') {
+                            echo '<div style="margin-bottom:6px;"><strong>شعبه:</strong> ' . esc_html($selected_chapter) . '</div>';
+                        }
                         echo '<div><strong>پکیج:</strong> ' . esc_html($package_label) . '</div>';
                         echo '</div>';
 
@@ -664,7 +648,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                             </div>
                             <div class="remaining_sessions">
                                 <span class="key">جلسات باقی مانده : </span>
-                                <input type="number" name="remaining_sessions[<?php echo esc_attr((string) $cid); ?>]" min="0" step="1"
+                                <input type="number" name="remaining_sessions[<?php echo esc_attr((string) $cid); ?>]" step="1"
                                     value="<?php echo (int) $ps['remaining_sessions']; ?>">
                             </div>
                         </div>
@@ -675,7 +659,7 @@ $sc_status = isset($_GET['sc_status']) ? sanitize_text_field($_GET['sc_status'])
                     }
                     echo '</div>';
                     echo '<br><strong style="margin-top:10px; font-size:24px; font-weight:bold;">راهنما دوره های بازیکن : <br></strong>';
-                    echo '<p class="description" style="margin-top: 10px; font-size:20px;">در این بخش فقط می‌توانید تعداد جلسات باقی‌مانده را تغییر دهید. مربی، گروه و پکیج فقط نمایش داده می‌شوند.</p>';
+                    echo '<p class="description" style="margin-top: 10px; font-size:20px;">در این بخش فقط می‌توانید تعداد جلسات باقی‌مانده را تغییر دهید. مربی، گروه، شعبه و پکیج فقط نمایش داده می‌شوند و ذخیره نمی‌شوند.</p>';
                 }
                 ?>
             </div>

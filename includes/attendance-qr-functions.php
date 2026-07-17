@@ -2039,7 +2039,8 @@ function sc_attendance_qr_register_present(array $args) {
     }
 
     $new_id = (int) $wpdb->insert_id;
-    sc_decrease_member_session($member_id, $course_id);
+    // QR فقط حضور ثبت می‌کند — اجازهٔ منفی شدن جلسات
+    sc_decrease_member_session($member_id, $course_id, true);
 
     if (function_exists('sc_is_private_course') && $course_row && sc_is_private_course($course_row) && function_exists('sc_private_sync_session_with_attendance')) {
         sc_private_sync_session_with_attendance($member_id, $course_id, $attendance_date, $status);

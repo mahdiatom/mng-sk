@@ -326,7 +326,8 @@ function sc_attendance_auto_process_api_logs($limit = 100) {
             continue;
         }
         $new_id = (int) $wpdb->insert_id;
-        sc_decrease_member_session($member_id, $course_id);
+        // حضور خودکار/API — اجازهٔ منفی شدن جلسات
+        sc_decrease_member_session($member_id, $course_id, true);
         sc_attendance_auto_refresh_coach_percentage_salary($course_id, $attendance_date);
         sc_attendance_mark_log_matched($log->id, $new_id);
     }
@@ -439,7 +440,8 @@ function sc_attendance_auto_mark_absents() {
                 );
                 if ($ins) {
                     $new_id = (int) $wpdb->insert_id;
-                    sc_decrease_member_session($member_id, (int) $slot->course_id);
+                    // غیبت خودکار: زیر صفر نمی‌رود
+                    sc_decrease_member_session($member_id, (int) $slot->course_id, false);
                     do_action('sc_attendance_absent', $new_id);
                     $has_new_absent_attendance = true;
                 }

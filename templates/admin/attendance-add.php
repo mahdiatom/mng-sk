@@ -389,8 +389,12 @@ if (
 
                     if ($inserted_id) {
                         $saved_count++;
-                        if ($status === 'present' || $status === 'absent' ) {
-                            sc_decrease_member_session($member_id, $course_id);
+                        if ($status === 'present') {
+                            // حضور: حتی اگر جلسه صفر باشد، منفی می‌شود تا بعد از شارژ کم شود
+                            sc_decrease_member_session($member_id, $course_id, true);
+                        } elseif ($status === 'absent') {
+                            // غیبت: فقط از جلسات مثبت کم می‌شود؛ منفی نمی‌شود
+                            sc_decrease_member_session($member_id, $course_id, false);
                         }
                         if ($status === 'absent') {
                             do_action('sc_attendance_absent', $wpdb->insert_id);
