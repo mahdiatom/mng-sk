@@ -235,6 +235,19 @@ function sc_support_get_members_for_coach($coach_id) {
     $m = $wpdb->prefix . 'sc_members';
     $courses = $wpdb->prefix . 'sc_courses';
 
+    $assistant_sql = '';
+    $prepare_args = [$coach_id, $coach_id];
+    if (function_exists('sc_course_assistant_coaches_table_ready') && sc_course_assistant_coaches_table_ready()) {
+        $assistant_table = sc_course_assistant_coaches_table();
+        $assistant_sql = " OR EXISTS (
+                SELECT 1
+                FROM `$assistant_table` aca
+                INNER JOIN $courses cr ON cr.id = aca.course_id AND cr.deleted_at IS NULL AND cr.is_active = 1
+                WHERE aca.course_id = mc.course_id AND aca.assistant_coach_id = %d
+            )";
+        $prepare_args[] = $coach_id;
+    }
+
     $list = $wpdb->get_results($wpdb->prepare(
         "SELECT DISTINCT mem.id AS member_id,
                 TRIM(CONCAT(COALESCE(mem.first_name,''), ' ', COALESCE(mem.last_name,''))) AS name,
@@ -250,10 +263,10 @@ function sc_support_get_members_for_coach($coach_id) {
                 INNER JOIN $courses cr ON cr.id = cc.course_id AND cr.deleted_at IS NULL AND cr.is_active = 1
                 WHERE cc.course_id = mc.course_id AND cc.coach_id = %d
             )
+            $assistant_sql
          )
          ORDER BY name",
-        $coach_id,
-        $coach_id
+        ...$prepare_args
     ), ARRAY_A);
 
     return is_array($list) ? $list : [];

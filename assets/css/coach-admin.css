@@ -944,3 +944,6 @@ body.toplevel_page_sc-coach-my-profile #wpcontent {
     text-align: center;
   }
 }
+.sc-coach-members-list-page th#full_name{
+  width: 160px !important;
+}

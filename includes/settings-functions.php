@@ -738,8 +738,15 @@ function sc_player_info_is_field_visible($field_key, $rules = null) {
 
 /**
  * HTML required attribute for player info fields.
+ *
+ * @param string     $field_key Field key.
+ * @param array|null $rules     Optional preloaded rules.
+ * @param string     $context   'player' (settings-driven) or 'admin_edit' (only national_id + player_phone).
  */
-function sc_player_info_field_required_attr($field_key, $rules = null) {
+function sc_player_info_field_required_attr($field_key, $rules = null, $context = 'player') {
+    if ($context === 'admin_edit') {
+        return in_array($field_key, ['national_id', 'player_phone'], true) ? ' required' : '';
+    }
     $rules = $rules ?? sc_get_player_info_field_rules();
     return !empty($rules[$field_key]['required']) ? ' required' : '';
 }
@@ -810,7 +817,7 @@ function sc_player_info_member_custom_field_is_empty($field, $extra_values) {
 /**
  * Render custom player info fields as admin form-table rows.
  */
-function sc_render_admin_player_custom_fields_rows($custom_fields, $section, $values = []) {
+function sc_render_admin_player_custom_fields_rows($custom_fields, $section, $values = [], $enforce_required = true) {
     if (empty($custom_fields) || !is_array($custom_fields)) {
         return;
     }
@@ -827,7 +834,7 @@ function sc_render_admin_player_custom_fields_rows($custom_fields, $section, $va
         }
         $type = $field['type'] ?? 'text';
         $label = $field['label'] ?? $key;
-        $is_required = !empty($field['required']);
+        $is_required = $enforce_required && !empty($field['required']);
         $required_attr = $is_required ? ' required' : '';
         $required_mark = $is_required ? ' <span style="color:#d63638;">*</span>' : '';
         $current_val = $values[$key] ?? ($type === 'multiselect' ? [] : '');

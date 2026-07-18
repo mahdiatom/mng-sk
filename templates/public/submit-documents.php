@@ -199,7 +199,8 @@ if (!function_exists('sc_render_player_custom_fields_block')) {
                 $image_url = is_string($current_val) ? $current_val : '';
                 echo '<div class="sc-upload-field sc-player-upload-field">';
                 echo '<input type="hidden" name="player_custom_fields_images[' . esc_attr($key) . ']" id="sc_custom_' . esc_attr($key) . '_url" value="' . esc_attr($image_url) . '">';
-                echo '<input type="file" name="player_custom_fields_files[' . esc_attr($key) . ']" id="sc_custom_' . esc_attr($key) . '" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"' . $required_attr . '>';
+                $file_required_attr = ($is_required && $image_url === '') ? ' required' : '';
+                echo '<input type="file" name="player_custom_fields_files[' . esc_attr($key) . ']" id="sc_custom_' . esc_attr($key) . '" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"' . $file_required_attr . '>';
                 if ($image_url !== '') {
                     echo '<div class="sc-image-preview img_photo_prev"><img src="' . esc_url($image_url) . '" alt="' . esc_attr($label) . '">';
                     echo '<button type="button" class="sc-btn-remove-image button" data-target="#sc_custom_' . esc_attr($key) . '_url">حذف عکس</button></div>';
@@ -508,9 +509,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             input.disabled = true;
             input.required = false;
+            if (input.type === 'file') {
+                input.removeAttribute('data-sc-required');
+            }
             return;
         }
         input.disabled = false;
+        // برای عکس‌ها required روی file نگذار — بعد از آپلود AJAX فایل خالی می‌شود و URL در hidden است
+        if (input.type === 'file' && (fieldKey === 'personal_photo' || fieldKey === 'id_card_photo' || fieldKey === 'sport_insurance_photo')) {
+            input.required = false;
+            if (rule.required == 1) {
+                input.setAttribute('data-sc-required', '1');
+            } else {
+                input.removeAttribute('data-sc-required');
+            }
+            return;
+        }
         input.required = !!(rule.required == 1);
     });
 });

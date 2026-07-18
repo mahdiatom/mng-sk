@@ -182,86 +182,20 @@ function sc_get_coach_attendance_count_for_salary($coach_id, $course_id, $attend
     global $wpdb;
     $attendances_table = $wpdb->prefix . 'sc_attendances';
     $member_courses_table = $wpdb->prefix . 'sc_member_courses';
-    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
-    $coaches_table = $wpdb->prefix . 'sc_coaches';
-    $groups_table = $wpdb->prefix . 'sc_course_groups';
-    $has_groups_table = ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $groups_table)) === $groups_table);
 
     $status_where = $present_only ? " AND a.status = 'present' " : '';
     $group_where = '';
     $prepare_args = [$course_id, $attendance_date];
-    $scope_sql = '';
 
-    if ($chapter_name !== '') {
-        $single_coach_for_chapter = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT CASE WHEN COUNT(DISTINCT cc.coach_id) = 1 THEN MIN(cc.coach_id) ELSE 0 END
-             FROM $course_coaches_table cc
-             INNER JOIN $coaches_table c ON c.id = cc.coach_id
-             WHERE cc.course_id = %d AND cc.chapter_name = %s AND c.is_active = 1",
-            $course_id,
-            $chapter_name
-        ));
-        $is_sole_coach = ($single_coach_for_chapter > 0 && $single_coach_for_chapter === $coach_id);
-
-        if ($is_sole_coach) {
-            $direct_match = '(
-                (mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0)
-                AND (mc.chapter = %s OR mc.chapter IS NULL OR mc.chapter = \'\')
-            )';
-        } else {
-            $direct_match = '(mc.coach_id = %d AND mc.chapter = %s)';
-        }
-        $prepare_args[] = $coach_id;
-        $prepare_args[] = $chapter_name;
-
-        $via_group_match = '';
-        if ($has_groups_table) {
-            // ثبت‌نام‌های قدیمی: فقط group_name پر است؛ chapter/coach از تعریف گروه خوانده می‌شود
-            if ($is_sole_coach) {
-                $via_group_match = " OR (
-                    mc.group_name IS NOT NULL AND mc.group_name != ''
-                    AND EXISTS (
-                        SELECT 1 FROM $groups_table g
-                        WHERE g.course_id = %d
-                          AND g.group_name = mc.group_name
-                          AND (g.chapter_name = %s OR g.chapter_name = '')
-                          AND (g.coach_id = %d OR g.coach_id = 0)
-                    )
-                )";
-            } else {
-                $via_group_match = " OR (
-                    mc.group_name IS NOT NULL AND mc.group_name != ''
-                    AND EXISTS (
-                        SELECT 1 FROM $groups_table g
-                        WHERE g.course_id = %d
-                          AND g.group_name = mc.group_name
-                          AND g.chapter_name = %s
-                          AND g.coach_id = %d
-                    )
-                )";
-            }
-            $prepare_args[] = $course_id;
-            $prepare_args[] = $chapter_name;
-            $prepare_args[] = $coach_id;
-        }
-
-        $scope_sql = " AND ( $direct_match $via_group_match ) ";
-    } else {
-        $single_active_coach_id = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT CASE WHEN COUNT(DISTINCT cc.coach_id) = 1 THEN MIN(cc.coach_id) ELSE 0 END
-             FROM $course_coaches_table cc
-             INNER JOIN $coaches_table c ON c.id = cc.coach_id
-             WHERE cc.course_id = %d AND c.is_active = 1 AND cc.chapter_name != ''",
-            $course_id
-        ));
-
-        if ($single_active_coach_id > 0 && $single_active_coach_id === $coach_id) {
-            $scope_sql = ' AND (mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0) ';
-        } else {
-            $scope_sql = ' AND mc.coach_id = %d ';
-        }
-        $prepare_args[] = $coach_id;
-    }
+    $member_scope = function_exists('sc_attendance_member_scope_sql')
+        ? sc_attendance_member_scope_sql($course_id, $coach_id, $chapter_name)
+        : [
+            'coach_scope_where' => 'mc.coach_id = %d',
+            'chapter_where' => '',
+            'prepare_args' => [$coach_id],
+        ];
+    $scope_sql = ' AND ' . $member_scope['coach_scope_where'] . ' ' . $member_scope['chapter_where'];
+    $prepare_args = array_merge($prepare_args, $member_scope['prepare_args']);
 
     if ($filter_by_group) {
         if ($group_name === '') {
@@ -362,6 +296,31 @@ function sc_refresh_coach_percentage_salary_for_course_date($course_id, $attenda
     }
 
     global $wpdb;
+    // اگر مربی فقط یک شعبه در دوره دارد و شعبه ثبت‌نام خالی مانده، از انتساب دوره پر کن
+    // تا حضور ثبت‌شده توسط مدیر هم در محاسبه دستمزد دیده شود.
+    $member_courses_table = $wpdb->prefix . 'sc_member_courses';
+    $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+    $coaches_table = $wpdb->prefix . 'sc_coaches';
+    $wpdb->query($wpdb->prepare(
+        "UPDATE $member_courses_table mc
+         INNER JOIN (
+            SELECT cc.coach_id, MIN(TRIM(cc.chapter_name)) AS chapter_name
+            FROM $course_coaches_table cc
+            INNER JOIN $coaches_table c ON c.id = cc.coach_id AND c.is_active = 1
+            WHERE cc.course_id = %d AND TRIM(cc.chapter_name) != ''
+            GROUP BY cc.coach_id
+            HAVING COUNT(DISTINCT TRIM(cc.chapter_name)) = 1
+         ) sole ON sole.coach_id = mc.coach_id
+         SET mc.chapter = sole.chapter_name,
+             mc.updated_at = %s
+         WHERE mc.course_id = %d
+           AND mc.coach_id > 0
+           AND (mc.chapter IS NULL OR TRIM(mc.chapter) = '')",
+        $course_id,
+        current_time('mysql'),
+        $course_id
+    ));
+
     $courses_table = $wpdb->prefix . 'sc_courses';
     $course_row = $wpdb->get_row($wpdb->prepare(
         "SELECT price_per_session, private_variable_coach_pricing FROM $courses_table WHERE id = %d LIMIT 1",

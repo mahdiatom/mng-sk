@@ -849,6 +849,17 @@ if (isset($_POST['sc_save_settings']) && check_admin_referer('sc_settings_nonce'
     sc_update_setting('registration_limit_enabled', $registration_limit_enabled ? 1 : 0, 'pro_features');
     sc_update_setting('registration_limit_max_users', $registration_limit_max_users, 'pro_features');
 
+    $data_cleanup_super_admin_phone = isset($_POST['data_cleanup_super_admin_phone'])
+        ? sanitize_text_field(wp_unslash($_POST['data_cleanup_super_admin_phone']))
+        : '';
+    if (function_exists('fa_to_en_digits')) {
+        $data_cleanup_super_admin_phone = fa_to_en_digits($data_cleanup_super_admin_phone);
+    }
+    if ($data_cleanup_super_admin_phone === '' && defined('SC_DATA_CLEANUP_DEFAULT_SUPER_ADMIN_PHONE')) {
+        $data_cleanup_super_admin_phone = SC_DATA_CLEANUP_DEFAULT_SUPER_ADMIN_PHONE;
+    }
+    sc_update_setting('data_cleanup_super_admin_phone', $data_cleanup_super_admin_phone, 'pro_features');
+
     if (function_exists('sc_log_activity')) {
         sc_log_activity('updated', 'settings', 0, 'تنظیمات تب امکانات پرو ذخیره شد', null, ['tab' => 'pro_features']);
     }
@@ -1329,6 +1340,7 @@ $pro_feature_faq = (int) sc_get_setting('pro_feature_faq', 1);
 $pro_feature_nav_menus = (int) sc_get_setting('pro_feature_nav_menus', 1);
 $pro_feature_permalinks = (int) sc_get_setting('pro_feature_permalinks', 1);
 $pro_feature_surveys = (int) sc_get_setting('pro_feature_surveys', 0);
+$data_cleanup_super_admin_phone = (string) sc_get_setting('data_cleanup_super_admin_phone', '09944338956');
 $registration_limit_enabled = (int) sc_get_setting('registration_limit_enabled', 0);
 $registration_limit_max_users = (int) sc_get_setting('registration_limit_max_users', 0);
 $registration_limit_status = function_exists('sc_registration_limit_get_status')
@@ -5585,6 +5597,27 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                     ظرفیت کاربران تکمیل شده است. برای ثبت کاربران جدید، سقف را افزایش دهید یا با پشتیبانی برای ارتقای سامانه هماهنگ کنید.
                 </div>
             <?php endif; ?>
+        </div>
+
+        <div style="margin-top:16px;padding:16px 18px;border:1px solid #fecaca;border-radius:10px;background:#fff7f7;">
+            <h3 style="margin-top:0;">تأیید پاکسازی اطلاعات</h3>
+            <p class="description">
+                کد تأیید نهایی عملیات پاکسازی اطلاعات به این شماره مدیر کل ارسال می‌شود.
+            </p>
+            <label for="data_cleanup_super_admin_phone" style="display:block;font-weight:600;margin:12px 0 6px;">
+                شماره همراه مدیر کل
+            </label>
+            <input
+                type="text"
+                class="regular-text"
+                id="data_cleanup_super_admin_phone"
+                name="data_cleanup_super_admin_phone"
+                value="<?php echo esc_attr($data_cleanup_super_admin_phone); ?>"
+                dir="ltr"
+                inputmode="tel"
+                placeholder="09944338956"
+            >
+            <p class="description">شماره پیش‌فرض: <code>09944338956</code></p>
         </div>
 
         <p class="submit">

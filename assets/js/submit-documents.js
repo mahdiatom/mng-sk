@@ -14,6 +14,8 @@
     var lockedMessage = scDocuments.lockedMessage || 'امکان ویرایش اطلاعات وجود ندارد.';
     var birthDateInvalidMessage = scDocuments.birthDateInvalidMessage || 'لطفاً تاریخ تولد خود را وارد کنید.';
     var todayShamsi = scDocuments.todayShamsi || '';
+    var photoFields = ['personal_photo', 'id_card_photo', 'sport_insurance_photo'];
+    var uploadingCount = 0;
 
     function scShowPluginAlert(message, options) {
         options = options || {};
@@ -71,6 +73,51 @@
         return age !== null && age >= 1;
     }
 
+    function scPhotoHasValue(fieldName) {
+        var url = ($form.find('input[name="' + fieldName + '_url"]').val() || '').trim();
+        if (url) {
+            return true;
+        }
+        var $file = $form.find('input[type="file"][name="' + fieldName + '"]');
+        return !!( $file.length && $file[0].files && $file[0].files.length );
+    }
+
+    function scValidateRequiredPhotos() {
+        var missing = [];
+        photoFields.forEach(function(fieldName) {
+            var $input = $form.find('input[type="file"][name="' + fieldName + '"]');
+            if (!$input.length || $input.prop('disabled')) {
+                return;
+            }
+            var $card = $input.closest('.sc-player-field-card');
+            if ($card.length && $card.css('display') === 'none') {
+                return;
+            }
+            if (!$input.attr('data-sc-required')) {
+                return;
+            }
+            if (!scPhotoHasValue(fieldName)) {
+                var label = ($card.find('.sc-player-field-card__label').first().text() || fieldName).replace(/\*/g, '').trim();
+                missing.push(label || fieldName);
+            }
+        });
+        return missing;
+    }
+
+    function scShowLocalPreview($wrap, file) {
+        var $preview = $wrap.find('.sc-image-preview');
+        if (!$preview.length) {
+            $wrap.append('<div class="sc-image-preview img_photo_prev"><img src="" alt=""><button type="button" class="sc-btn-remove-image button" data-target="#">حذف عکس</button></div>');
+            $preview = $wrap.find('.sc-image-preview');
+        }
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            $preview.find('img').attr('src', e.target.result);
+            $preview.show();
+        };
+        reader.readAsDataURL(file);
+    }
+
     if (isLocked) {
         $form.find('input, select, textarea, button').not('[type="hidden"]').prop('disabled', true);
         $form.find('.sc-btn-remove-image').hide();
@@ -91,7 +138,7 @@
         var $progress = $wrap.find('.sc-upload-progress');
         var $preview = $wrap.find('.sc-image-preview');
         var $hidden = $form.find('input[name="' + fieldName + '_url"]');
-        var label = $wrap.find('label').text().trim();
+        var previousUrl = ($hidden.val() || '').trim();
 
         if (!input.files || !input.files[0]) {
             return;
@@ -99,10 +146,20 @@
 
         var file = input.files[0];
         if (file.size > 1 * 1024 * 1024) {
-            alert('حجم فایل بیش از ۱ مگابایت است.');
+            scShowPluginAlert('حجم فایل بیش از ۱ مگابایت است.', { type: 'warning', title: 'خطا در آپلود' });
             input.value = '';
             return;
         }
+
+        var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (file.type && allowedTypes.indexOf(file.type) === -1) {
+            scShowPluginAlert('فقط تصاویر (JPG, PNG, GIF, WEBP) مجاز است.', { type: 'warning', title: 'خطا در آپلود' });
+            input.value = '';
+            return;
+        }
+
+        scShowLocalPreview($wrap, file);
+        $preview = $wrap.find('.sc-image-preview');
 
         var formData = new FormData();
         formData.append('action', 'sc_upload_player_photo');
@@ -110,6 +167,7 @@
         formData.append('field_name', fieldName);
         formData.append(fieldName, file);
 
+        uploadingCount++;
         $progress.removeClass('sc-upload-done sc-upload-error').addClass('sc-uploading').find('.sc-upload-text').text('در حال آپلود...');
         $input.prop('disabled', true);
 
@@ -136,20 +194,36 @@
                 if ($preview.length) {
                     $preview.find('img').attr('src', res.data.url);
                     $preview.show();
-                } else {
-                    $wrap.append('<div class="sc-image-preview"><img src="' + res.data.url + '" alt="" style="max-width:200px;border-radius:8px;margin-top:8px;"></div>');
                 }
                 $progress.removeClass('sc-uploading').addClass('sc-upload-done').find('.sc-upload-text').text('آپلود شد');
             } else {
-                $progress.removeClass('sc-uploading').addClass('sc-upload-error').find('.sc-upload-text').text(res.data && res.data.message ? res.data.message : 'خطا در آپلود');
-                $hidden.val('');
+                var failMsg = (res.data && res.data.message) ? res.data.message : 'خطا در آپلود تصویر.';
+                $progress.removeClass('sc-uploading').addClass('sc-upload-error').find('.sc-upload-text').text(failMsg);
+                // در صورت شکست، URL قبلی را حفظ کن تا عکس موجود از بین نرود
+                $hidden.val(previousUrl);
+                if (previousUrl) {
+                    $preview.find('img').attr('src', previousUrl);
+                    $preview.show();
+                } else {
+                    $preview.hide();
+                }
+                scShowPluginAlert(failMsg, { type: 'warning', title: 'خطا در آپلود' });
             }
         })
-        .fail(function(xhr, status, err) {
-            $progress.removeClass('sc-uploading').addClass('sc-upload-error').find('.sc-upload-text').text('خطا در ارتباط با سرور');
-            $hidden.val('');
+        .fail(function() {
+            var failMsg = 'خطا در ارتباط با سرور هنگام آپلود تصویر.';
+            $progress.removeClass('sc-uploading').addClass('sc-upload-error').find('.sc-upload-text').text(failMsg);
+            $hidden.val(previousUrl);
+            if (previousUrl) {
+                $preview.find('img').attr('src', previousUrl);
+                $preview.show();
+            } else {
+                $preview.hide();
+            }
+            scShowPluginAlert(failMsg, { type: 'warning', title: 'خطا در آپلود' });
         })
         .always(function() {
+            uploadingCount = Math.max(0, uploadingCount - 1);
             $input.prop('disabled', false).val('');
         });
     });
@@ -158,10 +232,27 @@
     $form.on('submit', function(e) {
         e.preventDefault();
 
+        if (uploadingCount > 0) {
+            scShowPluginAlert('لطفاً تا پایان آپلود تصویر صبر کنید.', {
+                type: 'warning',
+                title: 'در حال آپلود'
+            });
+            return false;
+        }
+
         if (!scIsBirthDateAgeValid()) {
             scShowPluginAlert(birthDateInvalidMessage, {
                 type: 'warning',
                 title: 'تاریخ تولد نامعتبر'
+            });
+            return false;
+        }
+
+        var missingPhotos = scValidateRequiredPhotos();
+        if (missingPhotos.length) {
+            scShowPluginAlert('لطفاً تصویرهای اجباری را بارگذاری کنید: ' + missingPhotos.join('، '), {
+                type: 'warning',
+                title: 'تصویر الزامی'
             });
             return false;
         }
@@ -177,9 +268,9 @@
         formData.delete('id_card_photo');
         formData.delete('sport_insurance_photo');
 
-        formData.append('personal_photo_url', $form.find('input[name="personal_photo_url"]').val() || '');
-        formData.append('id_card_photo_url', $form.find('input[name="id_card_photo_url"]').val() || '');
-        formData.append('sport_insurance_photo_url', $form.find('input[name="sport_insurance_photo_url"]').val() || '');
+        formData.set('personal_photo_url', $form.find('input[name="personal_photo_url"]').val() || '');
+        formData.set('id_card_photo_url', $form.find('input[name="id_card_photo_url"]').val() || '');
+        formData.set('sport_insurance_photo_url', $form.find('input[name="sport_insurance_photo_url"]').val() || '');
 
         $.ajax({
             url: ajaxurl,

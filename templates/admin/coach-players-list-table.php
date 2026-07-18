@@ -198,14 +198,41 @@ public function column_full_name($item) {
         if ($this->coach_id <= 0) {
             return [];
         }
-        return $wpdb->get_results($wpdb->prepare(
-            "SELECT c.id, c.title
+
+        $courses = $wpdb->get_results($wpdb->prepare(
+            "SELECT DISTINCT c.id, c.title
              FROM $courses_table c
              INNER JOIN $course_coaches_table cc ON cc.course_id = c.id AND cc.coach_id = %d
              WHERE c.deleted_at IS NULL
              ORDER BY c.title",
             $this->coach_id
         ));
+
+        if (function_exists('sc_course_assistant_coaches_table_ready') && sc_course_assistant_coaches_table_ready()) {
+            $assistant_table = sc_course_assistant_coaches_table();
+            $assistant_courses = $wpdb->get_results($wpdb->prepare(
+                "SELECT DISTINCT c.id, c.title
+                 FROM $courses_table c
+                 INNER JOIN `$assistant_table` a ON a.course_id = c.id AND a.assistant_coach_id = %d
+                 WHERE c.deleted_at IS NULL
+                 ORDER BY c.title",
+                $this->coach_id
+            ));
+            if (!empty($assistant_courses)) {
+                $seen = [];
+                foreach ((array) $courses as $row) {
+                    $seen[(int) $row->id] = true;
+                }
+                foreach ($assistant_courses as $row) {
+                    if (empty($seen[(int) $row->id])) {
+                        $courses[] = $row;
+                        $seen[(int) $row->id] = true;
+                    }
+                }
+            }
+        }
+
+        return is_array($courses) ? $courses : [];
     }
     public function prepare_items() {
         global $wpdb;
@@ -217,6 +244,15 @@ public function column_full_name($item) {
         $members_table = $wpdb->prefix . 'sc_members';
         $member_courses_table = $wpdb->prefix . 'sc_member_courses';
         $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
+        $assistant_join_sql = '';
+        $assistant_ready = function_exists('sc_course_assistant_coaches_table_ready') && sc_course_assistant_coaches_table_ready();
+        if ($assistant_ready) {
+            $assistant_table = sc_course_assistant_coaches_table();
+            $assistant_join_sql = " OR EXISTS (
+                    SELECT 1 FROM `$assistant_table` aca
+                    WHERE aca.course_id = mc.course_id AND aca.assistant_coach_id = %d
+                )";
+        }
 
         $per_page = $this->get_items_per_page('coach_players_per_page', 20);
         $page = $this->get_pagenum();
@@ -230,7 +266,11 @@ public function column_full_name($item) {
         $order_clause = 'ORDER BY m.' . preg_replace('/[^a-z_]/', '', $orderby) . ' ' . ($order === 'ASC' ? 'ASC' : 'DESC');
 
         $where = '1=1';
-        $prepare_args = [$this->coach_id];
+        // coach_id placeholders: mc.coach_id + course_coaches (+ assistant if ready)
+        $prepare_args = [$this->coach_id, $this->coach_id];
+        if ($assistant_ready) {
+            $prepare_args[] = $this->coach_id;
+        }
         if (!empty($_GET['s'])) {
             $search = '%' . $wpdb->esc_like(sanitize_text_field($_GET['s'])) . '%';
             $where .= " AND (m.first_name LIKE %s OR m.last_name LIKE %s OR m.national_id LIKE %s OR m.player_phone LIKE %s)";
@@ -327,8 +367,15 @@ public function column_full_name($item) {
         $sql = "SELECT SQL_CALC_FOUND_ROWS DISTINCT m.id, m.first_name, m.last_name, m.national_id, m.player_phone, m.personal_photo, m.is_active , m.birth_date_shamsi , m.insurance_expiry_date_shamsi , m.member_type , m.profile_completed
                 FROM {$members_table} m
                 INNER JOIN {$member_courses_table} mc ON mc.member_id = m.id AND mc.status = 'active'
-                INNER JOIN {$course_coaches_table} cc ON cc.course_id = mc.course_id AND cc.coach_id = %d
-                WHERE {$where}
+                WHERE (
+                    mc.coach_id = %d
+                    OR EXISTS (
+                        SELECT 1 FROM {$course_coaches_table} cc
+                        WHERE cc.course_id = mc.course_id AND cc.coach_id = %d
+                    )
+                    {$assistant_join_sql}
+                )
+                AND {$where}
                 {$order_clause}
                 LIMIT %d OFFSET %d";
 

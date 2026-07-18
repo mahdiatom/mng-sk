@@ -1300,6 +1300,19 @@ function sc_register_admin_menu() {
             'admin.php?page=sc_setting&tab=classes'
         );
 
+    /* ================= پاکسازی اطلاعات کاربری — فقط مدیر کل و مدیر باشگاه ================= */
+    if (function_exists('sc_user_can_data_cleanup') && sc_user_can_data_cleanup()) {
+        add_menu_page(
+            'پاکسازی اطلاعات کاربری',
+            'پاکسازی اطلاعات',
+            'manage_options',
+            'sc-data-cleanup',
+            'sc_admin_data_cleanup_page',
+            'dashicons-trash',
+            58
+        );
+    }
+
     /* ================= Coach Management (for admin) - فقط وقتی امکانات پرو کیف پول مربیان و دستمزد فعال است ================= */
     if (function_exists('sc_is_pro_feature_coaches_wallet_salary_enabled') && sc_is_pro_feature_coaches_wallet_salary_enabled()) {
         add_menu_page(
@@ -1931,6 +1944,12 @@ function sc_handle_excel_export() {
             break;
         case 'finance_ledger':
             sc_export_finance_ledger_to_excel();
+            break;
+        case 'daily_metrics':
+            if (function_exists('sc_is_pro_feature_daily_metrics_enabled') && !sc_is_pro_feature_daily_metrics_enabled()) {
+                wp_die('امکان ثبت اطلاعات در تنظیمات امکانات پرو غیرفعال است.');
+            }
+            sc_export_daily_metrics_to_excel();
             break;
         default:
             wp_die('نوع export معتبر نیست.');
@@ -2855,14 +2874,51 @@ function sc_upload_coach_profile_image($file, $coach_id, $field_name) {
         return new WP_Error('sc_coach_upload_failed', 'خطا در دریافت فایل.');
     }
 
-    if ((int) $file['size'] > 1024 * 1024) {
-        return new WP_Error('sc_coach_upload_too_large', 'حجم فایل بیش از حد مجاز است.');
+    $is_certificate = ($field_name === 'coaching_certificate_photo');
+    $max_size = $is_certificate ? (5 * 1024 * 1024) : (1024 * 1024);
+    if ((int) $file['size'] > $max_size) {
+        return new WP_Error(
+            'sc_coach_upload_too_large',
+            $is_certificate ? 'حجم فایل بیش از ۵ مگابایت است.' : 'حجم فایل بیش از ۱ مگابایت است.'
+        );
     }
 
-    $image_info = @getimagesize($file['tmp_name']);
-    $allowed_mime_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if ($image_info === false || empty($image_info['mime']) || !in_array($image_info['mime'], $allowed_mime_types, true)) {
-        return new WP_Error('sc_coach_upload_invalid_image', 'فایل انتخاب‌شده تصویر معتبر نیست.');
+    $image_mimes = [
+        'jpg|jpeg|jpe' => 'image/jpeg',
+        'png' => 'image/png',
+        'gif' => 'image/gif',
+        'webp' => 'image/webp',
+    ];
+    $certificate_mimes = array_merge($image_mimes, [
+        'pdf' => 'application/pdf',
+        'doc' => 'application/msword',
+        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ]);
+    $allowed_mimes = $is_certificate ? $certificate_mimes : $image_mimes;
+
+    $filetype = wp_check_filetype_and_ext($file['tmp_name'], $file['name'], $allowed_mimes);
+    $detected_type = !empty($filetype['type']) ? $filetype['type'] : '';
+    if ($detected_type === '' && !empty($file['type'])) {
+        $detected_type = $file['type'];
+    }
+
+    if ($is_certificate) {
+        $allowed_types = array_values($certificate_mimes);
+        if (!in_array($detected_type, $allowed_types, true)) {
+            return new WP_Error('sc_coach_upload_invalid_file', 'فرمت فایل مجاز نیست. فرمت‌های مجاز: JPG، PNG، GIF، WEBP، PDF، DOC، DOCX.');
+        }
+        if (strpos($detected_type, 'image/') === 0) {
+            $image_info = @getimagesize($file['tmp_name']);
+            if ($image_info === false) {
+                return new WP_Error('sc_coach_upload_invalid_image', 'فایل انتخاب‌شده تصویر معتبر نیست.');
+            }
+        }
+    } else {
+        $image_info = @getimagesize($file['tmp_name']);
+        $allowed_mime_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if ($image_info === false || empty($image_info['mime']) || !in_array($image_info['mime'], $allowed_mime_types, true)) {
+            return new WP_Error('sc_coach_upload_invalid_image', 'فایل انتخاب‌شده تصویر معتبر نیست.');
+        }
     }
 
     if (!function_exists('wp_handle_upload')) {
@@ -2871,12 +2927,7 @@ function sc_upload_coach_profile_image($file, $coach_id, $field_name) {
 
     $upload = wp_handle_upload($file, [
         'test_form' => false,
-        'mimes' => [
-            'jpg|jpeg|jpe' => 'image/jpeg',
-            'png' => 'image/png',
-            'gif' => 'image/gif',
-            'webp' => 'image/webp',
-        ],
+        'mimes' => $allowed_mimes,
         'unique_filename_callback' => static function ($directory, $filename, $extension) use ($coach_id, $field_name) {
             return sanitize_file_name('coach_' . $coach_id . '_' . $field_name . '_' . time() . $extension);
         },
@@ -3214,6 +3265,14 @@ function sc_admin_attendance_report_page() {
 function sc_admin_daily_metrics_fields_page() {
     sc_check_and_create_tables();
     include SC_TEMPLATES_ADMIN_DIR . 'daily-metrics-fields.php';
+}
+
+function sc_admin_reports_daily_metrics_page() {
+    if (function_exists('sc_is_pro_feature_daily_metrics_enabled') && !sc_is_pro_feature_daily_metrics_enabled()) {
+        wp_die('امکان ثبت اطلاعات در تنظیمات امکانات پرو غیرفعال است.');
+    }
+    sc_check_and_create_tables();
+    include SC_TEMPLATES_ADMIN_DIR . 'reports-daily-metrics.php';
 }
 
 function sc_admin_faq() {
@@ -4425,24 +4484,24 @@ function callback_add_member_sufix(){
            }
        }
        
-       // Validation - بررسی فیلدهای اجباری
+       // ویرایش ادمین: فقط کد ملی و شماره تماس بازیکن اجباری است (قوانین تنظیمات اطلاعات بازیکن اعمال نمی‌شود)
        $first_name = isset($_POST['first_name']) ? trim($_POST['first_name']) : '';
        $last_name = isset($_POST['last_name']) ? trim($_POST['last_name']) : '';
        $national_id = isset($_POST['national_id']) ? trim($_POST['national_id']) : '';
+       $player_phone = isset($_POST['player_phone']) ? trim($_POST['player_phone']) : '';
        $remaining_sessions = isset($_POST['remaining_sessions']) ? $_POST['remaining_sessions'] : '';
        $player_id_corse_sessions = isset($_POST['player_id']) ? $_POST['player_id'] : '';
 
-       if (function_exists('sc_player_info_validate_required_fields')) {
-           $required_errors = sc_player_info_validate_required_fields($_POST, $_FILES, $existing_for_validation);
-           if (!empty($required_errors)) {
-               set_transient('sc_member_save_errors_' . get_current_user_id(), $required_errors, 60);
-               wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=validation_error&player_id=' . $player_id));
-               exit;
-           }
+       $admin_required_errors = [];
+       if ($national_id === '') {
+           $admin_required_errors[] = 'فیلد «کد ملی» اجباری است.';
        }
-       
-       if (empty($first_name) || empty($last_name) || empty($national_id)) {
-           wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=add_error&player_id=' . $player_id));
+       if ($player_phone === '') {
+           $admin_required_errors[] = 'فیلد «شماره موبایل بازیکن» اجباری است.';
+       }
+       if (!empty($admin_required_errors)) {
+           set_transient('sc_member_save_errors_' . get_current_user_id(), $admin_required_errors, 60);
+           wp_redirect(admin_url('admin.php?page=sc-add-member&sc_status=validation_error&player_id=' . $player_id));
            exit;
        }
        

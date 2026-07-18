@@ -3,7 +3,7 @@
  * Plugin Name:       سامانه مدیریت باشگاه اتم کلاب
  * Plugin URI:        https://atomwp.ir
  * Description:       یک سیستم جامع برای مدیریت اعضا، دوره‌های ورزشی، پرداخت‌ها و حضور و غیاب باشگاه با قابلیت یکپارچگی کامل با ووکامرس.
- * Version:           1.5.23
+ * Version:           1.5.25
  * Author:            مهدی باباشاهی
  * Author URI:        https://atomwp.ir
  * License:           GPL2
@@ -136,6 +136,7 @@ require_once SC_INCLUDES_DIR . 'cleanup.php'; // حدف درخواست های خ
 require_once SC_INCLUDES_DIR . 'attendance_logs.php'; // ارتباط با api حضور غیاب برای لاگ دستگاه
 require_once SC_INCLUDES_DIR . 'attendance-auto.php'; // تطبیق لاگ دستگاه با حضور و غیاب (کرون)
 require_once SC_INCLUDES_DIR . 'attendance-qr-functions.php'; // QR حضور و غیاب
+require_once SC_INCLUDES_DIR . 'data-cleanup-functions.php'; // پاکسازی امن اطلاعات کاربری
 require_once SC_INCLUDES_DIR . 'qr-scan-snapshot-functions.php'; // عکس لحظه اسکن QR
 require_once SC_INCLUDES_DIR . 'staff-qr-functions.php'; // QR پرسنل (مربی، منشی، مدیران)
 require_once SC_INCLUDES_DIR . 'tarddod-functions.php'; // ثبت تردد — جلسات و اسکن QR
@@ -1800,6 +1801,15 @@ function sc_admin_enqueue_assets() {
 
     if ($current_page === 'sc-daily-metrics' || $current_page === 'sc-reports-daily-metrics') {
         wp_enqueue_style('sc-daily-metrics-css', SC_ASSETS_URL . 'css/daily-metrics.css', array('sc-admin-css'), time());
+    }
+
+    if ($current_page === 'sc-data-cleanup' && function_exists('sc_user_can_data_cleanup') && sc_user_can_data_cleanup()) {
+        wp_enqueue_style('sc-data-cleanup-css', SC_ASSETS_URL . 'css/data-cleanup-admin.css', array('sc-admin-css', 'sc-confirm-css'), time());
+        wp_enqueue_script('sc-data-cleanup-js', SC_ASSETS_URL . 'js/data-cleanup-admin.js', array('jquery', 'sc-confirm-js'), time(), true);
+        wp_localize_script('sc-data-cleanup-js', 'scDataCleanup', array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce'   => wp_create_nonce('sc_data_cleanup'),
+        ));
     }
 
     if ($current_page === 'sc-reports-coach-performance' || $current_page === 'sc-coaches' || $current_page === 'sc-coach-my-profile') {

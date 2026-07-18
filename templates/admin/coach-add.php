@@ -164,16 +164,24 @@ if (!$coach_settlement_type_valid) {
                 </td>
             </tr>
             <tr>
-                <th><label for="coaching_certificate_photo_txt">عکس مدرک مربیگری</label></th>
+                <th><label for="coaching_certificate_photo_txt">مدرک مربیگری</label></th>
                 <td>
-                    <input type="text" name="coaching_certificate_photo" id="coaching_certificate_photo_txt" class="regular-text" value="<?php echo esc_attr($coach_certificate_photo); ?>" placeholder="آدرس تصویر یا آپلود کنید">
-                    <button type="button" class="button-secondary sc-upload-btn" id="btn_coaching_certificate_photo">انتخاب تصویر</button>
+                    <input type="text" name="coaching_certificate_photo" id="coaching_certificate_photo_txt" class="regular-text" value="<?php echo esc_attr($coach_certificate_photo); ?>" placeholder="آدرس فایل یا آپلود کنید">
+                    <button type="button" class="button-secondary sc-upload-btn" id="btn_coaching_certificate_photo">انتخاب فایل</button>
                     <?php if ($coach_certificate_photo !== '') : ?>
+                        <?php
+                        $cert_ext = strtolower(pathinfo(parse_url($coach_certificate_photo, PHP_URL_PATH) ?: '', PATHINFO_EXTENSION));
+                        $cert_is_image = in_array($cert_ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true);
+                        ?>
                         <div class="sc-image-preview img_photo_prev" style="margin-top: 10px;">
-                            <img src="<?php echo esc_url($coach_certificate_photo); ?>" alt="عکس مدرک مربیگری" style="max-width: 160px; height: auto; border-radius: 10px;">
+                            <?php if ($cert_is_image) : ?>
+                                <img src="<?php echo esc_url($coach_certificate_photo); ?>" alt="مدرک مربیگری" style="max-width: 160px; height: auto; border-radius: 10px;">
+                            <?php else : ?>
+                                <a href="<?php echo esc_url($coach_certificate_photo); ?>" target="_blank" rel="noopener noreferrer">مشاهده فایل مدرک مربیگری</a>
+                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
-                    <p class="description">تصویر یا اسکن مدرک مربیگری مربی را در این بخش ذخیره کنید.</p>
+                    <p class="description">فرمت‌های مجاز: JPG، PNG، GIF، WEBP، PDF، DOC، DOCX</p>
                 </td>
             </tr>
             <tr>

@@ -117,7 +117,7 @@ if ($selected_member_id > 0) {
                     <h2>انتخاب بازیکن</h2>
                 </div>
                 <div class="sc-wallet-manage-panel-body">
-                    <div class="sc-filter-field">
+                    <div class="sc-filter-field_wallet">
                         <label class="sc-filter-label" for="member_id">بازیکن</label>
                         <div class="sc-searchable-dropdown sc-wallet-member-dropdown">
                             <input type="hidden" name="member_id" id="member_id" value="<?php echo esc_attr($selected_member_id); ?>">

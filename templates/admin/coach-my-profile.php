@@ -153,16 +153,24 @@ if ($view_initials === '') {
                         </td>
                     </tr>
                     <tr>
-                        <th scope="row"><label for="coaching_certificate_photo_file">عکس مدرک مربیگری</label></th>
+                        <th scope="row"><label for="coaching_certificate_photo_file">مدرک مربیگری</label></th>
                         <td>
                             <div class="sc-coach-direct-upload">
-                                <input type="file" name="coaching_certificate_photo_file" id="coaching_certificate_photo_file" class="sc-coach-direct-upload__input" accept="image/jpeg,image/png,image/gif,image/webp" data-preview-target="#certificate_photo_preview">
-                                <label for="coaching_certificate_photo_file" class="button-secondary sc-upload-btn">انتخاب تصویر</label>
+                                <input type="file" name="coaching_certificate_photo_file" id="coaching_certificate_photo_file" class="sc-coach-direct-upload__input" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,.pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" data-preview-target="#certificate_photo_preview" data-allow-docs="1">
+                                <label for="coaching_certificate_photo_file" class="button-secondary sc-upload-btn">انتخاب فایل</label>
                             </div>
-                            <p class="description">فرمت‌های JPG، PNG، GIF و WEBP تا حداکثر حجم ۱ مگابایت مجاز هستند.</p>
+                            <p class="description">فرمت‌های مجاز: JPG، PNG، GIF، WEBP، PDF، DOC، DOCX — حداکثر حجم ۵ مگابایت</p>
                             <div class="img_photo_prev" id="certificate_photo_preview"<?php echo $coach_certificate_photo === '' ? ' hidden' : ''; ?>>
                                 <?php if ($coach_certificate_photo !== '') : ?>
-                                    <img src="<?php echo esc_url($coach_certificate_photo); ?>" alt="عکس مدرک مربیگری">
+                                    <?php
+                                    $cert_ext = strtolower(pathinfo(parse_url($coach_certificate_photo, PHP_URL_PATH) ?: '', PATHINFO_EXTENSION));
+                                    $cert_is_image = in_array($cert_ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true);
+                                    ?>
+                                    <?php if ($cert_is_image) : ?>
+                                        <img src="<?php echo esc_url($coach_certificate_photo); ?>" alt="مدرک مربیگری">
+                                    <?php else : ?>
+                                        <a href="<?php echo esc_url($coach_certificate_photo); ?>" target="_blank" rel="noopener noreferrer">مشاهده فایل مدرک مربیگری</a>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </div>
                         </td>
@@ -230,8 +238,16 @@ if ($view_initials === '') {
                     var file = input.files && input.files[0];
                     if (!file) return;
                     var url = URL.createObjectURL(file);
+                    var allowDocs = input.getAttribute('data-allow-docs') === '1';
+                    var isImage = (file.type || '').indexOf('image/') === 0;
                     target.hidden = false;
-                    target.innerHTML = '<img src="' + url + '" alt="">';
+                    if (isImage) {
+                        target.innerHTML = '<img src="' + url + '" alt="">';
+                    } else if (allowDocs) {
+                        target.innerHTML = '<a href="' + url + '" target="_blank" rel="noopener noreferrer">پیش‌نمایش فایل انتخاب‌شده (' + (file.name || 'فایل') + ')</a>';
+                    } else {
+                        target.innerHTML = '<img src="' + url + '" alt="">';
+                    }
                 });
             });
         })();

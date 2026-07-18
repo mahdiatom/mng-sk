@@ -675,7 +675,7 @@ if ($selected_course_id && !empty($coach_attendance_access['allowed'])) {
                 $chapter_sql = " AND (TRIM(IFNULL(mc.chapter, '')) = '' OR TRIM(mc.chapter) = %s)";
                 $chapter_args[] = $selected_chapter_name;
             }
-            $members_sql = "SELECT m.id, m.first_name, m.last_name, m.national_id
+            $members_sql = "SELECT m.id, m.first_name, m.last_name, m.national_id, mc.remaining_sessions
                  FROM $member_courses_table mc
                  INNER JOIN $members_table m ON mc.member_id = m.id
                  WHERE mc.course_id = %d
@@ -709,7 +709,7 @@ if ($selected_course_id && !empty($coach_attendance_access['allowed'])) {
                 'chapter_where' => '',
                 'prepare_args' => [$scope_coach_id_list],
             ];
-        $members_sql = "SELECT m.id, m.first_name, m.last_name, m.national_id
+        $members_sql = "SELECT m.id, m.first_name, m.last_name, m.national_id, mc.remaining_sessions
              FROM $member_courses_table mc
              INNER JOIN $members_table m ON mc.member_id = m.id
              WHERE mc.course_id = %d
@@ -732,7 +732,7 @@ if ($selected_course_id && !empty($coach_attendance_access['allowed'])) {
             array_merge([$selected_course_id], $member_scope['prepare_args'], $group_filter['args'])
         ));
     } else {
-        $members_sql = "SELECT m.id, m.first_name, m.last_name, m.national_id
+        $members_sql = "SELECT m.id, m.first_name, m.last_name, m.national_id, mc.remaining_sessions
              FROM $member_courses_table mc
              INNER JOIN $members_table m ON mc.member_id = m.id
              WHERE mc.course_id = %d
@@ -877,6 +877,8 @@ if (!function_exists('sc_attendance_render_member_table_row')) {
         $field_name = ($list_type === 'recorded') ? 'attendance_recorded' : 'attendance_pending';
         $debt_user = debt_user($member->id)[0];
         $debt_blocked = function_exists('sc_attendance_member_debt_blocked') && sc_attendance_member_debt_blocked($member->id);
+        $show_remaining_sessions = function_exists('sc_get_invoice_mode') && sc_get_invoice_mode() === 'sessions_threshold';
+        $remaining_sessions = isset($member->remaining_sessions) ? (int) $member->remaining_sessions : 0;
         $row_class = 'sc-attendance-member-row';
         if ($debt_blocked) {
             $row_class .= ' sc-attendance-member-row--blocked';
@@ -885,24 +887,8 @@ if (!function_exists('sc_attendance_render_member_table_row')) {
         }
         ?>
         <tr class="<?php echo esc_attr($row_class); ?>" data-member-id="<?php echo esc_attr((string) $member->id); ?>" data-list-type="<?php echo esc_attr($list_type); ?>">
-            <td><?php echo (int) $row_num; ?></td>
-            <td class="sc-attendance-member-name"><?php echo esc_html($member->first_name . ' ' . $member->last_name); ?></td>
-            <td class="sc-attendance-member-debt">
-                <?php echo number_format($debt_user); ?> تومان
-                <?php if ($debt_blocked) : ?>
-                    <span class="sc-attendance-debt-alert">سقف موجودی — عدم ثبت رکورد</span>
-                <?php endif; ?>
-            </td>
-            <td class="sc-attendance-record-method-cell">
-                <?php if ($existing_status !== '') : ?>
-                    <span class="sc-attendance-record-method sc-attendance-record-method--<?php echo esc_attr($existing_method ?: 'manual'); ?>">
-                        <?php echo esc_html(function_exists('sc_attendance_record_method_label') ? sc_attendance_record_method_label($existing_method) : $existing_method); ?>
-                    </span>
-                <?php else : ?>
-                    <span class="sc-attendance-record-method sc-attendance-record-method--empty">—</span>
-                <?php endif; ?>
-            </td>
-            <td class="status_attendace_td sc-attendance-status-cell">
+            <td class="sc-att-col-row"><?php echo (int) $row_num; ?></td>
+            <td class="status_attendace_td sc-attendance-status-cell sc-att-col-status">
                 <?php if ($list_type === 'pending' && $existing_status === '') : ?>
                 <button type="button"
                         class="button button-small sc-attendance-clear-btn"
@@ -936,6 +922,27 @@ if (!function_exists('sc_attendance_render_member_table_row')) {
                     <?php endif; ?>
                     <span>غایب</span>
                 </label>
+            </td>
+            <td class="sc-attendance-member-name sc-att-col-name">
+                <span class="sc-attendance-member-name__text"><?php echo esc_html($member->first_name . ' ' . $member->last_name); ?></span>
+                <?php if ($show_remaining_sessions) : ?>
+                    <span class="sc-attendance-remaining-sessions"><?php echo esc_html($remaining_sessions . ' جلسه'); ?></span>
+                <?php endif; ?>
+            </td>
+            <td class="sc-attendance-member-debt sc-att-col-debt">
+                <?php echo number_format($debt_user); ?> تومان
+                <?php if ($debt_blocked) : ?>
+                    <span class="sc-attendance-debt-alert">سقف موجودی — عدم ثبت رکورد</span>
+                <?php endif; ?>
+            </td>
+            <td class="sc-attendance-record-method-cell sc-att-col-method">
+                <?php if ($existing_status !== '') : ?>
+                    <span class="sc-attendance-record-method sc-attendance-record-method--<?php echo esc_attr($existing_method ?: 'manual'); ?>">
+                        <?php echo esc_html(function_exists('sc_attendance_record_method_label') ? sc_attendance_record_method_label($existing_method) : $existing_method); ?>
+                    </span>
+                <?php else : ?>
+                    <span class="sc-attendance-record-method sc-attendance-record-method--empty">—</span>
+                <?php endif; ?>
             </td>
         </tr>
         <?php
@@ -1138,30 +1145,38 @@ if (!function_exists('sc_attendance_render_member_table_row')) {
                 <div id="sc-attendance-mode-list" class="sc-attendance-mode-panel">
                 <?php endif; ?>
 
-                <?php $max_debt_for_attendance = floatval(sc_get_setting('max_debt_for_attendance', '0')); ?>
+                <?php
+                $max_debt_for_attendance = floatval(sc_get_setting('max_debt_for_attendance', '0'));
+                $sc_attendance_sessions_mode = function_exists('sc_get_invoice_mode') && sc_get_invoice_mode() === 'sessions_threshold';
+                ?>
 
                 <div class="sc-attendance-list-section sc-attendance-list-section--pending">
                     <div class="sc-attendance-list-section__head">
                         <h3 class="sc-attendance-list-section__title">در انتظار ثبت</h3>
                         <span class="sc-attendance-list-section__count" id="sc-attendance-pending-count"><?php echo count($pending_members); ?> نفر</span>
                     </div>
-                    <p class="sc-attendance-list-section__desc">بازیکنانی که هنوز وضعیت حاضر یا غایب برایشان ثبت نشده است.</p>
+                    <p class="sc-attendance-list-section__desc">
+                        بازیکنانی که هنوز وضعیت حاضر یا غایب برایشان ثبت نشده است.
+                        <?php if ($sc_attendance_sessions_mode) : ?>
+                            تعداد جلسات باقی‌مانده بدون احتساب حضور و غیاب امروز نمایش داده می‌شود.
+                        <?php endif; ?>
+                    </p>
                     <div class="back_attendance_list sc-attendance-members-wrap">
                         <table class="wp-list-table widefat fixed striped sc-attendance-members-table sc-attendance-members-table--pending"<?php echo empty($pending_members) ? ' style="display:none"' : ''; ?> id="sc-attendance-pending-table">
                             <colgroup>
                                 <col class="sc-att-col-row">
+                                <col class="sc-att-col-status">
                                 <col class="sc-att-col-name">
                                 <col class="sc-att-col-debt">
                                 <col class="sc-att-col-method">
-                                <col class="sc-att-col-status">
                             </colgroup>
                             <thead>
                                 <tr>
                                     <th class="column-row sc-att-col-row">ردیف</th>
+                                    <th class="sc-att-col-status">وضعیت</th>
                                     <th class="sc-att-col-name">نام و نام خانوادگی</th>
                                     <th class="sc-att-col-debt">مبلغ بدهی</th>
                                     <th class="sc-att-col-method">روش ثبت</th>
-                                    <th class="sc-att-col-status">وضعیت</th>
                                 </tr>
                             </thead>
                             <tbody id="sc-attendance-pending-tbody">
@@ -1184,23 +1199,28 @@ if (!function_exists('sc_attendance_render_member_table_row')) {
                         <h3 class="sc-attendance-list-section__title">ثبت‌شده — بروزرسانی</h3>
                         <span class="sc-attendance-list-section__count" id="sc-attendance-recorded-count"><?php echo count($recorded_members); ?> نفر</span>
                     </div>
-                    <p class="sc-attendance-list-section__desc">بازیکنانی که وضعیت حاضر یا غایب دارند؛ از جمله موارد ثبت‌شده با QR.</p>
+                    <p class="sc-attendance-list-section__desc">
+                        بازیکنانی که وضعیت حاضر یا غایب دارند؛ از جمله موارد ثبت‌شده با QR.
+                        <?php if ($sc_attendance_sessions_mode) : ?>
+                            تعداد جلسات باقی‌مانده بدون احتساب حضور و غیاب امروز نمایش داده می‌شود.
+                        <?php endif; ?>
+                    </p>
                     <div class="back_attendance_list sc-attendance-members-wrap">
                         <table class="wp-list-table widefat fixed striped sc-attendance-members-table sc-attendance-members-table--recorded"<?php echo empty($recorded_members) ? ' style="display:none"' : ''; ?> id="sc-attendance-recorded-table">
                             <colgroup>
                                 <col class="sc-att-col-row">
+                                <col class="sc-att-col-status">
                                 <col class="sc-att-col-name">
                                 <col class="sc-att-col-debt">
                                 <col class="sc-att-col-method">
-                                <col class="sc-att-col-status">
                             </colgroup>
                             <thead>
                                 <tr>
                                     <th class="column-row sc-att-col-row">ردیف</th>
+                                    <th class="sc-att-col-status">وضعیت</th>
                                     <th class="sc-att-col-name">نام و نام خانوادگی</th>
                                     <th class="sc-att-col-debt">مبلغ بدهی</th>
                                     <th class="sc-att-col-method">روش ثبت</th>
-                                    <th class="sc-att-col-status">وضعیت</th>
                                 </tr>
                             </thead>
                             <tbody id="sc-attendance-recorded-tbody">

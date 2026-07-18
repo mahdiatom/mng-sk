@@ -1,9 +1,11 @@
 
 jQuery(document).ready(function($) {
-    // پیش‌نمایش تصاویر قبل از آپلود
+    // پیش‌نمایش تصاویر قبل از آپلود (فرم اطلاعات بازیکن توسط submit-documents.js مدیریت می‌شود)
     $('input[type="file"]').on('change', function(e) {
         var input = this;
-        var fieldName = $(this).attr('name');
+        if ($(input).closest('#sc-documents-form').length) {
+            return;
+        }
         var previewContainer = $(this).siblings('.sc-image-preview');
         
         if (input.files && input.files[0]) {
@@ -11,7 +13,17 @@ jQuery(document).ready(function($) {
             
             // بررسی اندازه فایل (1MB)
             if (input.files[0].size > 1 * 1024 * 1024) {
-                alert('حجم فایل بیش از 1 مگابایت است.');
+                if (typeof window.scConfirm === 'function') {
+                    window.scConfirm({
+                        type: 'warning',
+                        title: 'خطا در آپلود',
+                        message: 'حجم فایل بیش از 1 مگابایت است.',
+                        confirmText: 'باشه',
+                        hideCancel: true
+                    });
+                } else {
+                    alert('حجم فایل بیش از 1 مگابایت است.');
+                }
                 $(this).val('');
                 return;
             }
@@ -19,11 +31,8 @@ jQuery(document).ready(function($) {
             reader.onload = function(e) {
                 if (previewContainer.length) {
                     previewContainer.find('img').attr('src', e.target.result);
+                    previewContainer.show();
                 } 
-                // else {
-                //     var previewHtml = '';
-                //     $(input).after(previewHtml);
-                // }
             };
             
             reader.readAsDataURL(input.files[0]);
@@ -32,6 +41,9 @@ jQuery(document).ready(function($) {
     
     // اعتبارسنجی فرم
     $('form.woocommerce-form').on('submit', function(e) {
+        if ($(this).is('#sc-documents-form')) {
+            return;
+        }
         var isValid = true;
         var errorMessages = [];
         

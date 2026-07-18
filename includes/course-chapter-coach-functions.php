@@ -1021,6 +1021,13 @@ function sc_attendance_build_course_dropdown_options($courses) {
                     $gitem = function_exists('sc_format_course_group_item') ? sc_format_course_group_item($grow) : ['name' => (string) ($grow->group_name ?? ''), 'chapter_name' => '', 'coach_id' => 0];
                     return (string) ($gitem['name'] ?? '') === $group_filter_from_row;
                 }));
+            } elseif ($chapter_from_row !== '') {
+                // برای مربی/شعبه: فقط گروه‌های همان شعبه (یا بدون شعبه) نمایش داده شوند
+                $groups = array_values(array_filter((array) $groups, static function ($grow) use ($chapter_from_row) {
+                    $gitem = function_exists('sc_format_course_group_item') ? sc_format_course_group_item($grow) : ['name' => (string) ($grow->group_name ?? ''), 'chapter_name' => '', 'coach_id' => 0];
+                    $g_chapter = trim((string) ($gitem['chapter_name'] ?? ''));
+                    return $g_chapter === '' || $g_chapter === $chapter_from_row;
+                }));
             }
             if (empty($groups)) {
                 $value = sc_attendance_course_option_value($course_id, $chapter_from_row, '');
@@ -1151,7 +1158,76 @@ function sc_render_searchable_course_filter_dropdown($courses, $selected_course_
 }
 
 /**
- * SQL scope for member_courses rows in attendance by coach and branch.
+ * شناسه‌های مربی مرتبط برای محدوده حضور/دستمزد:
+ * خود مربی + کمک‌مربی‌های او (اگر مربی اصلی باشد).
+ * اگر فقط کمک‌مربی باشد، خودش + مربی اصلی + سایر کمک‌مربی‌های همان مربی اصلی.
+ *
+ * @param int    $course_id
+ * @param int    $coach_id
+ * @param string $chapter_name
+ * @return int[]
+ */
+function sc_coach_member_scope_related_coach_ids($course_id, $coach_id, $chapter_name = '') {
+    global $wpdb;
+
+    $course_id = absint($course_id);
+    $coach_id = absint($coach_id);
+    $chapter_name = sanitize_text_field((string) $chapter_name);
+    if (!$course_id || !$coach_id) {
+        return $coach_id > 0 ? [$coach_id] : [];
+    }
+
+    $ids = [$coach_id];
+
+    if (!function_exists('sc_course_assistant_coaches_table_ready') || !sc_course_assistant_coaches_table_ready()) {
+        return $ids;
+    }
+
+    $t = sc_course_assistant_coaches_table();
+    $primary_id = $coach_id;
+
+    // اگر این مربی کمک‌مربی است، مربی اصلی را مبنا بگیر
+    $assistant_where = 'course_id = %d AND assistant_coach_id = %d';
+    $assistant_args = [$course_id, $coach_id];
+    if ($chapter_name !== '') {
+        $assistant_where .= ' AND chapter_name = %s';
+        $assistant_args[] = $chapter_name;
+    }
+    $found_primary = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT primary_coach_id FROM `$t` WHERE $assistant_where ORDER BY id ASC LIMIT 1",
+        ...$assistant_args
+    ));
+    if ($found_primary > 0) {
+        $primary_id = $found_primary;
+        $ids[] = $primary_id;
+    }
+
+    $assist_sql = "SELECT DISTINCT assistant_coach_id FROM `$t` WHERE course_id = %d AND primary_coach_id = %d";
+    $assist_args = [$course_id, $primary_id];
+    if ($chapter_name !== '') {
+        $assist_sql .= ' AND chapter_name = %s';
+        $assist_args[] = $chapter_name;
+    }
+    $assistant_ids = $wpdb->get_col($wpdb->prepare($assist_sql, ...$assist_args));
+    foreach ((array) $assistant_ids as $aid) {
+        $aid = absint($aid);
+        if ($aid > 0) {
+            $ids[] = $aid;
+        }
+    }
+
+    $ids = array_values(array_unique(array_filter(array_map('absint', $ids))));
+    return !empty($ids) ? $ids : [$coach_id];
+}
+
+/**
+ * SQL scope for member_courses rows in attendance / salary by coach and branch.
+ *
+ * Matching rules (aligned for listing + wage count):
+ * - Members assigned to this coach, or to their assistants (same primary team).
+ * - Unassigned members when this coach is the sole primary of the chapter.
+ * - Empty chapter allowed when this coach has only one branch on the course.
+ * - Legacy enrollments via sc_course_groups.
  *
  * @return array{coach_scope_where:string,chapter_where:string,prepare_args:array<int,mixed>}
  */
@@ -1164,9 +1240,17 @@ function sc_attendance_member_scope_sql($course_id, $coach_id, $chapter_name = '
 
     $course_coaches_table = $wpdb->prefix . 'sc_course_coaches';
     $coaches_table = $wpdb->prefix . 'sc_coaches';
+    $groups_table = $wpdb->prefix . 'sc_course_groups';
+    $has_groups_table = ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $groups_table)) === $groups_table);
 
-    $coach_scope_where = 'mc.coach_id = %d';
-    $chapter_where = '';
+    $related_ids = function_exists('sc_coach_member_scope_related_coach_ids')
+        ? sc_coach_member_scope_related_coach_ids($course_id, $coach_id, $chapter_name)
+        : [$coach_id];
+    $related_ids = array_values(array_unique(array_filter(array_map('absint', (array) $related_ids))));
+    if (empty($related_ids)) {
+        $related_ids = [$coach_id];
+    }
+    $in_placeholders = implode(',', array_fill(0, count($related_ids), '%d'));
     $prepare_args = [];
 
     if ($chapter_name !== '') {
@@ -1174,39 +1258,111 @@ function sc_attendance_member_scope_sql($course_id, $coach_id, $chapter_name = '
             "SELECT CASE WHEN COUNT(DISTINCT cc.coach_id) = 1 THEN MIN(cc.coach_id) ELSE 0 END
              FROM $course_coaches_table cc
              INNER JOIN $coaches_table c ON c.id = cc.coach_id
-             WHERE cc.course_id = %d AND cc.chapter_name = %s AND c.is_active = 1",
+             WHERE cc.course_id = %d AND TRIM(cc.chapter_name) = %s AND c.is_active = 1",
             $course_id,
             $chapter_name
         ));
+        $is_sole_coach = ($single_coach_for_chapter > 0 && $single_coach_for_chapter === $coach_id);
 
-        if ($single_coach_for_chapter > 0 && $single_coach_for_chapter === $coach_id) {
-            $coach_scope_where = '(mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0)';
-            $chapter_where = " AND (mc.chapter = %s OR mc.chapter IS NULL OR mc.chapter = '')";
-        } else {
-            $chapter_where = ' AND mc.chapter = %s';
-        }
-
-        $prepare_args[] = $coach_id;
-        $prepare_args[] = $chapter_name;
-    } else {
-        $single_active_coach_id = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT CASE WHEN COUNT(DISTINCT cc.coach_id) = 1 THEN MIN(cc.coach_id) ELSE 0 END
+        $coach_chapter_count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(DISTINCT TRIM(cc.chapter_name))
              FROM $course_coaches_table cc
              INNER JOIN $coaches_table c ON c.id = cc.coach_id
-             WHERE cc.course_id = %d AND c.is_active = 1 AND cc.chapter_name != ''",
-            $course_id
+             WHERE cc.course_id = %d AND cc.coach_id = %d AND TRIM(cc.chapter_name) != '' AND c.is_active = 1",
+            $course_id,
+            $coach_id
         ));
+        $coach_single_chapter = ($coach_chapter_count <= 1);
 
-        if ($single_active_coach_id > 0 && $single_active_coach_id === $coach_id) {
-            $coach_scope_where = '(mc.coach_id = %d OR mc.coach_id IS NULL OR mc.coach_id = 0)';
+        // فصل: شعبه انتخاب‌شده یا خالی (ثبت‌نام ناقص)
+        $chapter_match = "(
+            TRIM(IFNULL(mc.chapter, '')) = %s
+            OR TRIM(IFNULL(mc.chapter, '')) = ''
+        )";
+
+        if ($is_sole_coach) {
+            // مربی اصلی تنها: تیم خودش (اصلی+کمک) + بدون انتساب
+            $direct_match = "(
+                (mc.coach_id IN ($in_placeholders) OR mc.coach_id IS NULL OR mc.coach_id = 0)
+                AND $chapter_match
+            )";
+        } elseif ($coach_single_chapter) {
+            $direct_match = "(
+                mc.coach_id IN ($in_placeholders)
+                AND $chapter_match
+            )";
+        } else {
+            // چند شعبه: فقط شعبه دقیق + تیم مربی
+            $direct_match = "(
+                mc.coach_id IN ($in_placeholders)
+                AND TRIM(IFNULL(mc.chapter, '')) = %s
+            )";
         }
 
-        $prepare_args[] = $coach_id;
+        foreach ($related_ids as $rid) {
+            $prepare_args[] = $rid;
+        }
+        $prepare_args[] = $chapter_name;
+
+        $via_group_match = '';
+        if ($has_groups_table) {
+            if ($is_sole_coach) {
+                $via_group_match = " OR (
+                    mc.group_name IS NOT NULL AND mc.group_name != ''
+                    AND EXISTS (
+                        SELECT 1 FROM $groups_table g
+                        WHERE g.course_id = %d
+                          AND g.group_name = mc.group_name
+                          AND (TRIM(IFNULL(g.chapter_name, '')) = %s OR TRIM(IFNULL(g.chapter_name, '')) = '')
+                          AND (g.coach_id IN ($in_placeholders) OR g.coach_id = 0)
+                    )
+                )";
+            } else {
+                $via_group_match = " OR (
+                    mc.group_name IS NOT NULL AND mc.group_name != ''
+                    AND EXISTS (
+                        SELECT 1 FROM $groups_table g
+                        WHERE g.course_id = %d
+                          AND g.group_name = mc.group_name
+                          AND TRIM(IFNULL(g.chapter_name, '')) = %s
+                          AND g.coach_id IN ($in_placeholders)
+                    )
+                )";
+            }
+            $prepare_args[] = $course_id;
+            $prepare_args[] = $chapter_name;
+            foreach ($related_ids as $rid) {
+                $prepare_args[] = $rid;
+            }
+        }
+
+        return [
+            'coach_scope_where' => '( ' . $direct_match . $via_group_match . ' )',
+            'chapter_where' => '',
+            'prepare_args' => $prepare_args,
+        ];
+    }
+
+    $single_active_coach_id = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT CASE WHEN COUNT(DISTINCT cc.coach_id) = 1 THEN MIN(cc.coach_id) ELSE 0 END
+         FROM $course_coaches_table cc
+         INNER JOIN $coaches_table c ON c.id = cc.coach_id
+         WHERE cc.course_id = %d AND c.is_active = 1 AND TRIM(cc.chapter_name) != ''",
+        $course_id
+    ));
+
+    if ($single_active_coach_id > 0 && $single_active_coach_id === $coach_id) {
+        $coach_scope_where = "(mc.coach_id IN ($in_placeholders) OR mc.coach_id IS NULL OR mc.coach_id = 0)";
+    } else {
+        $coach_scope_where = "mc.coach_id IN ($in_placeholders)";
+    }
+    foreach ($related_ids as $rid) {
+        $prepare_args[] = $rid;
     }
 
     return [
         'coach_scope_where' => $coach_scope_where,
-        'chapter_where' => $chapter_where,
+        'chapter_where' => '',
         'prepare_args' => $prepare_args,
     ];
 }

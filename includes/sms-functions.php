@@ -1177,7 +1177,7 @@ function sc_send_penalty_sms($invoice_id) {
 }
 
 /**
- * Send SMS + fixed notification when identity verification is approved by admin
+ * Send SMS + notification when identity verification is approved by admin
  */
 function sc_send_identity_verified_notifications($member_id) {
     global $wpdb;
@@ -1195,9 +1195,23 @@ function sc_send_identity_verified_notifications($member_id) {
         $user_name = 'کاربر گرامی';
     }
 
-    $verified_message = 'کاربر گرامی .... احراز هویت شما تایید شد.';
+    $variables = [
+        'user_name' => $user_name,
+    ];
 
-    // Fixed in-app notification text
+    // Use SMS settings template for notification / Bale / SMS (single source of truth)
+    $template = '';
+    if (function_exists('sc_get_sms_template')) {
+        $template = (string) sc_get_sms_template('identity_verified', 'user');
+    }
+    if ($template === '') {
+        $template = 'کاربر گرامی %user_name%، احراز هویت شما تأیید شد.';
+    }
+    $verified_message = function_exists('sc_replace_sms_variables')
+        ? sc_replace_sms_variables($template, $variables)
+        : str_replace('%user_name%', $user_name, $template);
+
+    // In-app notification (no SMS from notification — SMS is sent separately below)
     if (function_exists('sc_save_notification')) {
         sc_save_notification([
             'title' => 'تایید احراز هویت',
@@ -1216,20 +1230,15 @@ function sc_send_identity_verified_notifications($member_id) {
     }
 
     // SMS (configurable from settings)
-    if (!function_exists('sc_is_sms_enabled_for') || !function_exists('sc_get_sms_template') || !function_exists('sc_send_sms')) {
+    if (!function_exists('sc_is_sms_enabled_for') || !function_exists('sc_send_sms')) {
         return;
     }
 
     if (sc_is_sms_enabled_for('identity_verified', 'user') && !empty($member->player_phone)) {
-        $template = sc_get_sms_template('identity_verified', 'user');
-        if (!empty($template)) {
-            $variables = [
-                'user_name' => $user_name
-            ];
-            $message = sc_replace_sms_variables($template, $variables);
-            $pattern_code = sc_get_sms_pattern('identity_verified', 'user');
-            sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'identity_verified');
-        }
+        $pattern_code = function_exists('sc_get_sms_pattern')
+            ? sc_get_sms_pattern('identity_verified', 'user')
+            : null;
+        sc_send_sms($member->player_phone, $verified_message, !empty($pattern_code), $pattern_code, $variables, 'identity_verified');
     }
 }
 
@@ -1618,9 +1627,23 @@ function sc_send_identity_rejected_notifications($member_id, $reason) {
         $user_name = 'کاربر گرامی';
     }
 
-    $rejected_message = 'کاربر گرامی، احراز هویت شما رد شد. علت: ' . $reason;
+    $variables = [
+        'user_name' => $user_name,
+        'reason' => $reason,
+    ];
 
-    // In-app notification
+    $template = '';
+    if (function_exists('sc_get_sms_template')) {
+        $template = (string) sc_get_sms_template('identity_rejected', 'user');
+    }
+    if ($template === '') {
+        $template = 'کاربر گرامی %user_name%، احراز هویت شما رد شد. علت: %reason%';
+    }
+    $rejected_message = function_exists('sc_replace_sms_variables')
+        ? sc_replace_sms_variables($template, $variables)
+        : str_replace(['%user_name%', '%reason%'], [$user_name, $reason], $template);
+
+    // In-app notification (no SMS from notification — SMS is sent separately below)
     if (function_exists('sc_save_notification')) {
         sc_save_notification([
             'title' => 'رد احراز هویت',
@@ -1639,21 +1662,15 @@ function sc_send_identity_rejected_notifications($member_id, $reason) {
     }
 
     // SMS (if enabled)
-    if (!function_exists('sc_is_sms_enabled_for') || !function_exists('sc_get_sms_template') || !function_exists('sc_send_sms')) {
+    if (!function_exists('sc_is_sms_enabled_for') || !function_exists('sc_send_sms')) {
         return;
     }
 
     if (sc_is_sms_enabled_for('identity_rejected', 'user') && !empty($member->player_phone)) {
-        $template = sc_get_sms_template('identity_rejected', 'user');
-        if (!empty($template)) {
-            $variables = [
-                'user_name' => $user_name,
-                'reason' => $reason
-            ];
-            $message = sc_replace_sms_variables($template, $variables);
-            $pattern_code = sc_get_sms_pattern('identity_rejected', 'user');
-            sc_send_sms($member->player_phone, $message, !empty($pattern_code), $pattern_code, $variables, 'identity_rejected');
-        }
+        $pattern_code = function_exists('sc_get_sms_pattern')
+            ? sc_get_sms_pattern('identity_rejected', 'user')
+            : null;
+        sc_send_sms($member->player_phone, $rejected_message, !empty($pattern_code), $pattern_code, $variables, 'identity_rejected');
     }
 }
 

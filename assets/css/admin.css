@@ -11398,6 +11398,12 @@ body[class*="_page_sc-attendance-add"] .sc-attendance-members-table col.sc-att-c
     width: 52px;
 }
 
+body.toplevel_page_sc-attendance-add .sc-attendance-members-table col.sc-att-col-status,
+body[class*="_page_sc-attendance-add"] .sc-attendance-members-table col.sc-att-col-status {
+    width: 38%;
+    min-width: 240px;
+}
+
 body.toplevel_page_sc-attendance-add .sc-attendance-members-table col.sc-att-col-name,
 body[class*="_page_sc-attendance-add"] .sc-attendance-members-table col.sc-att-col-name {
     width: 24%;
@@ -11413,15 +11419,29 @@ body[class*="_page_sc-attendance-add"] .sc-attendance-members-table col.sc-att-c
     width: 13%;
 }
 
-body.toplevel_page_sc-attendance-add .sc-attendance-members-table col.sc-att-col-status,
-body[class*="_page_sc-attendance-add"] .sc-attendance-members-table col.sc-att-col-status {
-    width: 38%;
-    min-width: 240px;
-}
-
 body.toplevel_page_sc-attendance-add .sc-attendance-members-table .sc-att-col-status,
 body[class*="_page_sc-attendance-add"] .sc-attendance-members-table .sc-att-col-status {
     white-space: nowrap;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-member-name,
+body[class*="_page_sc-attendance-add"] .sc-attendance-member-name {
+    line-height: 1.35;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-member-name__text,
+body[class*="_page_sc-attendance-add"] .sc-attendance-member-name__text {
+    display: block;
+}
+
+body.toplevel_page_sc-attendance-add .sc-attendance-remaining-sessions,
+body[class*="_page_sc-attendance-add"] .sc-attendance-remaining-sessions {
+    display: block;
+    margin-top: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #5b21b6;
+    letter-spacing: 0;
 }
 
 body.toplevel_page_sc-attendance-add .sc-attendance-members-table thead th,

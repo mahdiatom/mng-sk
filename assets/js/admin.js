@@ -1103,22 +1103,30 @@ jQuery(document).ready(function($) {
         var inputField = $('#coaching_certificate_photo_txt');
 
         var imageUploader = wp.media({
-            title: 'انتخاب عکس مدرک مربیگری',
+            title: 'انتخاب مدرک مربیگری',
             button: {
-                text: 'استفاده از این تصویر'
+                text: 'استفاده از این فایل'
             },
-            multiple: false
+            multiple: false,
+            library: {
+                type: ['image', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+            }
         });
 
         imageUploader.on('select', function() {
             var attachment = imageUploader.state().get('selection').first().toJSON();
             inputField.val(attachment.url);
 
+            var isImage = (attachment.type === 'image') || /\.(jpe?g|png|gif|webp)$/i.test(attachment.url || '');
+            var previewHtml = isImage
+                ? '<img src="' + attachment.url + '" alt="مدرک مربیگری" style="max-width: 300px; height: auto; border: 1px solid #ddd; border-radius: 4px;">'
+                : '<a href="' + attachment.url + '" target="_blank" rel="noopener noreferrer">مشاهده فایل مدرک مربیگری</a>';
+
             var previewContainer = inputField.closest('td').find('.sc-image-preview');
             if (previewContainer.length === 0) {
-                inputField.after('<div class="sc-image-preview" style="margin-top: 10px;"><img src="' + attachment.url + '" alt="عکس مدرک مربیگری" style="max-width: 300px; height: auto; border: 1px solid #ddd; border-radius: 4px;"></div>');
+                inputField.after('<div class="sc-image-preview" style="margin-top: 10px;">' + previewHtml + '</div>');
             } else {
-                previewContainer.find('img').attr('src', attachment.url);
+                previewContainer.html(previewHtml);
             }
         });
 
