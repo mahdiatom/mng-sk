@@ -379,12 +379,18 @@
             return;
         }
         if (val === 'custom') {
-            $('#sc_qa_' + prefix + '_remaining').val('').removeData('auto-filled').attr('placeholder', 'تعداد دلخواه را وارد کنید');
+            // فقط اگر هنوز مقدار دستی وارد نشده، فیلد را خالی کن
+            var $remCustom = $('#sc_qa_' + prefix + '_remaining');
+            if ($remCustom.val() === '' || $remCustom.data('auto-filled')) {
+                $remCustom.val('').removeData('auto-filled').attr('placeholder', 'تعداد دلخواه را وارد کنید');
+            } else {
+                $remCustom.attr('placeholder', 'تعداد دلخواه را وارد کنید');
+            }
             return;
         }
         if (val) {
+            // فقط خالی یا auto-filled را با تعداد پکیج پر کن؛ مقدار دستی کاربر حفظ شود
             setDefaultRemaining(prefix, val);
-            $('#sc_qa_' + prefix + '_remaining').val(String(val)).data('auto-filled', true);
             return;
         }
         if (options && options.default_remaining_sessions) {
@@ -421,7 +427,7 @@
             coach_id: $('#sc_qa_existing_coach').val() || 0,
             group_name: $('#sc_qa_existing_group').is(':visible') ? ($('#sc_qa_existing_group').val() || '') : '',
             package_sessions: $('#sc_qa_existing_package').closest('tr').is(':visible') ? ($('#sc_qa_existing_package').val() || '') : '',
-            remaining_sessions: $('#sc_qa_existing_remaining').val(),
+            remaining_sessions: String($('#sc_qa_existing_remaining').val() || '').trim(),
             payment_status: $('#sc_qa_existing_payment').val()
         };
     }
@@ -437,7 +443,7 @@
             coach_id: $('#sc_qa_new_coach').val() || 0,
             group_name: $('#sc_qa_new_group').is(':visible') ? ($('#sc_qa_new_group').val() || '') : '',
             package_sessions: $('#sc_qa_new_package').closest('tr').is(':visible') ? ($('#sc_qa_new_package').val() || '') : '',
-            remaining_sessions: $('#sc_qa_new_remaining').val(),
+            remaining_sessions: String($('#sc_qa_new_remaining').val() || '').trim(),
             payment_status: $('#sc_qa_new_payment').val()
         };
     }
@@ -492,7 +498,8 @@
             qaState[tab].validated = true;
             qaState[tab].lastData = collectData();
             showMsg($msg, 'بررسی موفق بود. هنوز فاکتوری ساخته نشده — برای صدور فاکتور روی «تایید و ثبت در دوره» بزنید.', 'info');
-            playSound(res.data.sound || 'success');
+            // بررسی موفق: فقط ویس تایید اسکن (success) — نه بدهی/هشدار برنامه هفتگی
+            playSound('success');
             $confirm.prop('disabled', false);
             setButtonState($confirm, 'is-ready');
         }).fail(function (xhr) {

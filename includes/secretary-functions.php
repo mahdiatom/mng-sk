@@ -1928,7 +1928,8 @@ function sc_secretary_upsert_active_member_course($member_id, $course_id, $chapt
 
     $total_sessions = (int) $sf['total_sessions'];
     $remaining_sessions = (int) $sf['remaining_sessions'];
-    if ($remaining_sessions_override !== null && $remaining_sessions_override !== '') {
+    $has_remaining_override = ($remaining_sessions_override !== null && $remaining_sessions_override !== '');
+    if ($has_remaining_override) {
         // فقط باقی‌مانده عوض می‌شود؛ تعداد جلسات (پیش‌فرض دوره/پکیج) ثابت می‌ماند
         // حتی اگر باقی‌مانده بیشتر از پیش‌فرض باشد (استثنا)
         $remaining_sessions = max(0, (int) $remaining_sessions_override);
@@ -1937,6 +1938,7 @@ function sc_secretary_upsert_active_member_course($member_id, $course_id, $chapt
             $sf['enrollment_sessions'] = $remaining_sessions > 0 ? $remaining_sessions : null;
             $total_sessions = $remaining_sessions;
         }
+        // پکیج عادی: total = تعداد پکیج، remaining = مقدار واردشده
     }
 
     $active_fields = [
@@ -2119,9 +2121,7 @@ function sc_secretary_validate_quick_enroll($args) {
                     $messages[] = ['type' => 'success', 'text' => 'دوره: ' . $course->title];
                     if (!sc_secretary_course_has_weekly_schedule_in_chapter($course_id, $chapter)) {
                         $messages[] = ['type' => 'warning', 'text' => 'هشدار: برای این دوره در شعبه انتخاب‌شده برنامه هفتگی تعریف نشده است. در صورت تایید نهایی، ثبت‌نام انجام می‌شود.'];
-                        if ($sound !== 'debt_warning') {
-                            $sound = 'debt_warning';
-                        }
+                        // ویس هشدار بدهی پخش نشود؛ فقط تایید اسکن در فرانت
                     } else {
                         $messages[] = ['type' => 'success', 'text' => 'برنامه هفتگی شعبه برای این دوره فعال است.'];
                     }
@@ -2247,19 +2247,15 @@ function sc_secretary_validate_quick_enroll($args) {
     }
 
     $has_error = false;
-    $has_warning = false;
     foreach ($messages as $msg) {
-        $type = $msg['type'] ?? '';
-        if ($type === 'error') {
+        if (($msg['type'] ?? '') === 'error') {
             $has_error = true;
             break;
         }
-        if ($type === 'warning') {
-            $has_warning = true;
-        }
     }
     if (!$has_error) {
-        $sound = $has_warning ? 'debt_warning' : 'success';
+        // بررسی موفق (حتی با هشدار برنامه هفتگی): فقط ویس تایید اسکن
+        $sound = 'success';
     }
 
     return ['ok' => !$has_error, 'messages' => $messages, 'sound' => $sound];
@@ -2471,6 +2467,34 @@ function sc_secretary_quick_enroll($args) {
                     ],
                     ['id' => $invoice_id],
                     ['%s', '%s', '%s'],
+                    ['%d']
+                );
+            }
+
+            // سخت‌گیرانه: بعد از پرداخت، باقی‌ماندهٔ دستی را دوباره اعمال کن
+            // تا هوک‌های ووکامرس/شارژ نتوانند آن را با پیش‌فرض پکیج جایگزین کنند
+            if ($remaining_override !== null) {
+                $mc_after = $wpdb->get_row($wpdb->prepare(
+                    "SELECT total_sessions, enrollment_sessions FROM {$mc_table} WHERE id = %d LIMIT 1",
+                    (int) $mc_id
+                ));
+                $force_total = $mc_after ? (int) $mc_after->total_sessions : 0;
+                if ($package_sessions === 'custom') {
+                    $force_total = (int) $remaining_override;
+                } elseif ($package_sessions !== '' && is_numeric($package_sessions)) {
+                    $force_total = (int) $package_sessions;
+                } elseif ($mc_after && isset($mc_after->enrollment_sessions) && $mc_after->enrollment_sessions !== null && $mc_after->enrollment_sessions !== '') {
+                    $force_total = (int) $mc_after->enrollment_sessions;
+                }
+                $wpdb->update(
+                    $mc_table,
+                    [
+                        'total_sessions' => $force_total,
+                        'remaining_sessions' => (int) $remaining_override,
+                        'updated_at' => current_time('mysql'),
+                    ],
+                    ['id' => (int) $mc_id],
+                    ['%d', '%d', '%s'],
                     ['%d']
                 );
             }

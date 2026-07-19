@@ -1028,22 +1028,30 @@ function sc_refill_sessions_after_payment($invoice_id) {
 
     $mc_table = $wpdb->prefix . 'sc_member_courses';
     $invoice_type = trim((string) $invoice->type);
-    // تمدید خودکار آستانه جلسات — همیشه remaining فعلی (حتی منفی) + تعداد شارژ
-    $should_refill = ($invoice_type === 'session_auto');
 
-    // شارژ جلسات در حالت آستانه: remaining فعلی (حتی منفی) + تعداد جلسات پکیج/دوره
+    $member_course = $wpdb->get_row($wpdb->prepare(
+        "SELECT remaining_sessions, total_sessions, enrollment_sessions, threshold_invoiced, course_id
+         FROM {$mc_table}
+         WHERE id = %d",
+        $invoice->member_course_id
+    ));
+
+    if (!$member_course) {
+        return;
+    }
+
+    $current_remaining = (int) $member_course->remaining_sessions;
+    $is_locked = (int) ($member_course->threshold_invoiced ?? 0) === 1;
+    $threshold = (int) (function_exists('sc_get_setting') ? sc_get_setting('sessions_count_threshold', '1') : 1);
+    if ($threshold < 0) {
+        $threshold = 0;
+    }
+
+    // شارژ فقط برای فاکتور آستانه (session_auto) وقتی قفل شارژ فعال است
+    // و جلسات به حد آستانه رسیده/پایین‌تر است — وگرنه ۵+۱۰=۱۵ اشتباه رخ می‌دهد.
+    $should_refill = ($invoice_type === 'session_auto' && $is_locked && $current_remaining <= $threshold);
+
     if ($should_refill) {
-        $member_course = $wpdb->get_row($wpdb->prepare(
-            "SELECT remaining_sessions, total_sessions, enrollment_sessions, threshold_invoiced, course_id
-             FROM {$mc_table}
-             WHERE id = %d",
-            $invoice->member_course_id
-        ));
-
-        if (!$member_course) {
-            return;
-        }
-
         $charge_sessions = 0;
         if (!empty($invoice->billing_sessions_count)) {
             $charge_sessions = (int) $invoice->billing_sessions_count;
@@ -1064,7 +1072,6 @@ function sc_refill_sessions_after_payment($invoice_id) {
             }
         }
 
-        $current_remaining = (int) $member_course->remaining_sessions;
         // مثال: remaining=-1 و charge=10 → new=9
         $new_remaining = $current_remaining + $charge_sessions;
         $new_total = $charge_sessions > 0 ? $charge_sessions : (int) $member_course->total_sessions;
@@ -1084,11 +1091,12 @@ function sc_refill_sessions_after_payment($invoice_id) {
         );
 
         error_log(sprintf(
-            'SC THRESHOLD: Sessions refilled for MC %d — current=%d charge=%d new=%d',
+            'SC THRESHOLD: Sessions refilled for MC %d — current=%d charge=%d new=%d locked=1 threshold=%d',
             (int) $invoice->member_course_id,
             $current_remaining,
             $charge_sessions,
-            $new_remaining
+            $new_remaining,
+            $threshold
         ));
 
         // اگر قبل از شارژ مانده منفی بوده، به کاربر و مدیریت اطلاع بده
@@ -1098,14 +1106,28 @@ function sc_refill_sessions_after_payment($invoice_id) {
         return;
     }
 
-    // فاکتورهای عادی دوره: بعد از پرداخت قفل تمدید را باز کن
+    if ($invoice_type === 'session_auto') {
+        error_log(sprintf(
+            'SC THRESHOLD: Skip refill for MC %d — type=session_auto locked=%d remaining=%d threshold=%d',
+            (int) $invoice->member_course_id,
+            $is_locked ? 1 : 0,
+            $current_remaining,
+            $threshold
+        ));
+    }
+
+    // فاکتورهای عادی / یا آستانه بدون شرایط شارژ: فقط قفل را باز کن
     // تا وقتی جلسات دوباره به آستانه برسد، کرون بتواند فاکتور جدید بسازد
-    if (!empty($invoice->course_id)) {
+    if (!empty($invoice->course_id) || !empty($invoice->member_course_id)) {
         $wpdb->update(
             $mc_table,
-            ['threshold_invoiced' => 0],
+            [
+                'threshold_invoiced' => 0,
+                'status'             => 'active',
+                'updated_at'         => current_time('mysql'),
+            ],
             ['id' => (int) $invoice->member_course_id],
-            ['%d'],
+            ['%d', '%s', '%s'],
             ['%d']
         );
     }
