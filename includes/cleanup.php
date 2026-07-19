@@ -1,8 +1,5 @@
 <?php
-/**
- * Plugin Name: Atom WordPress Emoji Cleaner
- * Description: غیرفعال‌سازی اموجی‌ها به روش فانکشنال
- */
+
 
 // جلوگیری از دسترسی مستقیم
 if ( ! defined( 'ABSPATH' ) ) exit;

@@ -4915,6 +4915,17 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                             </p>
                         </td>
                     </tr>
+                    <tr>
+                <th scope="row">امتیازدهی مربیان</th>
+                <td>
+                    <label class="switch">
+                        <input type="hidden" name="pro_feature_coach_rating" value="0">
+                        <input type="checkbox" name="pro_feature_coach_rating" value="1" <?php checked($pro_feature_coach_rating, 1); ?>>
+                        <span class="slider round"></span>
+                    </label>
+                    <p class="description">امکان ثبت امتیاز ۱ تا ۵ توسط بازیکنان برای مربی و کمک‌مربی، نمایش در پنل بازیکن، گزارش مدیریت و میانگین در پروفایل مربی</p>
+                </td>
+            </tr>
                 </table>
                 
                 <p class="submit">
@@ -5348,17 +5359,7 @@ endif; // پایان بارگذاری تنظیمات (غیر از تب لایس�
                     <p class="description">تعریف فیلدهای ثبت اطلاعات در مدیریت و تب ثبت اطلاعات در پنل بازیکن</p>
                 </td>
             </tr>
-            <tr>
-                <th scope="row">امتیازدهی مربیان</th>
-                <td>
-                    <label class="switch">
-                        <input type="hidden" name="pro_feature_coach_rating" value="0">
-                        <input type="checkbox" name="pro_feature_coach_rating" value="1" <?php checked($pro_feature_coach_rating, 1); ?>>
-                        <span class="slider round"></span>
-                    </label>
-                    <p class="description">امکان ثبت امتیاز ۱ تا ۵ توسط بازیکنان برای مربی و کمک‌مربی، نمایش در پنل بازیکن، گزارش مدیریت و میانگین در پروفایل مربی</p>
-                </td>
-            </tr>
+            
             <tr>
                 <th scope="row">حضور و غیاب</th>
                 <td>

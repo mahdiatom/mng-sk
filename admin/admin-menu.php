@@ -741,34 +741,36 @@ function sc_register_admin_menu() {
     }
 
     $pro_feature_surveys = (int) sc_get_setting('pro_feature_surveys', 0);
-    if($pro_feature_surveys){
-
-    add_menu_page(
-        'نظرسنجی‌ها',
-        'نظرسنجی‌ها',
-        'sc_view_coach_salary',
-        'sc-coach-surveys',
-        'sc_admin_coach_surveys_page',
-        'dashicons-forms',
-        19
-    );
+    if ($pro_feature_surveys) {
+        add_menu_page(
+            'نظرسنجی‌ها',
+            'نظرسنجی‌ها',
+            'sc_view_coach_salary',
+            'sc-coach-surveys',
+            'sc_admin_coach_surveys_page',
+            'dashicons-forms',
+            19
+        );
+    }
 
     } // پایان منوهای فقط مربی ($is_coach_only)
 
     /* ================= Surveys (مدیر / مدیر باشگاه) ================= */
-    add_menu_page(
-        'نظرسنجی',
-        'نظرسنجی',
-        'manage_options',
-        'sc-surveys',
-        'sc_admin_surveys_list_page',
-        'dashicons-forms',
-        21
-    );
-    add_submenu_page('sc-surveys', 'لیست نظرسنجی‌ها', 'لیست نظرسنجی‌ها', 'manage_options', 'sc-surveys', 'sc_admin_surveys_list_page');
-    add_submenu_page('sc-surveys', 'افزودن نظرسنجی', 'افزودن نظرسنجی', 'manage_options', 'sc-add-survey', 'sc_admin_survey_add_page');
-    add_submenu_page('sc-surveys', 'داده‌های نظرسنجی', 'داده‌های نظرسنجی', 'manage_options', 'sc-survey-data', 'sc_admin_survey_data_page');
-    add_submenu_page('sc-surveys', 'آمار نظرسنجی', 'آمار نظرسنجی', 'manage_options', 'sc-survey-stats', 'sc_admin_survey_stats_page');
+    $pro_feature_surveys = (int) sc_get_setting('pro_feature_surveys', 0);
+    if ($pro_feature_surveys) {
+        add_menu_page(
+            'نظرسنجی',
+            'نظرسنجی',
+            'manage_options',
+            'sc-surveys',
+            'sc_admin_surveys_list_page',
+            'dashicons-forms',
+            21
+        );
+        add_submenu_page('sc-surveys', 'لیست نظرسنجی‌ها', 'لیست نظرسنجی‌ها', 'manage_options', 'sc-surveys', 'sc_admin_surveys_list_page');
+        add_submenu_page('sc-surveys', 'افزودن نظرسنجی', 'افزودن نظرسنجی', 'manage_options', 'sc-add-survey', 'sc_admin_survey_add_page');
+        add_submenu_page('sc-surveys', 'داده‌های نظرسنجی', 'داده‌های نظرسنجی', 'manage_options', 'sc-survey-data', 'sc_admin_survey_data_page');
+        add_submenu_page('sc-surveys', 'آمار نظرسنجی', 'آمار نظرسنجی', 'manage_options', 'sc-survey-stats', 'sc_admin_survey_stats_page');
     }
     /* ================= Courses ================= */
 
