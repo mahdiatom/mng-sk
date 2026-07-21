@@ -1483,3 +1483,111 @@
     font-size: 12px;
     color: var(--sc-prog-orange, #ff9f43);
 }
+
+/* ─── فیلتر گزارش برنامه تخصصی ─── */
+.sc-prog-report-filters-card {
+    margin: 16px 0 20px;
+    padding: 16px 18px 18px;
+    background: #fff;
+    border: 1px solid var(--sc-prog-border, #e6e6ea);
+    border-radius: 14px;
+    box-shadow: var(--sc-prog-shadow, 0 2px 8px rgba(38, 43, 67, 0.06));
+}
+.sc-prog-report-filters-title {
+    margin: 0 0 14px;
+    padding: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--sc-prog-text, #2f2b3d);
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+.sc-prog-report-filters-form {
+    margin: 0;
+    padding: 0;
+}
+.sc-prog-report-filters-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: 12px;
+}
+.sc-prog-report-filters-row > .sc-filter-field {
+    width: auto;
+    margin: 0;
+}
+.sc-prog-report-filters-search {
+    flex: 1 1 0;
+    min-width: 180px;
+}
+.sc-prog-report-filters-date {
+    flex: 0 0 150px;
+    width: 150px;
+    max-width: 150px;
+}
+.sc-prog-report-filters-action {
+    flex: 0 0 auto;
+    width: auto;
+}
+.sc-prog-report-filters-action-label {
+    visibility: hidden;
+    pointer-events: none;
+    user-select: none;
+}
+.sc-prog-report-filters-submit {
+    min-height: 42px;
+    padding: 0 22px;
+    white-space: nowrap;
+}
+.sc-prog-report-filters-row .sc-filter-control,
+.sc-prog-report-filters-row input.persian-date-input {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-height: 42px;
+    height: 42px;
+}
+
+@media (max-width: 960px) {
+    .sc-prog-report-filters-row {
+        flex-wrap: wrap;
+    }
+    .sc-prog-report-filters-search {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+    .sc-prog-report-filters-date {
+        flex: 1 1 calc(50% - 6px);
+        width: auto;
+        max-width: none;
+        min-width: 0;
+    }
+    .sc-prog-report-filters-action {
+        flex: 0 0 auto;
+    }
+}
+
+@media (max-width: 600px) {
+    .sc-prog-report-filters-card {
+        padding: 14px;
+    }
+    .sc-prog-report-filters-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .sc-prog-report-filters-search,
+    .sc-prog-report-filters-date,
+    .sc-prog-report-filters-action {
+        flex: 1 1 auto;
+        width: 100%;
+        max-width: none;
+    }
+    .sc-prog-report-filters-action-label {
+        display: none;
+    }
+    .sc-prog-report-filters-submit {
+        width: 100%;
+    }
+}

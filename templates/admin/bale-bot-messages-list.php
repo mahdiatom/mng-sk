@@ -332,7 +332,22 @@ if ($filter_date_to_shamsi !== '') {
                                     <th scope="row" class="check-column">
                                         <input type="checkbox" name="message_ids[]" value="<?php echo (int) $msg->id; ?>" class="sc-bale-msg-cb-item">
                                     </th>
-                                    <td data-label="عنوان"><strong class="sc-bale-msg-title"><?php echo esc_html($msg->title); ?></strong></td>
+                                    <td data-label="عنوان">
+                                        <strong class="sc-bale-msg-title"><?php echo esc_html($msg->title); ?></strong>
+                                        <?php
+                                        $cfg = json_decode((string) ($msg->target_config ?? ''), true);
+                                        $media_type = is_array($cfg) && !empty($cfg['media_type']) ? (string) $cfg['media_type'] : '';
+                                        $media_label = $media_type !== '' && function_exists('sc_bale_media_type_label')
+                                            ? sc_bale_media_type_label($media_type)
+                                            : '';
+                                        if ($media_label !== '') :
+                                            $media_name = !empty($cfg['media_name']) ? (string) $cfg['media_name'] : '';
+                                            ?>
+                                            <span class="sc-badge sc-badge--soft sc-bale-media-badge" title="<?php echo esc_attr($media_name); ?>">
+                                                <?php echo esc_html($media_label); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td data-label="مخاطب"><span class="sc-badge sc-badge--soft"><?php echo esc_html($target_labels[$msg->target_type] ?? $msg->target_type); ?></span></td>
                                     <td data-label="حالت ارسال"><span class="sc-badge <?php echo esc_attr($delivery_badge); ?>"><?php echo esc_html($delivery_labels[$delivery_key] ?? '-'); ?></span></td>
                                     <td data-label="دریافت‌کنندگان"><?php echo (int) $msg->recipients_count; ?></td>

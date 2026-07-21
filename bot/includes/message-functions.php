@@ -403,9 +403,42 @@ function sc_bale_expected_send_counts($recipients, $delivery_mode) {
 }
 
 /**
- * @param string $delivery_mode bot_only|safir_only|both
+ * تشخیص نوع رسانه بله از MIME.
+ *
+ * @param string $mime
+ * @return string photo|video|document
  */
-function sc_bale_send_bulk_message($title, $content, $target_type, $target_config, $delivery_mode = 'bot_only') {
+function sc_bale_detect_media_type($mime) {
+    $mime = strtolower(trim((string) $mime));
+    if ($mime !== '' && strpos($mime, 'image/') === 0 && $mime !== 'image/svg+xml') {
+        return 'photo';
+    }
+    if ($mime !== '' && strpos($mime, 'video/') === 0) {
+        return 'video';
+    }
+    return 'document';
+}
+
+/**
+ * برچسب فارسی نوع رسانه برای نمایش در ادمین.
+ *
+ * @param string $media_type
+ * @return string
+ */
+function sc_bale_media_type_label($media_type) {
+    $labels = [
+        'photo'    => 'عکس',
+        'video'    => 'فیلم',
+        'document' => 'فایل',
+    ];
+    return $labels[$media_type] ?? '';
+}
+
+/**
+ * @param string     $delivery_mode bot_only|safir_only|both
+ * @param array|null $media         ['path'=>,'type'=>photo|video|document,'mime'=>,'name'=>]
+ */
+function sc_bale_send_bulk_message($title, $content, $target_type, $target_config, $delivery_mode = 'bot_only', $media = null) {
     global $wpdb;
 
     $delivery_mode = in_array($delivery_mode, ['bot_only', 'safir_only', 'both'], true) ? $delivery_mode : 'bot_only';
@@ -419,15 +452,72 @@ function sc_bale_send_bulk_message($title, $content, $target_type, $target_confi
     $safir_sent = 0;
     $fail_count = 0;
 
+    $has_media = is_array($media)
+        && !empty($media['path'])
+        && is_readable($media['path'])
+        && in_array($media['type'] ?? '', ['photo', 'video', 'document'], true);
+
+    $media_type = $has_media ? $media['type'] : '';
+    $media_extra = [];
+    if ($has_media) {
+        if (!empty($media['name'])) {
+            $media_extra['_filename'] = (string) $media['name'];
+        }
+        if (!empty($media['mime'])) {
+            $media_extra['_mime'] = (string) $media['mime'];
+        }
+    }
+
     $prefix = "📢 <b>" . esc_html($title) . "</b>\n\n";
     $message = $prefix . $content;
+    // برای رسانه: اگر فقط عنوان باشد و متن خالی، عنوان به‌عنوان caption می‌رود
+    $caption = trim((string) $content) !== '' ? $message : ("📢 <b>" . esc_html($title) . "</b>");
+
+    $bot_file_id = '';
+    $safir_file_id = '';
+
+    if ($has_media) {
+        $needs_safir = false;
+        foreach ($recipients as $r) {
+            $has_chat = !empty($r['has_chat_id']);
+            if (($delivery_mode === 'safir_only' || $delivery_mode === 'both') && !$has_chat && !empty($r['phone'])) {
+                $needs_safir = true;
+                break;
+            }
+        }
+        if ($needs_safir && sc_bale_safir_is_configured()) {
+            $upload = sc_bale_safir_upload_file(
+                $media['path'],
+                !empty($media['name']) ? (string) $media['name'] : basename($media['path']),
+                !empty($media['mime']) ? (string) $media['mime'] : ''
+            );
+            if (!empty($upload['ok']) && !empty($upload['file_id'])) {
+                $safir_file_id = $upload['file_id'];
+            }
+        }
+    }
 
     foreach ($recipients as $r) {
         $has_chat = !empty($r['has_chat_id']);
         $sent = false;
 
         if (($delivery_mode === 'bot_only' || $delivery_mode === 'both') && $has_chat && !empty($r['bot_id'])) {
-            $result = bale_parse_api_response(bale_send_message($r['bot_id'], $message));
+            if ($has_media) {
+                $file_ref = $bot_file_id !== '' ? $bot_file_id : $media['path'];
+                $extra = ($bot_file_id === '') ? $media_extra : [];
+                $result = bale_parse_api_response(
+                    bale_send_media($r['bot_id'], $media_type, $file_ref, $caption, $extra)
+                );
+                if ($result['ok'] && $bot_file_id === '') {
+                    $extracted = bale_extract_file_id_from_response($result, $media_type);
+                    if ($extracted !== '') {
+                        $bot_file_id = $extracted;
+                    }
+                }
+            } else {
+                $result = bale_parse_api_response(bale_send_message($r['bot_id'], $message));
+            }
+
             if ($result['ok']) {
                 $bot_sent++;
                 $sent = true;
@@ -441,7 +531,20 @@ function sc_bale_send_bulk_message($title, $content, $target_type, $target_confi
                 $fail_count++;
                 continue;
             }
-            $result = bale_parse_api_response(sc_bale_send_by_phone(sc_convert_phone_to_98($r['phone']), $message));
+            if ($has_media && $safir_file_id === '') {
+                $fail_count++;
+                continue;
+            }
+            $safir_text = $has_media ? $caption : $message;
+            // سفیر HTML را مثل ربات پشتیبانی نمی‌کند؛ متن ساده بفرست
+            $safir_text = wp_strip_all_tags(str_replace(['<b>', '</b>', '<br>', '<br/>', '<br />'], ['', '', "\n", "\n", "\n"], $safir_text));
+            $result = bale_parse_api_response(
+                sc_bale_send_by_phone(
+                    sc_convert_phone_to_98($r['phone']),
+                    $safir_text,
+                    $has_media ? $safir_file_id : ''
+                )
+            );
             if ($result['ok']) {
                 $safir_sent++;
             } else {
@@ -451,6 +554,10 @@ function sc_bale_send_bulk_message($title, $content, $target_type, $target_confi
     }
 
     $target_config['delivery_mode'] = $delivery_mode;
+    if ($has_media) {
+        $target_config['media_type'] = $media_type;
+        $target_config['media_name'] = !empty($media['name']) ? (string) $media['name'] : basename($media['path']);
+    }
     $stats = sc_bale_count_recipients_by_chat($all_recipients);
 
     $table = $wpdb->prefix . 'sc_bot_messages';

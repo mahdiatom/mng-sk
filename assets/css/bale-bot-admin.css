@@ -179,3 +179,24 @@
 .sc-bale-delivery-mode-card {
     margin-bottom: 0;
 }
+
+.sc-bale-media-row .sc-bale-media-input {
+    display: block;
+    max-width: 100%;
+    padding: 8px 0;
+}
+
+.sc-bale-media-hint {
+    margin-top: 8px !important;
+    color: #5b21b6 !important;
+    font-weight: 500;
+}
+
+.sc-bale-media-badge {
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.sc-bale-msg-title + .sc-bale-media-badge {
+    margin-right: 6px;
+}

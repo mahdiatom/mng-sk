@@ -20,39 +20,110 @@ if (isset($_POST['send_bale_message']) && check_admin_referer('sc_bale_send_mess
 
     list($target_type, $target_config) = sc_bale_parse_target_config_from_post($_POST);
 
-    if ($title === '' || $content === '') {
-        $message = 'عنوان و متن پیام الزامی است.';
-        $message_type = 'error';
-    } elseif (!bale_is_configured()) {
-        $message = 'ابتدا توکن و نام کاربری ربات را در تنظیمات ذخیره کنید.';
-        $message_type = 'error';
-    } elseif ($delivery_mode !== 'bot_only' && !sc_bale_safir_is_configured()) {
-        $message = 'برای ارسال هزینه‌دار، تنظیمات سفیر بله را در تب ربات بله تکمیل کنید.';
-        $message_type = 'error';
-    } elseif ($target_type === 'phone' && $delivery_mode === 'bot_only') {
-        $message = 'ارسال به شماره مشخص فقط از طریق سفیر (هزینه‌دار) امکان‌پذیر است.';
-        $message_type = 'error';
-    } elseif ($target_type === 'phone' && empty($target_config['phone_numbers'])) {
-        $message = 'لطفاً حداقل یک شماره موبایل وارد کنید یا فایل اکسل آپلود کنید.';
-        $message_type = 'error';
-    } else {
-        $all = sc_bale_resolve_recipients($target_type, $target_config);
-        $to_send = sc_bale_filter_recipients_for_send($all, $delivery_mode);
+    $media = null;
+    $uploaded_tmp_path = '';
+    $has_upload = !empty($_FILES['media_file']['name']) && (int) ($_FILES['media_file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
 
-        if (empty($to_send)) {
-            $stats = sc_bale_count_recipients_by_chat($all);
-            $message = 'هیچ مخاطبی با این فیلتر و حالت ارسال یافت نشد. (دارای Chat ID: ' . $stats['with_chat_id'] . ' — بدون Chat ID: ' . $stats['without_chat_id'] . ')';
-            $message_type = 'warning';
+    if ($has_upload) {
+        $upload_error = (int) ($_FILES['media_file']['error'] ?? UPLOAD_ERR_OK);
+        if ($upload_error !== UPLOAD_ERR_OK) {
+            $message = 'آپلود فایل ناموفق بود.';
+            $message_type = 'error';
         } else {
-            $result = sc_bale_send_bulk_message($title, $content, $target_type, $target_config, $delivery_mode);
-            wp_safe_redirect(add_query_arg([
-                'page'   => 'sc-bale-bot-messages',
-                'sent'   => 1,
-                'bot'    => $result['bot_sent'],
-                'safir'  => $result['safir_sent'],
-            ], admin_url('admin.php')));
-            exit;
+            $size = (int) ($_FILES['media_file']['size'] ?? 0);
+            $check = wp_check_filetype_and_ext(
+                $_FILES['media_file']['tmp_name'],
+                sanitize_file_name(wp_unslash($_FILES['media_file']['name']))
+            );
+            $mime = !empty($check['type']) ? $check['type'] : (string) ($_FILES['media_file']['type'] ?? '');
+            $media_type = function_exists('sc_bale_detect_media_type')
+                ? sc_bale_detect_media_type($mime)
+                : 'document';
+
+            $max_bytes = ($media_type === 'photo') ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
+            if ($size <= 0) {
+                $message = 'فایل انتخاب‌شده خالی است.';
+                $message_type = 'error';
+            } elseif ($size > $max_bytes) {
+                $message = $media_type === 'photo'
+                    ? 'حداکثر حجم عکس ۱۰ مگابایت است.'
+                    : 'حداکثر حجم فایل ۵۰ مگابایت است.';
+                $message_type = 'error';
+            } else {
+                require_once ABSPATH . 'wp-admin/includes/file.php';
+                $overrides = [
+                    'test_form' => false,
+                    'mimes'     => null,
+                ];
+                $moved = wp_handle_upload($_FILES['media_file'], $overrides);
+                if (!empty($moved['error'])) {
+                    $message = $moved['error'];
+                    $message_type = 'error';
+                } elseif (empty($moved['file'])) {
+                    $message = 'ذخیره فایل آپلودشده ناموفق بود.';
+                    $message_type = 'error';
+                } else {
+                    $uploaded_tmp_path = $moved['file'];
+                    $mime = !empty($moved['type']) ? $moved['type'] : $mime;
+                    $media_type = function_exists('sc_bale_detect_media_type')
+                        ? sc_bale_detect_media_type($mime)
+                        : 'document';
+                    $media = [
+                        'path' => $moved['file'],
+                        'type' => $media_type,
+                        'mime' => $mime,
+                        'name' => sanitize_file_name(wp_unslash($_FILES['media_file']['name'])),
+                    ];
+                }
+            }
         }
+    }
+
+    if ($message === '') {
+        if ($title === '') {
+            $message = 'عنوان پیام الزامی است.';
+            $message_type = 'error';
+        } elseif ($content === '' && !$media) {
+            $message = 'متن پیام یا فایل ضمیمه الزامی است.';
+            $message_type = 'error';
+        } elseif (!bale_is_configured()) {
+            $message = 'ابتدا توکن و نام کاربری ربات را در تنظیمات ذخیره کنید.';
+            $message_type = 'error';
+        } elseif ($delivery_mode !== 'bot_only' && !sc_bale_safir_is_configured()) {
+            $message = 'برای ارسال هزینه‌دار، تنظیمات سفیر بله را در تب ربات بله تکمیل کنید.';
+            $message_type = 'error';
+        } elseif ($target_type === 'phone' && $delivery_mode === 'bot_only') {
+            $message = 'ارسال به شماره مشخص فقط از طریق سفیر (هزینه‌دار) امکان‌پذیر است.';
+            $message_type = 'error';
+        } elseif ($target_type === 'phone' && empty($target_config['phone_numbers'])) {
+            $message = 'لطفاً حداقل یک شماره موبایل وارد کنید یا فایل اکسل آپلود کنید.';
+            $message_type = 'error';
+        } else {
+            $all = sc_bale_resolve_recipients($target_type, $target_config);
+            $to_send = sc_bale_filter_recipients_for_send($all, $delivery_mode);
+
+            if (empty($to_send)) {
+                $stats = sc_bale_count_recipients_by_chat($all);
+                $message = 'هیچ مخاطبی با این فیلتر و حالت ارسال یافت نشد. (دارای Chat ID: ' . $stats['with_chat_id'] . ' — بدون Chat ID: ' . $stats['without_chat_id'] . ')';
+                $message_type = 'warning';
+            } else {
+                $result = sc_bale_send_bulk_message($title, $content, $target_type, $target_config, $delivery_mode, $media);
+                if ($uploaded_tmp_path !== '' && file_exists($uploaded_tmp_path)) {
+                    @unlink($uploaded_tmp_path);
+                }
+                wp_safe_redirect(add_query_arg([
+                    'page'   => 'sc-bale-bot-messages',
+                    'sent'   => 1,
+                    'bot'    => $result['bot_sent'],
+                    'safir'  => $result['safir_sent'],
+                ], admin_url('admin.php')));
+                exit;
+            }
+        }
+    }
+
+    if ($uploaded_tmp_path !== '' && file_exists($uploaded_tmp_path)) {
+        @unlink($uploaded_tmp_path);
     }
 }
 
@@ -79,7 +150,7 @@ $safir_configured = sc_bale_safir_is_configured();
     <a href="<?php echo esc_url($list_url); ?>" class="page-title-action">لیست پیام‌ها</a>
     <a href="<?php echo esc_url(admin_url('admin.php?page=sc_setting&tab=bale_bot')); ?>" class="page-title-action">تنظیمات ربات</a>
     <hr class="wp-header-end">
-    <p class="sc-bale-send-subtitle">عنوان و متن پیام را وارد کنید، حالت ارسال و مخاطبین را مشخص کنید و پیام را از طریق ربات بله ارسال کنید.</p>
+    <p class="sc-bale-send-subtitle">عنوان و متن پیام را وارد کنید، در صورت نیاز عکس/فیلم/فایل ضمیمه کنید، حالت ارسال و مخاطبین را مشخص کنید و پیام را از طریق ربات بله ارسال کنید.</p>
 </div>
 <div class="wrap sc-bale-send-page-body sc-bale-admin-wrap sc-notification-add-wrap sc-users-export-wrap sc-bulk-actions-wrap">
     <?php if ($message) : ?>
@@ -105,8 +176,23 @@ $safir_configured = sc_bale_safir_is_configured();
                         <td><input type="text" name="title" id="title" class="regular-text sc-notification-input" required></td>
                     </tr>
                     <tr class="sc-notification-field-row">
-                        <th scope="row"><label for="content">متن پیام <span class="required">*</span></label></th>
-                        <td><textarea name="content" id="content" rows="6" class="large-text sc-notification-textarea" required></textarea></td>
+                        <th scope="row"><label for="content">متن پیام</label></th>
+                        <td>
+                            <textarea name="content" id="content" rows="6" class="large-text sc-notification-textarea"></textarea>
+                            <p class="description">اگر فایل ضمیمه کنید، متن اختیاری است و به‌عنوان زیرنویس (caption) ارسال می‌شود.</p>
+                        </td>
+                    </tr>
+                    <tr class="sc-notification-field-row sc-bale-media-row">
+                        <th scope="row"><label for="media_file">عکس / فیلم / فایل</label></th>
+                        <td>
+                            <input type="file" name="media_file" id="media_file" class="sc-bale-media-input"
+                                   accept="image/*,video/*,.pdf,.zip,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt">
+                            <p class="description">
+                                یک فایل در هر ارسال. عکس تا ۱۰ مگابایت؛ فیلم و سایر فایل‌ها تا ۵۰ مگابایت.
+                                نوع ارسال به‌صورت خودکار تشخیص داده می‌شود (عکس / فیلم / فایل).
+                            </p>
+                            <p class="description sc-bale-media-hint" id="sc-bale-media-hint" hidden></p>
+                        </td>
                     </tr>
                     </tbody>
                 </table>

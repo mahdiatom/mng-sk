@@ -418,10 +418,35 @@
             previewLoaded = false;
         });
 
+        $('#media_file').on('change', function () {
+            var $hint = $('#sc-bale-media-hint');
+            var file = this.files && this.files[0] ? this.files[0] : null;
+            if (!file) {
+                $hint.prop('hidden', true).text('');
+                return;
+            }
+            var type = 'فایل';
+            if (file.type && file.type.indexOf('image/') === 0) {
+                type = 'عکس';
+            } else if (file.type && file.type.indexOf('video/') === 0) {
+                type = 'فیلم';
+            }
+            var mb = (file.size / (1024 * 1024)).toFixed(2);
+            $hint.prop('hidden', false).text('انتخاب‌شده: ' + file.name + ' (' + type + ' — ' + mb + ' مگابایت)');
+        });
+
         $('#bale-bot-message-form').on('submit', function (e) {
             $('#recipient-ids-input').val(recipientIds.join(','));
             $('#exclude-recipient-ids-input').val(excludeRecipientIds.join(','));
             $('#phone-numbers-input').val(phoneNumbers.join(','));
+
+            var contentVal = $.trim($('#content').val() || '');
+            var hasMedia = $('#media_file').length && $('#media_file')[0].files && $('#media_file')[0].files.length > 0;
+            if (contentVal === '' && !hasMedia) {
+                e.preventDefault();
+                alert('متن پیام یا فایل ضمیمه الزامی است.');
+                return false;
+            }
 
             var targetType = $('#target_type').val();
             var mode = getDeliveryMode();

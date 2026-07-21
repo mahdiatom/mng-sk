@@ -9,15 +9,29 @@ $list_page = $is_coach ? 'sc-coach-programs' : 'sc-programs';
 
 $program_id = isset($_GET['program_id']) ? absint($_GET['program_id']) : 0;
 $search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
+$today = sc_program_today_ymd();
+$today_shamsi = function_exists('sc_date_shamsi_date_only') ? sc_date_shamsi_date_only($today) : $today;
 $filter_from_shamsi = isset($_GET['filter_date_from_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_from_shamsi'])) : '';
 $filter_to_shamsi = isset($_GET['filter_date_to_shamsi']) ? sanitize_text_field(wp_unslash($_GET['filter_date_to_shamsi'])) : '';
-$today = sc_program_today_ymd();
-$date_from = ($filter_from_shamsi && function_exists('sc_shamsi_to_gregorian_date'))
+// پیش‌فرض فیلدهای تاریخ: امروز
+if ($filter_from_shamsi === '') {
+    $filter_from_shamsi = $today_shamsi;
+}
+if ($filter_to_shamsi === '') {
+    $filter_to_shamsi = $today_shamsi;
+}
+$date_from = (function_exists('sc_shamsi_to_gregorian_date') && $filter_from_shamsi !== '')
     ? sc_shamsi_to_gregorian_date($filter_from_shamsi)
-    : gmdate('Y-m-d', strtotime($today . ' -13 days'));
-$date_to = ($filter_to_shamsi && function_exists('sc_shamsi_to_gregorian_date'))
+    : $today;
+$date_to = (function_exists('sc_shamsi_to_gregorian_date') && $filter_to_shamsi !== '')
     ? sc_shamsi_to_gregorian_date($filter_to_shamsi)
     : $today;
+if (!$date_from) {
+    $date_from = $today;
+}
+if (!$date_to) {
+    $date_to = $today;
+}
 
 if ($program_id > 0) {
     $detail = sc_program_report_detail($program_id);
@@ -220,24 +234,26 @@ foreach ($summary['trend'] as $t) {
         </div>
     </div>
 
-    <div class="sc-members-list-filters-card is-open">
-        <form method="get" class="sc-members-list-filters-panel">
+    <div class="sc-members-list-filters-card is-open sc-prog-report-filters-card">
+        <h2 class="sc-prog-report-filters-title">فیلتر گزارش</h2>
+        <form method="get" class="sc-members-list-filters-panel sc-prog-report-filters-form">
             <input type="hidden" name="page" value="<?php echo esc_attr($report_page); ?>">
-            <div class="sc-filter-grid">
-                <div class="sc-filter-field">
-                    <label class="sc-filter-label">جستجوی بازیکن / برنامه</label>
-                    <input type="search" name="s" value="<?php echo esc_attr($search); ?>" class="sc-filter-control">
+            <div class="sc-prog-report-filters-row">
+                <div class="sc-filter-field sc-prog-report-filters-search">
+                    <label class="sc-filter-label" for="sc_prog_report_search">جستجوی بازیکن / برنامه</label>
+                    <input type="search" id="sc_prog_report_search" name="s" value="<?php echo esc_attr($search); ?>" class="sc-filter-control" placeholder="نام بازیکن یا عنوان برنامه...">
                 </div>
-                <div class="sc-filter-field sc-filter-date">
-                    <label class="sc-filter-label">از تاریخ</label>
-                    <input type="text" name="filter_date_from_shamsi" value="<?php echo esc_attr($filter_from_shamsi); ?>" class="persian-date-input sc-filter-control" readonly>
+                <div class="sc-filter-field sc-filter-date sc-prog-report-filters-date">
+                    <label class="sc-filter-label" for="sc_prog_report_from">از تاریخ</label>
+                    <input type="text" id="sc_prog_report_from" name="filter_date_from_shamsi" value="<?php echo esc_attr($filter_from_shamsi); ?>" class="persian-date-input sc-filter-control" readonly>
                 </div>
-                <div class="sc-filter-field sc-filter-date">
-                    <label class="sc-filter-label">تا تاریخ</label>
-                    <input type="text" name="filter_date_to_shamsi" value="<?php echo esc_attr($filter_to_shamsi); ?>" class="persian-date-input sc-filter-control" readonly>
+                <div class="sc-filter-field sc-filter-date sc-prog-report-filters-date">
+                    <label class="sc-filter-label" for="sc_prog_report_to">تا تاریخ</label>
+                    <input type="text" id="sc_prog_report_to" name="filter_date_to_shamsi" value="<?php echo esc_attr($filter_to_shamsi); ?>" class="persian-date-input sc-filter-control" readonly>
                 </div>
-                <div class="sc-filter-field">
-                    <button type="submit" class="sc_button sc_button--primary">اعمال</button>
+                <div class="sc-filter-field sc-prog-report-filters-action">
+                    <label class="sc-filter-label sc-prog-report-filters-action-label" aria-hidden="true">&nbsp;</label>
+                    <button type="submit" class="sc_button sc_button--primary sc-prog-report-filters-submit">اعمال</button>
                 </div>
             </div>
         </form>
