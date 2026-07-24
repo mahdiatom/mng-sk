@@ -153,29 +153,48 @@ function sc_create_member_courses_table(){
     $table_name = $wpdb->prefix . 'sc_member_courses';
     $table_collation = $wpdb->get_charset_collate();
 
-
-$sql = "CREATE TABLE `$table_name` (
+    // نکته: ایندکس نباید به ستونی ارجاع دهد که در CREATE تعریف نشده؛
+    // نسخهٔ قبلی KEY روی chapter/coach_id داشت بدون تعریف ستون → ساخت جدول روی MySQL fail می‌شد.
+    $sql = "CREATE TABLE `$table_name` (
         `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         `member_id` bigint(20) unsigned NOT NULL,
         `course_id` bigint(20) unsigned NOT NULL,
+        `coach_id` bigint(20) unsigned DEFAULT NULL,
+        `chapter` varchar(255) DEFAULT NULL COMMENT 'شعبه انتخابی',
+        `group_name` varchar(255) DEFAULT NULL COMMENT 'گروه/بخش داخل دوره',
         `enrollment_date` date DEFAULT NULL,
-        `total_sessions` bigint(20) unsigned NOT NULL,
+        `total_sessions` bigint(20) unsigned NOT NULL DEFAULT 0,
         `remaining_sessions` bigint(20) NOT NULL DEFAULT 0 COMMENT 'می‌تواند منفی شود (حضور بعد از اتمام جلسات)',
+        `enrollment_sessions` int(11) unsigned DEFAULT NULL COMMENT 'پکیج: تعداد جلسه انتخابی',
         `threshold_invoiced` TINYINT(1) DEFAULT 0,
+        `billing_deferred` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1=صورتحساب اولیه به ماه بعد موکول',
         `status` varchar(20) DEFAULT 'active',
         `course_status_flags` varchar(255) DEFAULT NULL,
         `created_at` datetime NOT NULL,
         `updated_at` datetime NOT NULL,
-        PRIMARY KEY (`id`),
+        PRIMARY KEY  (`id`),
         KEY `idx_member_id` (`member_id`),
         KEY `idx_course_id` (`course_id`),
+        KEY `idx_coach_id` (`coach_id`),
+        KEY `idx_chapter` (`chapter`),
+        KEY `idx_group_name` (`group_name`),
         KEY `idx_member_course_lookup` (`member_id`,`course_id`,`chapter`,`coach_id`),
         KEY `idx_status` (`status`)
     ) ENGINE=InnoDB $table_collation";
 
-            require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-            dbDelta($sql);
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+
+    // اگر dbDelta به هر دلیل جدول را نساخت، یک‌بار با SQL مستقیم تلاش کن
+    $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name));
+    if ($exists !== $table_name) {
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- DDL ثابت بدون ورودی کاربر
+        $wpdb->query($sql);
+        if (!empty($wpdb->last_error)) {
+            error_log('SC create sc_member_courses failed: ' . $wpdb->last_error);
+        }
     }
+}
 
     /**
  * create_attendances

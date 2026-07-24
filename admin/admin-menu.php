@@ -5443,12 +5443,16 @@ function sc_save_member_courses($member_id, $course_ids, $course_flags = [], $co
  * @param array<int,int> $course_package_sessions شناسه دوره => تعداد جلسهٔ پکیج (اختیاری)
  * @return true|\WP_Error
  */
-function sc_member_course_activate_one($member_id, $course_id, $course_package_sessions = []) {
+function sc_member_course_activate_one($member_id, $course_id, $course_package_sessions = [], $options = []) {
     $member_id = absint($member_id);
     $course_id = absint($course_id);
     if ($member_id < 1 || $course_id < 1) {
         return new WP_Error('sc_mc_bad_id', 'شناسه عضو یا دوره نامعتبر است.');
     }
+    if (!is_array($options)) {
+        $options = [];
+    }
+    $create_invoice = !array_key_exists('create_invoice', $options) || !empty($options['create_invoice']);
 
     global $wpdb;
     $members_table = $wpdb->prefix . 'sc_members';
@@ -5597,7 +5601,7 @@ function sc_member_course_activate_one($member_id, $course_id, $course_package_s
         return new WP_Error('sc_mc_db', 'خطا در ذخیرهٔ ثبت‌نام دوره: ' . ($wpdb->last_error ?: 'نامشخص'));
     }
 
-    if (function_exists('sc_maybe_create_initial_invoices_after_member_courses_save')) {
+    if ($create_invoice && function_exists('sc_maybe_create_initial_invoices_after_member_courses_save')) {
         sc_maybe_create_initial_invoices_after_member_courses_save($member_id, [$course_id]);
     }
 

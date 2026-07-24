@@ -574,6 +574,7 @@
         } else if (action === 'course_activate') {
             $('#sc-action-course-common').show();
             $('#sc-action-course-activate-branch').show();
+            $('#sc-action-course-activate-invoice').show();
             renderActivateCourseBranchBlocks();
         } else if (action === 'course_deactivate') {
             $('#sc-action-course-common').show();
@@ -675,6 +676,13 @@
             var rawAmt = ($('#sc-remaining-sessions-amount').val() || '').toString().trim();
             if (rawAmt === '' || !/^\d+$/.test(rawAmt)) {
                 alert('مقدار جلسات را به صورت عدد صحیح غیرمنفی (۰ یا بیشتر) وارد کنید.');
+                return false;
+            }
+        }
+        if (action === 'course_activate') {
+            var createInvoice = $('#sc-action-create-invoice').val();
+            if (createInvoice !== '0' && createInvoice !== '1') {
+                alert('گزینه ایجاد صورت حساب را انتخاب کنید.');
                 return false;
             }
         }

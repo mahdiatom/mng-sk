@@ -340,6 +340,17 @@ $course_coaches_map = function_exists('sc_get_bulk_course_branch_coaches_map')
                 </div>
             </div>
 
+            <div id="sc-action-course-activate-invoice" class="sc-action-extra">
+                <div class="sc-row sc-bulk-field-row">
+                    <label for="sc-action-create-invoice">ایجاد صورت حساب</label>
+                    <select name="action_create_invoice" id="sc-action-create-invoice">
+                        <option value="1" selected>بله — صورت حساب ایجاد شود</option>
+                        <option value="0">خیر — فقط دوره فعال شود (بدون صورت حساب)</option>
+                    </select>
+                </div>
+                <p class="description">اگر «خیر» را انتخاب کنید، دوره برای بازیکن‌ها فعال می‌شود ولی صورت‌حساب اولیه ساخته نمی‌شود.</p>
+            </div>
+
             <div id="sc-action-course-flag" class="sc-action-extra">
                 <div class="sc-row sc-bulk-field-row">
                     <label for="sc-action-course-flag-select">فلگ دوره</label>

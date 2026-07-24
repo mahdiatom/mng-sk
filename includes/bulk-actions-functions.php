@@ -974,6 +974,9 @@ function sc_bulk_actions_execute_handler() {
             );
         }
 
+        $create_invoice_raw = isset($_POST['action_create_invoice']) ? sanitize_text_field(wp_unslash($_POST['action_create_invoice'])) : '1';
+        $create_invoice = ($create_invoice_raw !== '0');
+
         $course_titles = array();
         foreach ($course_ids as $cid) {
             $cid = absint($cid);
@@ -985,6 +988,8 @@ function sc_bulk_actions_execute_handler() {
         }
         $report_success = array();
         $report_fail = array();
+        $activate_opts = array('create_invoice' => $create_invoice);
+        $ok_suffix = $create_invoice ? 'دوره فعال شد.' : 'دوره فعال شد (بدون صورت حساب).';
         foreach ($member_ids as $member_id) {
             $mem_name = sc_bulk_actions_member_label($member_id);
             foreach ($course_ids as $course_id) {
@@ -993,11 +998,11 @@ function sc_bulk_actions_execute_handler() {
                     continue;
                 }
                 $ctitle = isset($course_titles[$course_id]) ? $course_titles[$course_id] : ('#' . $course_id);
-                $r = sc_member_course_activate_one($member_id, $course_id, array());
+                $r = sc_member_course_activate_one($member_id, $course_id, array(), $activate_opts);
                 if (is_wp_error($r)) {
                     $report_fail[] = $mem_name . ' — «' . $ctitle . '» — ' . $r->get_error_message();
                 } else {
-                    $report_success[] = $mem_name . ' — «' . $ctitle . '» — دوره فعال شد.';
+                    $report_success[] = $mem_name . ' — «' . $ctitle . '» — ' . $ok_suffix;
                 }
             }
         }
