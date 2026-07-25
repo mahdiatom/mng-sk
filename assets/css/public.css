@@ -98,8 +98,23 @@ h2{
     justify-content: space-around;
     padding-top: 10px;
     font-weight: bold;
-    margin-top: -15px;
+    margin-top: 0;
     width: 100%;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
+
+/* نگه داشتن جای هدر وقتی fixed می‌شود تا فوتر/محتوا نپرد */
+.sc-header-fixed-spacer {
+    display: none;
+    width: 100%;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    pointer-events: none;
+    visibility: hidden;
 }
 
 
@@ -302,7 +317,7 @@ font-size: 14px;
     position: relative;
         /* background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important; */
    
-    transition: all 0.3s ease;
+    transition: box-shadow 0.25s ease, background-color 0.25s ease;
     
     padding: 10px 20px;
     display: flex;
@@ -310,6 +325,7 @@ font-size: 14px;
     align-items: center;
     padding-top: 18px;
     overflow: visible;
+    box-sizing: border-box;
 }
 .custom-header.header_top {
     z-index: 10040;
@@ -667,6 +683,9 @@ a.icon_adv svg circle{
     width: 100%;
     z-index: 9999;
     padding: 10px 20px;
+    /* جلوگیری از تغییر ارتفاع هنگام sticky که باعث پرش فوتر می‌شود */
+    padding-top: 18px;
+    box-sizing: border-box;
 }
 .woo_panel_mini{
     display: flex;
@@ -730,10 +749,10 @@ border-bottom: 2px solid rgba(91, 106, 160, 0.387);
     left: 0;
     background-color: red !important;
     color: white !important;
-    padding: 10px !important;
+    padding: 0px !important;
     border-radius: 10px !important;
     text-decoration: none !important;
-    font-weight: bold !important;
+    font-weight: 100 !important;
 
 
 }
@@ -1114,7 +1133,6 @@ textarea#comment{
     color: white;
 }
 .woocommerce-message a{
-    background-color: #fff !important;
     font-size: 14px !important;
 }
 .products .product{
@@ -4611,6 +4629,35 @@ width: 150px;
     font-size: 18px;
     color: #00a32a;
     font-weight: 700;
+}
+
+/* دستورالعمل کارت به کارت در صفحه تشکر */
+.sc-thankyou-payment-instructions {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 30px;
+    margin-bottom: 40px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    border-right: 4px solid #6D34FF;
+}
+
+.sc-thankyou-payment-instructions .sc-thankyou-section-title {
+    margin-top: 0;
+    margin-bottom: 18px;
+}
+
+.sc-thankyou-payment-instructions-body {
+    font-size: 15px;
+    line-height: 1.9;
+    color: #333;
+}
+
+.sc-thankyou-payment-instructions-body p {
+    margin: 0 0 12px;
+}
+
+.sc-thankyou-payment-instructions-body p:last-child {
+    margin-bottom: 0;
 }
 
 /* پیام‌های اطلاع‌رسانی در صفحه تشکر */
@@ -10627,5 +10674,129 @@ body.sc-order-pay-page-active .woocommerce > .woocommerce-notices-wrapper {
         flex-direction: column;
         align-items: flex-start;
         gap: 4px;
+    }
+}
+/* ============================================
+   پیام عدم دسترسی نقش غیر بازیکن به پنل کاربری
+   ============================================ */
+.sc-panel-access-denied {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 420px;
+    padding: 32px 16px;
+    direction: rtl;
+    text-align: center;
+}
+
+.sc-panel-access-denied__card {
+    width: 100%;
+    max-width: 520px;
+    background: #fff;
+    border: 1px solid #eceef3;
+    border-radius: 20px;
+    padding: 40px 32px 36px;
+    box-shadow: 0 12px 40px rgba(16, 24, 40, 0.08);
+}
+
+.sc-panel-access-denied__icon {
+    color: #d63638;
+    margin: 0 auto 18px;
+    width: 64px;
+    height: 64px;
+}
+
+.sc-panel-access-denied__icon svg {
+    display: block;
+    width: 64px;
+    height: 64px;
+}
+
+.sc-panel-access-denied__title {
+    margin: 0 0 12px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1d2327;
+    line-height: 1.4;
+}
+
+.sc-panel-access-denied__text {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    line-height: 1.9;
+    color: #3c434a;
+}
+
+.sc-panel-access-denied__text strong {
+    color: #d63638;
+}
+
+.sc-panel-access-denied__hint {
+    margin: 0 0 24px;
+    font-size: 0.9rem;
+    line-height: 1.8;
+    color: #667085;
+}
+
+.sc-panel-access-denied__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.sc-panel-access-denied__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 10px 22px;
+    border-radius: 12px;
+    background: #6D34FF;
+    color: #fff !important;
+    text-decoration: none !important;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.sc-panel-access-denied__btn:hover {
+    background: #5a2ae6;
+    color: #fff !important;
+    transform: translateY(-1px);
+}
+
+.sc-panel-access-denied__btn--ghost {
+    background: #fff;
+    color: #344054 !important;
+    border: 1px solid #d0d5dd;
+}
+
+.sc-panel-access-denied__btn--ghost:hover {
+    background: #f9fafb;
+    color: #101828 !important;
+}
+
+@media (max-width: 600px) {
+    .sc-panel-access-denied {
+        min-height: 320px;
+        padding: 20px 12px;
+    }
+
+    .sc-panel-access-denied__card {
+        padding: 28px 20px 24px;
+        border-radius: 16px;
+    }
+
+    .sc-panel-access-denied__title {
+        font-size: 1.25rem;
+    }
+
+    .sc-panel-access-denied__actions {
+        flex-direction: column;
+    }
+
+    .sc-panel-access-denied__btn {
+        width: 100%;
     }
 }

@@ -7,7 +7,11 @@ function add_html_before_account_nav() {
      if (!is_user_logged_in()) {
         return '<div class="sc-user-info-notice">لطفاً ابتدا وارد حساب کاربری خود شوید.</div>';
     }
-    
+
+    if (function_exists('sc_user_is_player_panel_allowed') && !sc_user_is_player_panel_allowed()) {
+        return;
+    }
+
     // بررسی و ایجاد جداول
     sc_check_and_create_tables();
 
@@ -484,6 +488,14 @@ if (!defined('ABSPATH')) {
  */
 add_filter('woocommerce_account_menu_items', 'sc_add_my_account_menu_item', 20, 1);
 function sc_add_my_account_menu_item($items) {
+    // نقش غیر بازیکن: فقط خروج — محتوا پیام عدم دسترسی را نشان می‌دهد
+    if (is_user_logged_in()
+        && function_exists('sc_user_is_player_panel_allowed')
+        && !sc_user_is_player_panel_allowed()
+    ) {
+        return ['customer-logout' => 'خروج از حساب کاربری'];
+    }
+
     // مخفی کردن تب برای مدیران
     if (current_user_can('manage_options')) {
         return $items;
@@ -975,10 +987,13 @@ function sc_check_user_active_status() {
     if (!is_user_logged_in()) {
         return false;
     }
-    
-    // مخفی کردن برای مدیران
-    if (current_user_can('manage_options')) {
-        return false; // مدیران همیشه فعال در نظر گرفته می‌شوند
+
+    // فقط نقش بازیکن به پنل کاربری دسترسی دارد
+    if (function_exists('sc_user_is_player_panel_allowed') && !sc_user_is_player_panel_allowed()) {
+        if (function_exists('sc_render_player_panel_access_denied')) {
+            sc_render_player_panel_access_denied();
+        }
+        return false;
     }
     
     // بررسی و ایجاد جداول در صورت عدم وجود
@@ -1158,6 +1173,10 @@ add_action('woocommerce_account_sc-submit-documents_endpoint', 'sc_my_account_do
 function sc_my_account_documents_content() {
     // بررسی و ایجاد جداول در صورت عدم وجود
     sc_check_and_create_tables();
+
+    if (function_exists('sc_require_player_panel_access') && !sc_require_player_panel_access()) {
+        return;
+    }
     
     // در تب اطلاعات بازیکن، حتی کاربر احرازنشده باید فرم را ببیند.
     // فقط اگر کاربر غیرفعال باشد، دسترسی قطع می‌شود.
@@ -2294,6 +2313,11 @@ function sc_handle_course_cancellation() {
 
 add_action('woocommerce_account_sc-my-attendances_endpoint', 'sc_my_account_attendances_content');
 function sc_my_account_attendances_content() {
+    $player = sc_check_user_active_status();
+    if (!$player) {
+        return;
+    }
+
     global $wpdb;
     $courses_table = $wpdb->prefix . 'sc_courses'; 
     $attendances_table = $wpdb->prefix . 'sc_attendances';
@@ -3392,10 +3416,37 @@ function sc_my_account_surveys_content() {
         wp_safe_redirect(wc_get_account_endpoint_url('dashboard'));
         exit;
     }
-    if (!sc_check_user_active_status() && !sc_survey_get_coach_id_for_user(get_current_user_id())) {
+    $player = sc_check_user_active_status();
+    if (!$player) {
         return;
     }
     include SC_TEMPLATES_PUBLIC_DIR . 'survey-list.php';
+}
+
+/**
+ * گیت مرکزی: نقش غیر بازیکن در پنل my-account محتوا را نمی‌بیند.
+ */
+add_action('woocommerce_account_content', 'sc_gate_non_player_account_content', 1);
+function sc_gate_non_player_account_content() {
+    if (!is_user_logged_in()) {
+        return;
+    }
+    if (function_exists('sc_user_is_player_panel_allowed') && sc_user_is_player_panel_allowed()) {
+        return;
+    }
+
+    $endpoint = '';
+    if (function_exists('WC') && WC() && isset(WC()->query)) {
+        $endpoint = (string) WC()->query->get_current_endpoint();
+    }
+    if ($endpoint === 'customer-logout') {
+        return;
+    }
+
+    remove_all_actions('woocommerce_account_content');
+    if (function_exists('sc_render_player_panel_access_denied')) {
+        sc_render_player_panel_access_denied();
+    }
 }
 
 add_action('woocommerce_account_sc-support-tickets_endpoint', 'sc_my_account_support_tickets_content');

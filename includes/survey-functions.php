@@ -62,6 +62,42 @@ function sc_survey_account_fill_url($survey_id) {
     return add_query_arg('sc_fill_survey', $survey_id, wc_get_account_endpoint_url('sc-surveys'));
 }
 
+/**
+ * آدرس پر کردن نظرسنجی در پنل ادمین مربی.
+ *
+ * @param int $survey_id
+ * @return string
+ */
+function sc_survey_coach_fill_url($survey_id) {
+    $survey_id = absint($survey_id);
+    return add_query_arg(
+        [
+            'page'           => 'sc-coach-surveys',
+            'sc_fill_survey' => $survey_id,
+        ],
+        admin_url('admin.php')
+    );
+}
+
+/**
+ * آدرس مناسب پر کردن نظرسنجی بر اساس نقش کاربر فعلی.
+ * مربی → پنل ادمین مربی؛ بازیکن → پنل کاربری.
+ *
+ * @param int $survey_id
+ * @return string
+ */
+function sc_survey_fill_url_for_current_user($survey_id) {
+    $survey_id = absint($survey_id);
+    $user = wp_get_current_user();
+    if ($user instanceof WP_User && function_exists('sc_user_profile_is_coach_user') && sc_user_profile_is_coach_user($user)) {
+        // مربی نباید وارد پنل بازیکن شود
+        if (!function_exists('sc_user_is_player_panel_allowed') || !sc_user_is_player_panel_allowed($user)) {
+            return sc_survey_coach_fill_url($survey_id);
+        }
+    }
+    return sc_survey_account_fill_url($survey_id);
+}
+
 function sc_survey_is_account_surveys_context() {
     if (function_exists('sc_is_portal_page') && sc_is_portal_page() && function_exists('sc_panel_active_tab_is') && sc_panel_active_tab_is('sc-surveys')) {
         return true;
@@ -1652,8 +1688,18 @@ function sc_render_survey_fill_pages() {
         return;
     }
 
-    // Logged-in users fill surveys inside WooCommerce account panel.
+    // Logged-in users fill surveys in the right panel (player account or coach admin).
     if ($fill_id && is_user_logged_in()) {
+        $user = wp_get_current_user();
+        $is_coach_only = function_exists('sc_user_profile_is_coach_user')
+            && sc_user_profile_is_coach_user($user)
+            && (!function_exists('sc_user_is_player_panel_allowed') || !sc_user_is_player_panel_allowed($user));
+
+        if ($is_coach_only) {
+            wp_safe_redirect(sc_survey_coach_fill_url($fill_id));
+            exit;
+        }
+
         if (sc_survey_is_account_surveys_context()) {
             return;
         }

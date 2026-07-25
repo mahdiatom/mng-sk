@@ -34,6 +34,154 @@ function sc_user_profile_is_player_user($user) {
 }
 
 /**
+ * نقش‌هایی که به پنل کاربری بازیکن دسترسی ندارند.
+ *
+ * @return string[]
+ */
+function sc_get_player_panel_blocked_roles() {
+    $roles = ['coach', 'administrator', 'accountantt', 'secretary', 'shop_manager'];
+    if (function_exists('sc_get_club_manager_role_slugs')) {
+        $roles = array_merge($roles, sc_get_club_manager_role_slugs());
+    } else {
+        $roles[] = 'club_coach';
+        $roles[] = 'system_manager';
+    }
+    return array_values(array_unique($roles));
+}
+
+/**
+ * آیا کاربر فعلی (یا داده‌شده) مجاز به پنل بازیکن است؟
+ * فقط نقش «بازیکن» (subscriber) و بدون نقش staff.
+ *
+ * @param WP_User|null $user
+ * @return bool
+ */
+function sc_user_is_player_panel_allowed($user = null) {
+    if ($user === null) {
+        $user = wp_get_current_user();
+    }
+    if (!$user instanceof WP_User || !$user->exists()) {
+        return false;
+    }
+
+    $roles = (array) $user->roles;
+    foreach (sc_get_player_panel_blocked_roles() as $blocked) {
+        if (in_array($blocked, $roles, true)) {
+            return false;
+        }
+    }
+
+    return in_array('subscriber', $roles, true);
+}
+
+/**
+ * برچسب فارسی نقش کاربر برای پیام‌های دسترسی.
+ *
+ * @param WP_User|null $user
+ * @return string
+ */
+function sc_get_user_role_display_label($user = null) {
+    if ($user === null) {
+        $user = wp_get_current_user();
+    }
+    if (!$user instanceof WP_User || empty($user->roles)) {
+        return 'نامشخص';
+    }
+
+    $labels = [
+        'subscriber'     => 'بازیکن',
+        'coach'          => 'مربی',
+        'club_coach'     => 'مدیر باشگاه',
+        'system_manager' => 'مدیر سامانه',
+        'administrator'  => 'مدیر کل',
+        'accountantt'    => 'حسابدار',
+        'secretary'      => 'منشی',
+        'shop_manager'   => 'مدیر فروشگاه',
+    ];
+
+    $role = (string) $user->roles[0];
+    if (isset($labels[$role])) {
+        return $labels[$role];
+    }
+
+    global $wp_roles;
+    if ($wp_roles instanceof WP_Roles && isset($wp_roles->role_names[$role])) {
+        return translate_user_role($wp_roles->role_names[$role]);
+    }
+
+    return $role;
+}
+
+/**
+ * آدرس خانه پنل مربی در ادمین.
+ *
+ * @return string
+ */
+function sc_get_coach_panel_home_url() {
+    return admin_url('admin.php?page=sc-coach-my-profile');
+}
+
+/**
+ * پیام زیبای عدم دسترسی نقش غیر بازیکن به پنل کاربری.
+ */
+function sc_render_player_panel_access_denied() {
+    static $rendered = false;
+    if ($rendered) {
+        return;
+    }
+    $rendered = true;
+
+    $role_label = sc_get_user_role_display_label();
+    $admin_url = admin_url();
+    $is_coach = function_exists('sc_user_profile_is_coach_user') && sc_user_profile_is_coach_user(wp_get_current_user());
+    if ($is_coach) {
+        $admin_url = sc_get_coach_panel_home_url();
+    }
+    ?>
+    <div class="sc-panel-access-denied" role="alert">
+        <div class="sc-panel-access-denied__card">
+            <div class="sc-panel-access-denied__icon" aria-hidden="true">
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="32" cy="32" r="32" fill="currentColor" opacity="0.1"/>
+                    <circle cx="32" cy="32" r="22" stroke="currentColor" stroke-width="2.5" opacity="0.35"/>
+                    <path d="M32 18v18" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
+                    <circle cx="32" cy="44" r="2.5" fill="currentColor"/>
+                </svg>
+            </div>
+            <h2 class="sc-panel-access-denied__title">دسترسی مجاز نیست</h2>
+            <p class="sc-panel-access-denied__text">
+                نقش شما (<strong><?php echo esc_html($role_label); ?></strong>) دسترسی به این بخش را ندارد.
+            </p>
+            <p class="sc-panel-access-denied__hint">
+                این پنل فقط برای بازیکنان باشگاه در دسترس است. لطفاً از پنل مربوط به نقش خود استفاده کنید.
+            </p>
+            <div class="sc-panel-access-denied__actions">
+                <a class="sc-panel-access-denied__btn" href="<?php echo esc_url($admin_url); ?>">
+                    <?php echo $is_coach ? 'بازگشت به پنل مربی' : 'بازگشت به پنل مدیریت'; ?>
+                </a>
+                <a class="sc-panel-access-denied__btn sc-panel-access-denied__btn--ghost" href="<?php echo esc_url(home_url('/')); ?>">
+                    صفحه اصلی
+                </a>
+            </div>
+        </div>
+    </div>
+    <?php
+}
+
+/**
+ * اگر کاربر بازیکن نباشد پیام عدم دسترسی را نشان می‌دهد.
+ *
+ * @return bool
+ */
+function sc_require_player_panel_access() {
+    if (sc_user_is_player_panel_allowed()) {
+        return true;
+    }
+    sc_render_player_panel_access_denied();
+    return false;
+}
+
+/**
  * بازیکن و مربی (بدون نقش staff) از user-edit وردپرس مسدود می‌شوند.
  */
 function sc_user_profile_is_restricted_user($user) {

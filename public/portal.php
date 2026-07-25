@@ -360,9 +360,12 @@ function sc_portal_template_redirect() {
         exit;
     }
 
-    if (current_user_can('manage_options')) {
-        wp_safe_redirect(admin_url());
-        exit;
+    if (is_user_logged_in() && function_exists('sc_user_is_player_panel_allowed') && !sc_user_is_player_panel_allowed()) {
+        // مدیران را به پنل ادمین بفرست؛ سایر نقش‌ها پیام عدم دسترسی را داخل پنل می‌بینند
+        if (current_user_can('manage_options')) {
+            wp_safe_redirect(admin_url());
+            exit;
+        }
     }
 
     $tab = sc_portal_get_current_tab();
@@ -719,6 +722,17 @@ function sc_portal_render_page($tab, $menu_items) {
  * Invoke the same WooCommerce endpoint action used by My Account tabs.
  */
 function sc_portal_render_tab_content($tab) {
+    if (is_user_logged_in()
+        && function_exists('sc_user_is_player_panel_allowed')
+        && !sc_user_is_player_panel_allowed()
+        && $tab !== 'customer-logout'
+    ) {
+        if (function_exists('sc_render_player_panel_access_denied')) {
+            sc_render_player_panel_access_denied();
+        }
+        return;
+    }
+
     if (function_exists('sc_display_incomplete_profile_message')) {
         sc_display_incomplete_profile_message();
     }

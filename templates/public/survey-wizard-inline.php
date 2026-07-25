@@ -68,7 +68,7 @@ $questions_for_js = array_map(function ($q) {
                 <?php else : ?>
                     <div id="sc-survey-thankyou-custom" class="sc-survey-thankyou-custom" style="display:none;"></div>
                 <?php endif; ?>
-                <a href="<?php echo esc_url(function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('sc-surveys') : home_url('/')); ?>" class="sc-survey-thankyou-back sc-pn-btn sc-pn-btn-primary">بازگشت به لیست نظرسنجی‌ها</a>
+                <a href="<?php echo esc_url(!empty($survey_list_back_url) ? $survey_list_back_url : (function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('sc-surveys') : home_url('/'))); ?>" class="sc-survey-thankyou-back sc-pn-btn sc-pn-btn-primary">بازگشت به لیست نظرسنجی‌ها</a>
             </div>
         </div>
 

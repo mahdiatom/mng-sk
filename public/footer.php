@@ -24,19 +24,86 @@ function custom_footer_output() {
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    const header = document.querySelector('.custom-header');
-    const headerHeight = header.offsetHeight;
-window.addEventListener('scroll', function () {
-        if (window.scrollY > headerHeight) {
+    var header = document.querySelector('.custom-header.header_top') || document.querySelector('.custom-header');
+    if (!header) {
+        return;
+    }
+
+    var spacer = null;
+    var ticking = false;
+    var lastFixed = false;
+
+    function measureHeaderHeight() {
+        return Math.ceil(header.getBoundingClientRect().height);
+    }
+
+    function ensureSpacer(height) {
+        if (!spacer) {
+            spacer = document.createElement('div');
+            spacer.className = 'sc-header-fixed-spacer';
+            spacer.setAttribute('aria-hidden', 'true');
+            if (header.nextSibling) {
+                header.parentNode.insertBefore(spacer, header.nextSibling);
+            } else {
+                header.parentNode.appendChild(spacer);
+            }
+        }
+        spacer.style.height = height + 'px';
+        spacer.style.display = 'block';
+    }
+
+    function hideSpacer() {
+        if (!spacer) {
+            return;
+        }
+        spacer.style.display = 'none';
+        spacer.style.height = '0px';
+    }
+
+    function updateFixedHeader() {
+        ticking = false;
+        var scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+        var headerH = lastFixed && spacer
+            ? (parseFloat(spacer.style.height) || measureHeaderHeight())
+            : measureHeaderHeight();
+
+        // روی صفحات کوتاه، fixed کردن هدر ارتفاع سند را به‌هم می‌زند و فوتر می‌پرد
+        var docH = Math.max(
+            document.documentElement.scrollHeight,
+            document.body ? document.body.scrollHeight : 0
+        );
+        var overflow = docH - window.innerHeight;
+        var canStick = overflow > (headerH + 24);
+
+        var shouldFix = canStick && scrollY > headerH;
+
+        if (shouldFix === lastFixed) {
+            return;
+        }
+
+        if (shouldFix) {
+            var h = measureHeaderHeight();
+            ensureSpacer(h);
             header.classList.add('fixed');
+            lastFixed = true;
         } else {
             header.classList.remove('fixed');
+            hideSpacer();
+            lastFixed = false;
         }
-    });
+    }
+
+    function onScrollOrResize() {
+        if (!ticking) {
+            ticking = true;
+            window.requestAnimationFrame(updateFixedHeader);
+        }
+    }
+
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize, { passive: true });
+    updateFixedHeader();
 });
-
-
-
 </script>
 
 <?php 

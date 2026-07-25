@@ -408,6 +408,87 @@ function sc_refund_wallet_session_fee($member_id, $amount, $course_title, $atten
 }
 
 /**
+ * آیا سفارش ووکامرس شامل آیتم محصول است؟ (سفارش فروشگاه)
+ *
+ * @param WC_Order $order
+ * @return bool
+ */
+function sc_wc_order_has_product_line_items($order) {
+    if (!$order || !is_a($order, 'WC_Order')) {
+        return false;
+    }
+    return count($order->get_items('line_item')) > 0;
+}
+
+/**
+ * اعمال پرداخت جزئی کیف پول روی سفارش ووکامرس.
+ *
+ * - سفارش فروشگاه (دارای محصول): تخفیف منفی «پرداخت از کیف پول» تا مبلغ سفارش کم شود
+ * - سفارش صورت‌حساب (فقط fee): جایگزینی fee با مبلغ باقیمانده
+ *
+ * @param WC_Order $order
+ * @param float    $pay_amount       مبلغ کسرشده از کیف پول
+ * @param float    $remaining_amount مبلغ باقی‌مانده قابل پرداخت از درگاه
+ */
+function sc_apply_wallet_partial_to_wc_order($order, $pay_amount, $remaining_amount) {
+    if (!$order || !is_a($order, 'WC_Order') || !class_exists('WC_Order_Item_Fee')) {
+        return;
+    }
+
+    $pay_amount = round((float) $pay_amount, 2);
+    $remaining_amount = round((float) $remaining_amount, 2);
+    $wallet_fee_names = ['پرداخت از کیف پول', 'مبلغ باقیمانده صورت حساب'];
+
+    if (sc_wc_order_has_product_line_items($order)) {
+        // سفارش فروشگاه: محصولات می‌مانند؛ کیف پول به‌صورت fee منفی کم می‌شود
+        // (قبلاً اشتباه بود: fee باقیمانده روی محصولات اضافه می‌شد → 2×کل − کیف پول)
+        foreach ($order->get_items('fee') as $item_id => $item) {
+            $name = (string) $item->get_name();
+            if (in_array($name, $wallet_fee_names, true)) {
+                $order->remove_item($item_id);
+            }
+        }
+
+        if ($pay_amount > 0) {
+            $fee = new WC_Order_Item_Fee();
+            $fee->set_name('پرداخت از کیف پول');
+            $fee->set_amount(-$pay_amount);
+            $fee->set_tax_class('');
+            $fee->set_tax_status('none');
+            $fee->set_total(-$pay_amount);
+            $order->add_item($fee);
+        }
+    } else {
+        // سفارش صورت‌حساب مبتنی بر fee: فقط مبلغ باقیمانده بماند
+        foreach ($order->get_items('fee') as $item_id => $item) {
+            $order->remove_item($item_id);
+        }
+
+        if ($remaining_amount > 0) {
+            $fee = new WC_Order_Item_Fee();
+            $fee->set_name('مبلغ باقیمانده صورت حساب');
+            $fee->set_amount($remaining_amount);
+            $fee->set_tax_class('');
+            $fee->set_tax_status('none');
+            $fee->set_total($remaining_amount);
+            $order->add_item($fee);
+        }
+    }
+
+    $order->calculate_totals(false);
+
+    // اطمینان از اینکه مبلغ نهایی همان باقیمانده است (جلوگیری از دوبل‌شدن در فروشگاه)
+    if (sc_wc_order_has_product_line_items($order)) {
+        $new_total = round((float) $order->get_total(), 2);
+        if ($remaining_amount >= 0 && abs($new_total - $remaining_amount) > 0.05) {
+            $order->set_total($remaining_amount);
+        }
+    }
+
+    $order->save();
+}
+
+/**
  * Pay invoice from wallet
  * پرداخت صورت حساب از کیف پول
  */
@@ -534,38 +615,47 @@ function sc_pay_invoice_from_wallet($invoice_id, $amount = null) {
             }
         }
     } else {
-        // پرداخت جزئی - کاهش مبلغ صورت حساب و بروزرسانی fee سفارش
-        $remaining_amount = $total_amount - $pay_amount;
+        // پرداخت جزئی - کاهش مبلغ صورت حساب و بروزرسانی سفارش ووکامرس
+        $remaining_amount = round($total_amount - $pay_amount, 2);
+        $invoice_update = [
+            'amount'         => $remaining_amount,
+            'penalty_amount' => 0,
+            'updated_at'     => current_time('mysql'),
+        ];
+        $invoice_update_fmt = ['%f', '%f', '%s'];
+        // مبلغ باقی‌مانده به‌صورت یکجا در amount ذخیره می‌شود تا با tax دوباره جمع نشود
+        if (function_exists('sc_invoices_support_tax_column') && sc_invoices_support_tax_column()) {
+            $invoice_update['tax_amount'] = 0;
+            $invoice_update_fmt[] = '%f';
+        }
+
         $wpdb->update(
             $invoices_table,
-            [
-                'amount' => $remaining_amount,
-                'updated_at' => current_time('mysql')
-            ],
+            $invoice_update,
             ['id' => $invoice_id],
-            ['%f', '%s'],
+            $invoice_update_fmt,
             ['%d']
         );
-        
-        // بروزرسانی fee سفارش WooCommerce
+
+        // بروزرسانی سفارش WooCommerce
         if (!empty($invoice->woocommerce_order_id) && function_exists('wc_get_order')) {
             $order = wc_get_order($invoice->woocommerce_order_id);
-            if ($order) {
-                // حذف fee های قبلی
+            if ($order && function_exists('sc_apply_wallet_partial_to_wc_order')) {
+                sc_apply_wallet_partial_to_wc_order($order, $pay_amount, $remaining_amount);
+            } elseif ($order) {
+                // fallback قدیمی (فقط سفارش‌های مبتنی بر fee)
                 foreach ($order->get_items('fee') as $item_id => $item) {
                     $order->remove_item($item_id);
                 }
-                
-                // اضافه کردن fee جدید با مبلغ باقیمانده
-                $fee = new WC_Order_Item_Fee();
-                $fee->set_name('مبلغ باقیمانده صورت حساب');
-                $fee->set_amount($remaining_amount);
-                $fee->set_tax_class('');
-                $fee->set_tax_status('none');
-                $fee->set_total($remaining_amount);
-                $order->add_item($fee);
-                
-                // محاسبه مجدد و ذخیره
+                if ($remaining_amount > 0) {
+                    $fee = new WC_Order_Item_Fee();
+                    $fee->set_name('مبلغ باقیمانده صورت حساب');
+                    $fee->set_amount($remaining_amount);
+                    $fee->set_tax_class('');
+                    $fee->set_tax_status('none');
+                    $fee->set_total($remaining_amount);
+                    $order->add_item($fee);
+                }
                 $order->calculate_totals();
                 $order->save();
             }

@@ -55,3 +55,57 @@ function sc_remove_woocommerce_thankyou_hooks() {
  */
 add_filter('woocommerce_thankyou_order_received_text', '__return_empty_string', 999);
 
+/**
+ * آیا سفارش با روش پرداخت کارت به کارت (BACS) ثبت شده است؟
+ *
+ * @param WC_Order|null $order
+ * @return bool
+ */
+function sc_order_used_card_to_card_payment($order) {
+    if (!$order || !is_a($order, 'WC_Order')) {
+        return false;
+    }
+
+    if ($order->get_payment_method() === 'bacs') {
+        return true;
+    }
+
+    $title = (string) $order->get_payment_method_title();
+    if ($title === '') {
+        return false;
+    }
+
+    return (function_exists('mb_stripos')
+        ? mb_stripos($title, 'کارت به کارت') !== false
+        : stripos($title, 'کارت به کارت') !== false);
+}
+
+/**
+ * متن دستورالعمل کارت به کارت از تنظیمات درگاه BACS ووکامرس.
+ * فقط وقتی درگاه فعال باشد و سفارش با همین روش ثبت شده باشد برمی‌گردد.
+ *
+ * @param WC_Order|null $order
+ * @return string
+ */
+function sc_get_card_to_card_instructions($order = null) {
+    if (!function_exists('WC') || !WC()->payment_gateways()) {
+        return '';
+    }
+
+    $gateways = WC()->payment_gateways()->payment_gateways();
+    if (empty($gateways['bacs']) || $gateways['bacs']->enabled !== 'yes') {
+        return '';
+    }
+
+    if ($order && !sc_order_used_card_to_card_payment($order)) {
+        return '';
+    }
+
+    $instructions = $gateways['bacs']->get_option('instructions');
+    if (!is_string($instructions)) {
+        return '';
+    }
+
+    return trim($instructions);
+}
+

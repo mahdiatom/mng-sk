@@ -3,7 +3,7 @@
  * Plugin Name:       سامانه مدیریت باشگاه اتم کلاب
  * Plugin URI:        https://atomwp.ir
  * Description:       یک سیستم جامع برای مدیریت اعضا، دوره‌های ورزشی، پرداخت‌ها و حضور و غیاب باشگاه با قابلیت یکپارچگی کامل با ووکامرس.
- * Version:           1.5.28
+ * Version:           1.5.29
  * Author:            مهدی باباشاهی
  * Author URI:        https://atomwp.ir
  * License:           GPL2
@@ -1902,6 +1902,10 @@ function sc_admin_enqueue_assets() {
         wp_enqueue_style('sc-users-export-admin-css', SC_ASSETS_URL . 'css/admin-users-export.css', array('sc-admin-css'), time());
         wp_enqueue_style('sc-bulk-actions-admin-css', SC_ASSETS_URL . 'css/admin-bulk-actions.css', array('sc-admin-css', 'sc-users-export-admin-css'), time());
         wp_enqueue_style('sc-admin-survey-css', SC_ASSETS_URL . 'css/admin-survey.css', array('sc-admin-css', 'sc-users-export-admin-css'), time());
+    }
+    if ($current_page === 'sc-coach-surveys') {
+        wp_enqueue_style('sc-survey-css', SC_ASSETS_URL . 'css/survey.css', array('sc-admin-css', 'sc-admin-survey-css'), time());
+        wp_enqueue_script('sc-survey-wizard-js', SC_ASSETS_URL . 'js/survey-wizard.js', array('jquery', 'persian-datepicker-js'), time(), true);
     }
     if (in_array($current_page, array('sc-add-survey', 'sc-surveys', 'sc-survey-data', 'sc-survey-stats'), true)) {
         wp_enqueue_script('sc-survey-admin-js', SC_ASSETS_URL . 'js/survey-admin.js', array('jquery', 'sc-admin-js'), time(), true);

@@ -403,3 +403,43 @@
     text-align: center;
     color: #9ca3af;
 }
+/* Coach survey fill inside WP admin */
+.sc-coach-survey-fill-card {
+    max-width: 820px;
+}
+
+.sc-coach-surveys-admin .sc-survey-inline-shell {
+    direction: rtl;
+    text-align: right;
+}
+
+.sc-coach-surveys-admin .sc-survey-header-inline h3 {
+    margin-top: 0;
+}
+
+.sc-coach-surveys-admin .sc-dashboard-btn,
+.sc-coach-surveys-admin .sc-pn-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    background: #2271b1;
+    color: #fff;
+}
+
+.sc-coach-surveys-admin .sc-survey-btn-secondary {
+    background: #f0f0f1;
+    color: #1d2327;
+}
+
+.sc-coach-surveys-admin .sc-survey-thankyou-card {
+    margin-top: 16px;
+}

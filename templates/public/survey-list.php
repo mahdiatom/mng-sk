@@ -132,7 +132,9 @@ if ($fill_survey_id > 0) {
             <div class="sc-dashboard-grid sc-surveys-grid">
                 <?php foreach ($list as $row) :
                     $s = $row['survey'];
-                    $fill_url = sc_survey_account_fill_url((int) $s->id);
+                    $fill_url = function_exists('sc_survey_fill_url_for_current_user')
+                        ? sc_survey_fill_url_for_current_user((int) $s->id)
+                        : sc_survey_account_fill_url((int) $s->id);
                     $is_done = !empty($row['completed']);
                     $done_date = '';
                     if ($is_done && !empty($row['completed_at']) && function_exists('sc_date_shamsi')) {

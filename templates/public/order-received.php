@@ -73,6 +73,10 @@ if ($order_date && function_exists('sc_date_shamsi_date_only')) {
 
 $order_items = $order->get_items();
 $thankyou_extra_class = $is_private ? ' sc-thankyou-page--private' : '';
+
+$card_to_card_instructions = function_exists('sc_get_card_to_card_instructions')
+    ? sc_get_card_to_card_instructions($order)
+    : '';
 ?>
 
 <div class="sc-thankyou-page<?php echo esc_attr($thankyou_extra_class); ?>">
@@ -112,6 +116,20 @@ $thankyou_extra_class = $is_private ? ' sc-thankyou-page--private' : '';
         </div>
     </div>
 
+    <?php wc_print_notices(); ?>
+
+    <?php if ($card_to_card_instructions !== '') : ?>
+        <div class="sc-thankyou-payment-instructions">
+            <h2 class="sc-thankyou-section-title">
+                <span class="sc-thankyou-section-icon">💳</span>
+                دستورالعمل پرداخت کارت به کارت
+            </h2>
+            <div class="sc-thankyou-payment-instructions-body">
+                <?php echo wp_kses_post(wpautop(wptexturize($card_to_card_instructions))); ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <div class="sc-thankyou-cards">
         <div class="sc-thankyou-card sc-thankyou-card-order">
             <div class="sc-thankyou-card-icon">📦</div>
@@ -145,8 +163,6 @@ $thankyou_extra_class = $is_private ? ' sc-thankyou-page--private' : '';
             </div>
         </div>
     </div>
-
-    <?php wc_print_notices(); ?>
 
     <?php if ($item_type !== 'other') : ?>
         <div class="sc-thankyou-item-info">
