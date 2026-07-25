@@ -2132,8 +2132,8 @@ function sc_public_enqueue_assets() {
             || (function_exists('sc_panel_active_tab_is') && sc_panel_active_tab_is('sc-surveys'))
         );
     if ($sc_is_surveys_account) {
-        wp_enqueue_style('sc-survey-css', SC_ASSETS_URL . 'css/survey.css', array('sc-public-css'), time());
-        wp_enqueue_style('sc-private-notes-css', SC_ASSETS_URL . 'css/private-notes.css', array('sc-public-css', 'sc-survey-css'), time());
+        wp_enqueue_style('sc-private-notes-css', SC_ASSETS_URL . 'css/private-notes.css', array('sc-public-css'), time());
+        wp_enqueue_style('sc-survey-css', SC_ASSETS_URL . 'css/survey.css', array('sc-public-css', 'sc-private-notes-css'), time());
         wp_enqueue_script('sc-survey-wizard-js', SC_ASSETS_URL . 'js/survey-wizard.js', array('jquery', 'sc-public-js', 'persian-datepicker-js'), time(), true);
     }
 

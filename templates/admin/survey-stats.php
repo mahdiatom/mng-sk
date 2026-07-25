@@ -44,14 +44,18 @@ function sc_render_star_rating($value, $max = 5) {
     return $html;
 }
 ?>
-<div class="wrap sc-users-export-wrap sc-survey-stats-wrap">
-    <h1>آمار نظرسنجی</h1>
-    <p class="description">نمودارهای پاسخ‌ها بر اساس فیلترهای انتخاب‌شده. پیش‌فرض: پاسخ‌های امروز.</p>
+<div class="wrap sc-members-list-wrap sc-survey-stats-wrap sc-survey-admin-shell">
+    <div class="sc-members-list-header">
+        <div class="sc-members-list-header-text">
+            <h1 class="sc-members-list-title">آمار نظرسنجی</h1>
+            <p class="sc-members-list-desc">نمودارهای پاسخ‌ها بر اساس فیلترهای انتخاب‌شده. پیش‌فرض: پاسخ‌های امروز.</p>
+        </div>
+    </div>
 
     <?php include SC_TEMPLATES_ADMIN_DIR . 'partials/survey-filters.php'; ?>
 
     <?php if (empty($surveys)) : ?>
-        <div class="sc-users-export-card"><p>هنوز نظرسنجی ثبت نشده است.</p></div>
+        <div class="sc-users-export-card sc-members-list-table-card"><p>هنوز نظرسنجی ثبت نشده است.</p></div>
     <?php elseif ($survey_id) : ?>
         <div class="sc-dashboard-stats sc-survey-stats-summary">
             <div class="sc-stat-box">
@@ -65,7 +69,7 @@ function sc_render_star_rating($value, $max = 5) {
         </div>
 
         <?php if (empty($stats['questions'])) : ?>
-            <div class="sc-users-export-card sc-survey-stat-card">
+            <div class="sc-users-export-card sc-survey-stat-card sc-members-list-table-card">
                 <p class="description">این نظرسنجی سوالی ندارد.</p>
             </div>
         <?php else : ?>

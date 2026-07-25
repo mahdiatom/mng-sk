@@ -865,3 +865,432 @@
 .sc-survey-verification-status.error {
     color: #dc2626;
 }
+
+/* ——— All-questions wizard + live conditionals ——— */
+.sc-survey-progress-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.sc-survey-progress-dot {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0;
+    border-radius: 999px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #6b7280;
+    font-weight: 800;
+    font-size: 13px;
+    line-height: 1;
+    text-align: center;
+    box-sizing: border-box;
+    cursor: default;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.sc-survey-progress-dot.is-current {
+    border-color: #6d34ff;
+    color: #4a1fb8;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12);
+}
+
+.sc-survey-progress-dot.is-done {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%);
+    border-color: transparent;
+    color: #fff;
+}
+
+.sc-survey-progress-dot:hover {
+    transform: translateY(-1px);
+}
+
+.sc-survey-all-questions {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.sc-survey-q-block {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 18px 18px 16px;
+    box-shadow: 0 2px 10px rgba(16, 24, 40, 0.04);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+}
+
+.sc-survey-q-block.is-answered {
+    border-color: rgba(16, 185, 129, 0.45);
+    background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 55%);
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.08);
+}
+
+.sc-survey-q-block.is-focus {
+    border-color: rgba(109, 52, 255, 0.45);
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12);
+}
+
+.sc-survey-q-block-head {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.sc-survey-q-block-num {
+    display: inline-flex;
+    align-self: flex-start;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4338ca;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.sc-survey-q-block.is-answered .sc-survey-q-block-num {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.sc-survey-q-block h3 {
+    margin: 0;
+    font-size: 1.02rem;
+    line-height: 1.6;
+    color: #111827;
+}
+
+.sc-survey-header-inline {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(16, 24, 40, 0.04);
+}
+
+.sc-survey-header-inline h3 {
+    margin: 0 0 8px;
+    font-size: 1.25rem;
+    color: #101828;
+}
+
+.sc-survey-progress-bar span {
+    background: linear-gradient(90deg, #6d34ff, #8b5cf6);
+}
+
+.sc-survey-nav {
+    margin-top: 8px;
+    justify-content: flex-start;
+}
+
+.sc-coach-surveys-admin .sc-survey-q-block,
+.sc-surveys-user .sc-survey-q-block,
+.sc-survey-page .sc-survey-q-block {
+    direction: rtl;
+    text-align: right;
+}
+
+@media (max-width: 640px) {
+    .sc-survey-progress-label {
+        white-space: normal;
+    }
+    .sc-survey-progress-wrap {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+.sc-survey-progress-dot.is-locked {
+    opacity: 0.35;
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+    color: #9ca3af;
+    cursor: default;
+}
+
+.sc-survey-one-question .sc-survey-q-block {
+    margin-bottom: 0;
+}
+
+/* ═══════════════════════════════════════════════════
+   Public / coach / guest survey — purple SaaS skin
+   (aligned with players list / admin dashboard)
+   ═══════════════════════════════════════════════════ */
+
+.sc-surveys-user,
+.wrap_attendace_user.sc-surveys-user,
+.sc-survey-page,
+.sc-coach-surveys-admin .sc-survey-inline-shell {
+    --sc-survey-purple: #6d34ff;
+    --sc-survey-purple-deep: #4a1fb8;
+    --sc-survey-lavender: #f4f2fa;
+    --sc-survey-card-border: rgba(109, 52, 255, 0.12);
+}
+
+.sc-surveys-account-content {
+    background: transparent;
+}
+
+.sc-surveys-user .sc-pn-page-header,
+.wrap_attendace_user.sc-surveys-user .sc-pn-page-header {
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+    border: 1px solid var(--sc-survey-card-border);
+    border-radius: 16px;
+    box-shadow: 0 8px 28px rgba(74, 31, 184, 0.07), 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.sc-surveys-user .sc-pn-page-title,
+.wrap_attendace_user.sc-surveys-user .sc-pn-page-title {
+    color: #1e1b2e;
+    font-weight: 800;
+}
+
+.sc-surveys-user .sc-pn-count-badge,
+.wrap_attendace_user.sc-surveys-user .sc-pn-count-badge {
+    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+    color: #4a1fb8;
+    border: 1px solid rgba(109, 52, 255, 0.22);
+}
+
+.sc-surveys-user .sc-pn-back-link,
+.wrap_attendace_user.sc-surveys-user .sc-pn-back-link {
+    color: var(--sc-survey-purple-deep);
+    font-weight: 700;
+}
+
+.sc-surveys-user .sc-pn-back-link:hover,
+.wrap_attendace_user.sc-surveys-user .sc-pn-back-link:hover {
+    color: var(--sc-survey-purple);
+}
+
+.sc-surveys-user .sc-pn-filter-card,
+.wrap_attendace_user.sc-surveys-user .sc-pn-filter-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 100%);
+    border: 1px solid var(--sc-survey-card-border);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(74, 31, 184, 0.06);
+}
+
+.sc-surveys-user .sc-pn-input:focus,
+.sc-surveys-user select.sc-pn-input:focus,
+.wrap_attendace_user.sc-surveys-user .sc-pn-input:focus,
+.wrap_attendace_user.sc-surveys-user select.sc-pn-input:focus {
+    border-color: var(--sc-survey-purple) !important;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.14) !important;
+}
+
+.sc-surveys-user .sc-pn-btn-primary,
+.wrap_attendace_user.sc-surveys-user .sc-pn-btn-primary,
+.sc-surveys-user .sc-dashboard-btn,
+.wrap_attendace_user.sc-surveys-user .sc-dashboard-btn,
+.sc-survey-page .sc-dashboard-btn,
+.sc-survey-inline-shell .sc-dashboard-btn,
+.sc-survey-inline-shell .sc-pn-btn-primary {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    border: none !important;
+    border-radius: 999px !important;
+    color: #fff !important;
+    font-weight: 700 !important;
+    box-shadow: 0 8px 22px rgba(109, 52, 255, 0.28);
+}
+
+.sc-surveys-user .sc-pn-btn-ghost,
+.wrap_attendace_user.sc-surveys-user .sc-pn-btn-ghost,
+.sc-survey-inline-shell .sc-survey-btn-secondary {
+    border-radius: 999px !important;
+    border: 1px solid rgba(109, 52, 255, 0.28) !important;
+    background: #fff !important;
+    color: #4a1fb8 !important;
+    font-weight: 700;
+}
+
+.sc-surveys-user .sc-surveys-summary,
+.wrap_attendace_user.sc-surveys-user .sc-surveys-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.sc-surveys-user .sc-surveys-summary-item,
+.wrap_attendace_user.sc-surveys-user .sc-surveys-summary-item {
+    background: #fff;
+    border: 1px solid var(--sc-survey-card-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 4px 16px rgba(74, 31, 184, 0.05);
+    text-align: center;
+}
+
+.sc-surveys-user .sc-surveys-summary-value,
+.wrap_attendace_user.sc-surveys-user .sc-surveys-summary-value {
+    color: #4a1fb8;
+    font-size: 1.35rem;
+}
+
+.sc-surveys-user .sc-survey-card-item,
+.wrap_attendace_user.sc-surveys-user .sc-survey-card-item,
+.sc-surveys-user .sc-dashboard-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 100%) !important;
+    border: 1px solid var(--sc-survey-card-border) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 24px rgba(74, 31, 184, 0.06) !important;
+    overflow: hidden;
+}
+
+.sc-surveys-user .sc-dashboard-badge-blue,
+.wrap_attendace_user.sc-surveys-user .sc-dashboard-badge-blue {
+    background: #dcfce7 !important;
+    color: #166534 !important;
+}
+
+.sc-surveys-user .sc-dashboard-badge-red,
+.wrap_attendace_user.sc-surveys-user .sc-dashboard-badge-red {
+    background: #ede9fe !important;
+    color: #5b21b6 !important;
+}
+
+.sc-surveys-user .sc-survey-start-btn,
+.wrap_attendace_user.sc-surveys-user .sc-survey-start-btn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 8px 18px !important;
+}
+
+/* Wizard / fill UI (player, coach, guest) */
+.sc-survey-header-inline,
+.sc-survey-progress-card,
+.sc-survey-page .sc-survey-verification-card,
+.sc-survey-page .sc-survey-guest-info {
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 100%) !important;
+    border: 1px solid var(--sc-survey-card-border) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 24px rgba(74, 31, 184, 0.06) !important;
+}
+
+.sc-survey-progress-bar {
+    background: #ebe4ff !important;
+}
+
+.sc-survey-progress-bar span {
+    background: linear-gradient(90deg, #6d34ff, #8b5cf6) !important;
+}
+
+.sc-survey-progress-dot.is-done,
+.sc-survey-progress-dot.is-current {
+    border-color: transparent;
+}
+
+.sc-survey-progress-dot.is-current {
+    border-color: #6d34ff !important;
+    color: #4a1fb8 !important;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.14);
+}
+
+.sc-survey-progress-dot.is-done {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    color: #fff !important;
+}
+
+.sc-survey-step,
+.sc-survey-q-block {
+    background: #fff !important;
+    border: 1px solid var(--sc-survey-card-border) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 6px 20px rgba(74, 31, 184, 0.05) !important;
+}
+
+.sc-survey-q-block-num {
+    background: rgba(109, 52, 255, 0.1) !important;
+    color: #4a1fb8 !important;
+}
+
+.sc-survey-q-block.is-answered {
+    border-color: rgba(109, 52, 255, 0.35) !important;
+    background: linear-gradient(180deg, #f5f3ff 0%, #ffffff 60%) !important;
+}
+
+.sc-survey-choice {
+    border-radius: 12px !important;
+    border: 1px solid #e8e5f5 !important;
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sc-survey-choice:hover,
+.sc-survey-choice:has(input:checked) {
+    border-color: rgba(109, 52, 255, 0.45) !important;
+    background: #f5f3ff !important;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.08);
+}
+
+.sc-survey-input,
+.sc-survey-step textarea,
+.sc-survey-guest-field input {
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+.sc-survey-input:focus,
+.sc-survey-step textarea:focus,
+.sc-survey-guest-field input:focus {
+    border-color: #6d34ff !important;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12) !important;
+    outline: none;
+}
+
+.sc-survey-page {
+    background: #f4f2fa;
+    min-height: 100vh;
+}
+
+.sc-survey-wizard-dashboard {
+    max-width: 780px;
+}
+
+.sc-survey-thankyou-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 100%);
+    border: 1px solid var(--sc-survey-card-border);
+    border-radius: 16px;
+    box-shadow: 0 8px 28px rgba(74, 31, 184, 0.08);
+    padding: 28px 22px;
+}
+
+.sc-survey-thankyou-icon {
+    color: #6d34ff;
+}
+
+.sc-survey-thankyou-title {
+    color: #1e1b2e;
+}
+
+.sc-survey-thankyou-back {
+    display: inline-flex !important;
+    margin-top: 16px;
+}
+
+.sc-surveys-user .sc-pn-empty,
+.wrap_attendace_user.sc-surveys-user .sc-pn-empty {
+    background: #fff;
+    border: 1px dashed rgba(109, 52, 255, 0.25);
+    border-radius: 16px;
+    padding: 36px 20px;
+    text-align: center;
+    color: #6b7280;
+}
+
+@media (max-width: 640px) {
+    .sc-surveys-user .sc-surveys-summary,
+    .wrap_attendace_user.sc-surveys-user .sc-surveys-summary {
+        grid-template-columns: 1fr;
+    }
+}

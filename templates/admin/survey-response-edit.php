@@ -35,13 +35,17 @@ $completed_txt = function_exists('sc_date_shamsi') && !empty($response->complete
     ? sc_date_shamsi($response->completed_at, 'Y/m/d H:i')
     : ($response->completed_at ?: '—');
 ?>
-<div class="wrap sc-users-export-wrap sc-survey-response-edit-wrap">
-    <h1>ویرایش پاسخ نظرسنجی</h1>
-    <p class="description">
-        <a href="<?php echo esc_url($back_url); ?>">← بازگشت به داده‌ها</a>
-    </p>
+<div class="wrap sc-members-list-wrap sc-survey-response-edit-wrap sc-survey-admin-shell">
+    <div class="sc-members-list-header">
+        <div class="sc-members-list-header-text">
+            <h1 class="sc-members-list-title">ویرایش پاسخ نظرسنجی</h1>
+            <p class="sc-members-list-desc">
+                <a href="<?php echo esc_url($back_url); ?>">← بازگشت به داده‌ها</a>
+            </p>
+        </div>
+    </div>
 
-    <div class="sc-users-export-card">
+    <div class="sc-users-export-card sc-members-list-table-card">
         <h2><?php echo esc_html($survey ? $survey->title : 'نظرسنجی'); ?></h2>
         <p class="description">
             <strong>پاسخ‌دهنده:</strong> <?php echo esc_html($respondent_name); ?>
@@ -52,7 +56,7 @@ $completed_txt = function_exists('sc_date_shamsi') && !empty($response->complete
         </p>
     </div>
 
-    <form method="post" enctype="multipart/form-data" class="sc-users-export-card">
+    <form method="post" enctype="multipart/form-data" class="sc-users-export-card sc-members-list-table-card">
         <?php wp_nonce_field('sc_save_survey_response_' . $response_id, 'sc_survey_response_nonce'); ?>
         <input type="hidden" name="sc_save_survey_response" value="1">
 

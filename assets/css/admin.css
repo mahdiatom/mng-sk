@@ -1,4 +1,4 @@
-﻿
+
 
 @font-face {
 	font-family: IRANYekanXFaNum;
@@ -4651,12 +4651,12 @@ body.sc-members_page_sc-add-member form .form-table.sc_form-table > tbody, body.
 
 /* ─── لیست بازیکن‌ها — استایل مدرن SaaS ─── */
 body.toplevel_page_sc-members #wpcontent,
-body.sportclub-manager_page_sc-members #wpcontent, body.sc-wp-users-list-page.users-php #wpcontent {
+body.sportclub-manager_page_sc-members #wpcontent, body.sc-wp-users-list-page.users-php #wpcontent , body.sc-survey-admin-page #wpcontent {
     background: #f4f2fa;
 }
 
 body.toplevel_page_sc-members .sc-members-list-wrap,
-body.sportclub-manager_page_sc-members .sc-members-list-wrap, body.sc-wp-users-list-page.users-php .sc-members-list-wrap {
+body.sportclub-manager_page_sc-members .sc-members-list-wrap, body.sc-wp-users-list-page.users-php .sc-members-list-wrap , body.sc-survey-admin-page .sc-members-list-wrap {
     /* inline-start سمت منو (راست در RTL) — بدون فاصله اضافه روی margin-right وردپرس */
     margin-block: 16px 24px;
     margin-inline-start: 0;
@@ -4669,7 +4669,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-wrap, body.sc-wp-users-l
 }
 
 body.toplevel_page_sc-members .sc-members-list-header,
-body.sportclub-manager_page_sc-members .sc-members-list-header, body.sc-wp-users-list-page.users-php .sc-members-list-header {
+body.sportclub-manager_page_sc-members .sc-members-list-header, body.sc-wp-users-list-page.users-php .sc-members-list-header , body.sc-survey-admin-page .sc-members-list-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -4679,7 +4679,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-header, body.sc-wp-users
 }
 
 body.toplevel_page_sc-members .sc-members-list-title,
-body.sportclub-manager_page_sc-members .sc-members-list-title, body.sc-wp-users-list-page.users-php .sc-members-list-title {
+body.sportclub-manager_page_sc-members .sc-members-list-title, body.sc-wp-users-list-page.users-php .sc-members-list-title , body.sc-survey-admin-page .sc-members-list-title {
     margin: 0 0 6px;
     padding: 0;
     font-size: 1.55rem;
@@ -4689,7 +4689,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-title, body.sc-wp-users-
 }
 
 body.toplevel_page_sc-members .sc-members-list-desc,
-body.sportclub-manager_page_sc-members .sc-members-list-desc, body.sc-wp-users-list-page.users-php .sc-members-list-desc {
+body.sportclub-manager_page_sc-members .sc-members-list-desc, body.sc-wp-users-list-page.users-php .sc-members-list-desc , body.sc-survey-admin-page .sc-members-list-desc {
     margin: 0;
     color: #6b7280;
     font-size: 13px;
@@ -4697,7 +4697,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-desc, body.sc-wp-users-l
 }
 
 body.toplevel_page_sc-members .sc-members-list-header-actions,
-body.sportclub-manager_page_sc-members .sc-members-list-header-actions, body.sc-wp-users-list-page.users-php .sc-members-list-header-actions {
+body.sportclub-manager_page_sc-members .sc-members-list-header-actions, body.sc-wp-users-list-page.users-php .sc-members-list-header-actions , body.sc-survey-admin-page .sc-members-list-header-actions {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -4707,7 +4707,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-header-actions, body.sc-
 body.toplevel_page_sc-members .sc-members-list-add-btn,
 body.toplevel_page_sc-members .sc-members-list-add-btn.page-title-action,
 body.sportclub-manager_page_sc-members .sc-members-list-add-btn,
-body.sportclub-manager_page_sc-members .sc-members-list-add-btn.page-title-action, body.sc-wp-users-list-page.users-php .sc-members-list-add-btn.page-title-action {
+body.sportclub-manager_page_sc-members .sc-members-list-add-btn.page-title-action, body.sc-wp-users-list-page.users-php .sc-members-list-add-btn.page-title-action , body.sc-survey-admin-page .sc-members-list-add-btn.page-title-action {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -4726,14 +4726,14 @@ body.sportclub-manager_page_sc-members .sc-members-list-add-btn.page-title-actio
 }
 
 body.toplevel_page_sc-members .sc-members-list-add-btn:hover,
-body.sportclub-manager_page_sc-members .sc-members-list-add-btn:hover, body.sc-wp-users-list-page.users-php .sc-members-list-add-btn:hover {
+body.sportclub-manager_page_sc-members .sc-members-list-add-btn:hover, body.sc-wp-users-list-page.users-php .sc-members-list-add-btn:hover , body.sc-survey-admin-page .sc-members-list-add-btn:hover {
     color: #fff !important;
     transform: translateY(-1px);
     box-shadow: 0 10px 28px rgba(109, 52, 255, 0.36);
 }
 
 body.toplevel_page_sc-members .sc-members-list-export-btn,
-body.sportclub-manager_page_sc-members .sc-members-list-export-btn, body.sc-wp-users-list-page.users-php .sc-members-list-export-btn {
+body.sportclub-manager_page_sc-members .sc-members-list-export-btn, body.sc-wp-users-list-page.users-php .sc-members-list-export-btn , body.sc-survey-admin-page .sc-members-list-export-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -4751,7 +4751,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-export-btn, body.sc-wp-u
 }
 
 body.toplevel_page_sc-members .sc-members-list-export-btn:hover,
-body.sportclub-manager_page_sc-members .sc-members-list-export-btn:hover, body.sc-wp-users-list-page.users-php .sc-members-list-export-btn:hover {
+body.sportclub-manager_page_sc-members .sc-members-list-export-btn:hover, body.sc-wp-users-list-page.users-php .sc-members-list-export-btn:hover , body.sc-survey-admin-page .sc-members-list-export-btn:hover {
     background: rgba(109, 52, 255, 0.06);
     border-color: rgba(109, 52, 255, 0.45);
     color: #4a1fb8;
@@ -4759,7 +4759,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-export-btn:hover, body.s
 
 /* کارت فیلترها — پیش‌فرض جمع‌شده */
 body.toplevel_page_sc-members .sc-members-list-filters-card,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-card, body.sc-wp-users-list-page.users-php .sc-members-list-filters-card {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-card, body.sc-wp-users-list-page.users-php .sc-members-list-filters-card , body.sc-survey-admin-page .sc-members-list-filters-card {
     margin-bottom: 16px;
     padding: 12px 16px;
     border-radius: 16px;
@@ -4770,7 +4770,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-filters-card, body.sc-wp
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-toolbar,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-toolbar, body.sc-wp-users-list-page.users-php .sc-members-list-filters-toolbar {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-toolbar, body.sc-wp-users-list-page.users-php .sc-members-list-filters-toolbar , body.sc-survey-admin-page .sc-members-list-filters-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -4779,7 +4779,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-filters-toolbar, body.sc
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-toggle,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-toggle, body.sc-wp-users-list-page.users-php .sc-members-list-filters-toggle {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-toggle, body.sc-wp-users-list-page.users-php .sc-members-list-filters-toggle , body.sc-survey-admin-page .sc-members-list-filters-toggle {
     display: inline-flex;
     align-items: center;
     gap: 10px;
@@ -4797,19 +4797,19 @@ body.sportclub-manager_page_sc-members .sc-members-list-filters-toggle, body.sc-
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-toggle:hover,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-toggle:hover, body.sc-wp-users-list-page.users-php .sc-members-list-filters-toggle:hover {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-toggle:hover, body.sc-wp-users-list-page.users-php .sc-members-list-filters-toggle:hover , body.sc-survey-admin-page .sc-members-list-filters-toggle:hover {
     background: rgba(109, 52, 255, 0.06);
     border-color: rgba(109, 52, 255, 0.4);
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-toggle-icon,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-toggle-icon, body.sc-wp-users-list-page.users-php .sc-members-list-filters-toggle-icon {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-toggle-icon, body.sc-wp-users-list-page.users-php .sc-members-list-filters-toggle-icon , body.sc-survey-admin-page .sc-members-list-filters-toggle-icon {
     display: inline-flex;
     color: #6d34ff;
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-badge,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-badge, body.sc-wp-users-list-page.users-php .sc-members-list-filters-badge {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-badge, body.sc-wp-users-list-page.users-php .sc-members-list-filters-badge , body.sc-survey-admin-page .sc-members-list-filters-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -4825,7 +4825,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-filters-badge, body.sc-w
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-chevron,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-chevron, body.sc-wp-users-list-page.users-php .sc-members-list-filters-chevron {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-chevron, body.sc-wp-users-list-page.users-php .sc-members-list-filters-chevron , body.sc-survey-admin-page .sc-members-list-filters-chevron {
     width: 8px;
     height: 8px;
     margin-right: 2px;
@@ -4836,13 +4836,13 @@ body.sportclub-manager_page_sc-members .sc-members-list-filters-chevron, body.sc
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-card.is-open .sc-members-list-filters-chevron,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-card.is-open .sc-members-list-filters-chevron, body.sc-wp-users-list-page.users-php .sc-members-list-filters-card.is-open .sc-members-list-filters-chevron {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-card.is-open .sc-members-list-filters-chevron, body.sc-wp-users-list-page.users-php .sc-members-list-filters-card.is-open .sc-members-list-filters-chevron , body.sc-survey-admin-page .sc-members-list-filters-card.is-open .sc-members-list-filters-chevron {
     transform: rotate(-135deg);
     margin-top: 4px;
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-clear,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-clear, body.sc-wp-users-list-page.users-php .sc-members-list-filters-clear {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-clear, body.sc-wp-users-list-page.users-php .sc-members-list-filters-clear , body.sc-survey-admin-page .sc-members-list-filters-clear {
     color: #6d34ff;
     font-size: 13px;
     font-weight: 600;
@@ -4850,38 +4850,38 @@ body.sportclub-manager_page_sc-members .sc-members-list-filters-clear, body.sc-w
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-clear:hover,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-clear:hover, body.sc-wp-users-list-page.users-php .sc-members-list-filters-clear:hover {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-clear:hover, body.sc-wp-users-list-page.users-php .sc-members-list-filters-clear:hover , body.sc-survey-admin-page .sc-members-list-filters-clear:hover {
     color: #4a1fb8;
     text-decoration: underline;
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-panel,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-panel, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-panel, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel , body.sc-survey-admin-page .sc-members-list-filters-panel {
     margin-top: 16px;
     padding-top: 16px;
     border-top: 1px solid rgba(109, 52, 255, 0.1);
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-panel[hidden],
-body.sportclub-manager_page_sc-members .sc-members-list-filters-panel[hidden], body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel[hidden] {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-panel[hidden], body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel[hidden] , body.sc-survey-admin-page .sc-members-list-filters-panel[hidden] {
     display: none !important;
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-panel .sc-filter-grid,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-filter-grid, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-filter-grid {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-filter-grid, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-filter-grid , body.sc-survey-admin-page .sc-members-list-filters-panel .sc-filter-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px 16px;
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-panel .sc-filter-field,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-filter-field, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-filter-field {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-filter-field, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-filter-field , body.sc-survey-admin-page .sc-members-list-filters-panel .sc-filter-field {
     width: 100%;
     min-width: 0;
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-panel .sc-filter-label,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-filter-label, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-filter-label {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-filter-label, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-filter-label , body.sc-survey-admin-page .sc-members-list-filters-panel .sc-filter-label {
     margin-bottom: 8px;
     font-size: 12px;
     font-weight: 700;
@@ -4891,7 +4891,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-filter
 body.toplevel_page_sc-members .sc-members-list-filters-panel .sc-filter-control,
 body.toplevel_page_sc-members .sc-members-list-filters-panel .sc-dropdown-toggle,
 body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-filter-control,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-dropdown-toggle, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-dropdown-toggle {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-dropdown-toggle, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-dropdown-toggle , body.sc-survey-admin-page .sc-members-list-filters-panel .sc-dropdown-toggle {
     width: 100%;
     max-width: 100%;
     min-height: 42px;
@@ -4910,19 +4910,19 @@ body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-dropdo
 body.toplevel_page_sc-members .sc-members-list-filters-panel .sc-filter-control:focus,
 body.toplevel_page_sc-members .sc-members-list-filters-panel .sc-dropdown-toggle:focus-within,
 body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-filter-control:focus,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-dropdown-toggle:focus-within, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-dropdown-toggle:focus-within {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-dropdown-toggle:focus-within, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-dropdown-toggle:focus-within , body.sc-survey-admin-page .sc-members-list-filters-panel .sc-dropdown-toggle:focus-within {
     border-color: #6d34ff !important;
     box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12) !important;
     outline: none;
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-panel .sc-searchable-dropdown,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-searchable-dropdown, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-searchable-dropdown {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-searchable-dropdown, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-searchable-dropdown , body.sc-survey-admin-page .sc-members-list-filters-panel .sc-searchable-dropdown {
     width: 100%;
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-panel .sc-dropdown-menu,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-dropdown-menu, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-dropdown-menu {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-dropdown-menu, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-dropdown-menu , body.sc-survey-admin-page .sc-members-list-filters-panel .sc-dropdown-menu {
     border-radius: 12px;
     border: 1px solid rgba(109, 52, 255, 0.14);
     box-shadow: 0 12px 32px rgba(74, 31, 184, 0.12);
@@ -4933,12 +4933,12 @@ body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-dropdo
 body.toplevel_page_sc-members .sc-members-list-filters-panel .sc-dropdown-option:hover,
 body.toplevel_page_sc-members .sc-members-list-filters-panel .sc-dropdown-option.sc-selected,
 body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-dropdown-option:hover,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-dropdown-option.sc-selected, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-dropdown-option.sc-selected {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-dropdown-option.sc-selected, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-dropdown-option.sc-selected , body.sc-survey-admin-page .sc-members-list-filters-panel .sc-dropdown-option.sc-selected {
     background: rgba(109, 52, 255, 0.08);
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-actions,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-actions, body.sc-wp-users-list-page.users-php .sc-members-list-filters-actions {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-actions, body.sc-wp-users-list-page.users-php .sc-members-list-filters-actions , body.sc-survey-admin-page .sc-members-list-filters-actions {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -4947,7 +4947,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-filters-actions, body.sc
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-actions .button-primary,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-actions .button-primary, body.sc-wp-users-list-page.users-php .sc-members-list-filters-actions .button-primary {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-actions .button-primary, body.sc-wp-users-list-page.users-php .sc-members-list-filters-actions .button-primary , body.sc-survey-admin-page .sc-members-list-filters-actions .button-primary {
     min-height: 42px;
     padding: 0 22px;
     border: none !important;
@@ -4959,7 +4959,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-filters-actions .button-
 }
 
 body.toplevel_page_sc-members .sc-members-list-filters-actions .delete_fillter,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-actions .delete_fillter, body.sc-wp-users-list-page.users-php .sc-members-list-filters-actions .delete_fillter {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-actions .delete_fillter, body.sc-wp-users-list-page.users-php .sc-members-list-filters-actions .delete_fillter , body.sc-survey-admin-page .sc-members-list-filters-actions .delete_fillter {
     min-height: 42px;
     padding: 0 18px;
     display: inline-flex;
@@ -4975,7 +4975,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-filters-actions .delete_
 
 /* کارت جدول */
 body.toplevel_page_sc-members .sc-members-list-table-card,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card, body.sc-wp-users-list-page.users-php .sc-members-list-table-card {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card, body.sc-wp-users-list-page.users-php .sc-members-list-table-card , body.sc-survey-admin-page .sc-members-list-table-card {
     padding: 8px 8px 12px;
     border-radius: 16px;
     background: #fff;
@@ -4987,7 +4987,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-table-card, body.sc-wp-u
 
 /* تب‌های وضعیت (views) — عدد داخل لینک، فاصله یکنواخت، بدون | وردپرس */
 body.toplevel_page_sc-members .sc-members-list-table-card .subsubsub,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .subsubsub {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .subsubsub , body.sc-survey-admin-page .sc-members-list-table-card .subsubsub {
     margin: 10px 12px 16px;
     padding: 0;
     float: none;
@@ -5001,7 +5001,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub, b
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .subsubsub li,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub li, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .subsubsub li {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub li, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .subsubsub li , body.sc-survey-admin-page .sc-members-list-table-card .subsubsub li {
     margin: 0;
     padding: 0;
     display: inline-flex;
@@ -5011,12 +5011,12 @@ body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub li
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .subsubsub li::after,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub li::after, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .subsubsub li::after {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub li::after, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .subsubsub li::after , body.sc-survey-admin-page .sc-members-list-table-card .subsubsub li::after {
     content: none;
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .subsubsub a,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub a, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .subsubsub a {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub a, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .subsubsub a , body.sc-survey-admin-page .sc-members-list-table-card .subsubsub a {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -5033,7 +5033,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub a,
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .subsubsub a .count,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub a .count, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .subsubsub a .count {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub a .count, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .subsubsub a .count , body.sc-survey-admin-page .sc-members-list-table-card .subsubsub a .count {
     display: inline;
     color: #9ca3af;
     font-size: 12px;
@@ -5044,48 +5044,48 @@ body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub a 
 body.toplevel_page_sc-members .sc-members-list-table-card .subsubsub a.current,
 body.toplevel_page_sc-members .sc-members-list-table-card .subsubsub a:hover,
 body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub a.current,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub a:hover, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .subsubsub a:hover {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub a:hover, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .subsubsub a:hover , body.sc-survey-admin-page .sc-members-list-table-card .subsubsub a:hover {
     background: rgba(109, 52, 255, 0.1);
     border-color: rgba(109, 52, 255, 0.18);
     color: #4a1fb8;
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .subsubsub a.current .count,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub a.current .count, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .subsubsub a.current .count {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .subsubsub a.current .count, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .subsubsub a.current .count , body.sc-survey-admin-page .sc-members-list-table-card .subsubsub a.current .count {
     color: #6d34ff;
 }
 
 /* نوار اکشن گروهی و صفحه‌بندی */
 body.toplevel_page_sc-members .sc-members-list-table-card .tablenav,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .tablenav, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .tablenav {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .tablenav, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .tablenav , body.sc-survey-admin-page .sc-members-list-table-card .tablenav {
     margin: 8px 8px 12px;
     height: auto;
     padding: 0;
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .tablenav .actions,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .tablenav .actions, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .tablenav .actions {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .tablenav .actions, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .tablenav .actions , body.sc-survey-admin-page .sc-members-list-table-card .tablenav .actions {
     padding: 0;
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .tablenav select,
 body.toplevel_page_sc-members .sc-members-list-table-card .tablenav .button,
 body.sportclub-manager_page_sc-members .sc-members-list-table-card .tablenav select,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .tablenav .button, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .tablenav .button {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .tablenav .button, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .tablenav .button , body.sc-survey-admin-page .sc-members-list-table-card .tablenav .button {
     min-height: 36px;
     border-radius: 10px !important;
     border-color: #e5e7eb !important;
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .tablenav .button.action,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .tablenav .button.action, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .tablenav .button.action {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .tablenav .button.action, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .tablenav .button.action , body.sc-survey-admin-page .sc-members-list-table-card .tablenav .button.action {
     background: #fff;
     color: #4b5563;
     font-weight: 600;
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .tablenav-pages,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .tablenav-pages, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .tablenav-pages {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .tablenav-pages, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .tablenav-pages , body.sc-survey-admin-page .sc-members-list-table-card .tablenav-pages {
     color: #6b7280;
     font-weight: 600;
 }
@@ -5093,14 +5093,14 @@ body.sportclub-manager_page_sc-members .sc-members-list-table-card .tablenav-pag
 body.toplevel_page_sc-members .sc-members-list-table-card .tablenav-pages a,
 body.toplevel_page_sc-members .sc-members-list-table-card .tablenav-pages .current-page,
 body.sportclub-manager_page_sc-members .sc-members-list-table-card .tablenav-pages a,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .tablenav-pages .current-page, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .tablenav-pages .current-page {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .tablenav-pages .current-page, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .tablenav-pages .current-page , body.sc-survey-admin-page .sc-members-list-table-card .tablenav-pages .current-page {
     border-radius: 8px !important;
     border-color: #e5e7eb !important;
 }
 
 /* جدول لیست */
 body.toplevel_page_sc-members .sc-members-list-table-card .wp-list-table,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-table, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .wp-list-table {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-table, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .wp-list-table , body.sc-survey-admin-page .sc-members-list-table-card .wp-list-table {
     border: none !important;
     border-radius: 12px;
     background: transparent;
@@ -5110,7 +5110,7 @@ body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-tabl
 body.toplevel_page_sc-members .sc-members-list-table-card .wp-list-table thead th,
 body.toplevel_page_sc-members .sc-members-list-table-card .wp-list-table thead td,
 body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-table thead th,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-table thead td, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .wp-list-table thead td {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-table thead td, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .wp-list-table thead td , body.sc-survey-admin-page .sc-members-list-table-card .wp-list-table thead td {
     padding: 12px 14px !important;
     border-bottom: 1px solid #efeafc !important;
     background: #faf9ff !important;
@@ -5121,23 +5121,23 @@ body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-tabl
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .wp-list-table tbody tr,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-table tbody tr, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .wp-list-table tbody tr {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-table tbody tr, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .wp-list-table tbody tr , body.sc-survey-admin-page .sc-members-list-table-card .wp-list-table tbody tr {
     background: #fff !important;
     transition: background 0.15s ease;
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .wp-list-table tbody tr:nth-child(even),
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-table tbody tr:nth-child(even), body.sc-wp-users-list-page.users-php .sc-members-list-table-card .wp-list-table tbody tr:nth-child(even) {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-table tbody tr:nth-child(even), body.sc-wp-users-list-page.users-php .sc-members-list-table-card .wp-list-table tbody tr:nth-child(even) , body.sc-survey-admin-page .sc-members-list-table-card .wp-list-table tbody tr:nth-child(even) {
     background: #fcfbff !important;
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .wp-list-table tbody tr:hover,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-table tbody tr:hover, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .wp-list-table tbody tr:hover {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-table tbody tr:hover, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .wp-list-table tbody tr:hover , body.sc-survey-admin-page .sc-members-list-table-card .wp-list-table tbody tr:hover {
     background: #f5f2ff !important;
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .wp-list-table tbody td,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-table tbody td, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .wp-list-table tbody td {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-table tbody td, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .wp-list-table tbody td , body.sc-survey-admin-page .sc-members-list-table-card .wp-list-table tbody td {
     padding: 14px 14px !important;
     border-bottom: 1px solid #f1eef8 !important;
     color: #374151;
@@ -5146,19 +5146,19 @@ body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-tabl
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .wp-list-table tbody tr:last-child td,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-table tbody tr:last-child td, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .wp-list-table tbody tr:last-child td {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .wp-list-table tbody tr:last-child td, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .wp-list-table tbody tr:last-child td , body.sc-survey-admin-page .sc-members-list-table-card .wp-list-table tbody tr:last-child td {
     border-bottom: none !important;
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .check-column,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .check-column, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .check-column {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .check-column, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .check-column , body.sc-survey-admin-page .sc-members-list-table-card .check-column {
     width: 40px;
     padding-right: 10px !important;
     padding-left: 10px !important;
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .check-column input,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .check-column input, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .check-column input {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .check-column input, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .check-column input , body.sc-survey-admin-page .sc-members-list-table-card .check-column input {
     margin: 0;
     border-radius: 6px;
     border-color: #d1d5db !important;
@@ -5368,27 +5368,27 @@ body[class*="_page_sc-coach-my-players"] .sc-member-meta-dot {
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .row-actions,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .row-actions, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .row-actions {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .row-actions, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .row-actions , body.sc-survey-admin-page .sc-members-list-table-card .row-actions {
     margin-top: 6px;
     padding: 0;
     left: auto;
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .row-actions span a,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .row-actions span a, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .row-actions span a {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .row-actions span a, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .row-actions span a , body.sc-survey-admin-page .sc-members-list-table-card .row-actions span a {
     color: #6d34ff;
     font-weight: 600;
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .row-actions .delete a,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .row-actions .delete a, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .row-actions .delete a {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .row-actions .delete a, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .row-actions .delete a , body.sc-survey-admin-page .sc-members-list-table-card .row-actions .delete a {
     color: #dc2626;
 }
 
 body.toplevel_page_sc-members .sc-members-list-table-card .row-actions .trash,
 body.toplevel_page_sc-members .sc-members-list-table-card .row-actions span,
 body.sportclub-manager_page_sc-members .sc-members-list-table-card .row-actions .trash,
-body.sportclub-manager_page_sc-members .sc-members-list-table-card .row-actions span, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .row-actions span {
+body.sportclub-manager_page_sc-members .sc-members-list-table-card .row-actions span, body.sc-wp-users-list-page.users-php .sc-members-list-table-card .row-actions span , body.sc-survey-admin-page .sc-members-list-table-card .row-actions span {
     color: #d1d5db;
 }
 
@@ -5600,27 +5600,27 @@ body[class*="_page_sc-bale-bot"] .sc-badge--muted {
 }
 
 body.toplevel_page_sc-members .sc-team-level,
-body.sportclub-manager_page_sc-members .sc-team-level, body.sc-wp-users-list-page.users-php .sc-team-level {
+body.sportclub-manager_page_sc-members .sc-team-level, body.sc-wp-users-list-page.users-php .sc-team-level , body.sc-survey-admin-page .sc-team-level {
     display: flex;
     flex-direction: column;
     gap: 2px;
 }
 
 body.toplevel_page_sc-members .sc-team-level strong,
-body.sportclub-manager_page_sc-members .sc-team-level strong, body.sc-wp-users-list-page.users-php .sc-team-level strong {
+body.sportclub-manager_page_sc-members .sc-team-level strong, body.sc-wp-users-list-page.users-php .sc-team-level strong , body.sc-survey-admin-page .sc-team-level strong {
     color: #1e1b2e;
     font-size: 13px;
 }
 
 body.toplevel_page_sc-members .sc-team-level small,
-body.sportclub-manager_page_sc-members .sc-team-level small, body.sc-wp-users-list-page.users-php .sc-team-level small {
+body.sportclub-manager_page_sc-members .sc-team-level small, body.sc-wp-users-list-page.users-php .sc-team-level small , body.sc-survey-admin-page .sc-team-level small {
     color: #9ca3af;
     font-size: 11px;
 }
 
 /* مودال جزئیات روی همین صفحه */
 body.toplevel_page_sc-members #myModal .modal-content,
-body.sportclub-manager_page_sc-members #myModal .modal-content, body.sc-wp-users-list-page.users-php #myModal .modal-content {
+body.sportclub-manager_page_sc-members #myModal .modal-content, body.sc-wp-users-list-page.users-php #myModal .modal-content , body.sc-survey-admin-page #myModal .modal-content {
     border-radius: 16px;
     border: 1px solid rgba(109, 52, 255, 0.12);
     box-shadow: 0 20px 50px rgba(74, 31, 184, 0.18);
@@ -5628,47 +5628,47 @@ body.sportclub-manager_page_sc-members #myModal .modal-content, body.sc-wp-users
 
 @media screen and (max-width: 1100px) {
     body.toplevel_page_sc-members .sc-members-list-filters-panel .sc-filter-grid,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-filter-grid, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-filter-grid {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-filter-grid, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-filter-grid , body.sc-survey-admin-page .sc-members-list-filters-panel .sc-filter-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media screen and (max-width: 782px) {
     body.toplevel_page_sc-members .sc-members-list-wrap,
-body.sportclub-manager_page_sc-members .sc-members-list-wrap, body.sc-wp-users-list-page.users-php .sc-members-list-wrap {
+body.sportclub-manager_page_sc-members .sc-members-list-wrap, body.sc-wp-users-list-page.users-php .sc-members-list-wrap , body.sc-survey-admin-page .sc-members-list-wrap {
         margin-block: 12px 20px;
         margin-inline-start: 0;
         margin-inline-end: 10px;
     }
 
     body.toplevel_page_sc-members .sc-members-list-header,
-body.sportclub-manager_page_sc-members .sc-members-list-header, body.sc-wp-users-list-page.users-php .sc-members-list-header {
+body.sportclub-manager_page_sc-members .sc-members-list-header, body.sc-wp-users-list-page.users-php .sc-members-list-header , body.sc-survey-admin-page .sc-members-list-header {
         flex-direction: column;
         align-items: stretch;
     }
 
     body.toplevel_page_sc-members .sc-members-list-header-actions,
-body.sportclub-manager_page_sc-members .sc-members-list-header-actions, body.sc-wp-users-list-page.users-php .sc-members-list-header-actions {
+body.sportclub-manager_page_sc-members .sc-members-list-header-actions, body.sc-wp-users-list-page.users-php .sc-members-list-header-actions , body.sc-survey-admin-page .sc-members-list-header-actions {
         width: 100%;
     }
 
     body.toplevel_page_sc-members .sc-members-list-add-btn,
     body.toplevel_page_sc-members .sc-members-list-export-btn,
     body.sportclub-manager_page_sc-members .sc-members-list-add-btn,
-body.sportclub-manager_page_sc-members .sc-members-list-export-btn, body.sc-wp-users-list-page.users-php .sc-members-list-export-btn {
+body.sportclub-manager_page_sc-members .sc-members-list-export-btn, body.sc-wp-users-list-page.users-php .sc-members-list-export-btn , body.sc-survey-admin-page .sc-members-list-export-btn {
         flex: 1;
         text-align: center;
     }
 
     body.toplevel_page_sc-members .sc-members-list-filters-panel .sc-filter-grid,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-filter-grid, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-filter-grid {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-panel .sc-filter-grid, body.sc-wp-users-list-page.users-php .sc-members-list-filters-panel .sc-filter-grid , body.sc-survey-admin-page .sc-members-list-filters-panel .sc-filter-grid {
         grid-template-columns: 1fr;
     }
 
     body.toplevel_page_sc-members .sc-members-list-filters-actions .button-primary,
     body.toplevel_page_sc-members .sc-members-list-filters-actions .delete_fillter,
     body.sportclub-manager_page_sc-members .sc-members-list-filters-actions .button-primary,
-body.sportclub-manager_page_sc-members .sc-members-list-filters-actions .delete_fillter, body.sc-wp-users-list-page.users-php .sc-members-list-filters-actions .delete_fillter {
+body.sportclub-manager_page_sc-members .sc-members-list-filters-actions .delete_fillter, body.sc-wp-users-list-page.users-php .sc-members-list-filters-actions .delete_fillter , body.sc-survey-admin-page .sc-members-list-filters-actions .delete_fillter {
         width: 100%;
         justify-content: center;
         text-align: center;

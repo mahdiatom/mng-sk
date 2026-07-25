@@ -38,21 +38,64 @@
     }
 
     function buildDepOptions(currentIndex, selectedId) {
-        var prev = previousQuestions(currentIndex);
-        if (!prev.length) {
+        if (currentIndex <= 0) {
             return '<option value="">— سوال قبلی وجود ندارد —</option>';
         }
-        return '<option value="">انتخاب سوال وابسته</option>' + prev.map(function (qq, i) {
+        var opts = '<option value="">انتخاب سوال وابسته</option>';
+        for (var i = 0; i < currentIndex; i++) {
+            var qq = questions[i];
+            if (!qq) {
+                continue;
+            }
             var key = qKey(qq, i);
-            var label = (qq.question_text || 'سوال ' + (i + 1)).substring(0, 80);
-            return '<option value="' + escHtml(String(key)) + '"' + (String(selectedId) === String(key) ? ' selected' : '') + '>' + escHtml((i + 1) + '. ' + label) + '</option>';
-        }).join('');
+            var label = (qq.question_text || ('سوال ' + (i + 1))).substring(0, 80);
+            opts += '<option value="' + escHtml(String(key)) + '"' + (String(selectedId) === String(key) ? ' selected' : '') + '>' + escHtml((i + 1) + '. ' + label) + '</option>';
+        }
+        return opts;
     }
 
     function typeOptions(selected) {
         return Object.keys(types).map(function (k) {
             return '<option value="' + k + '"' + (selected === k ? ' selected' : '') + '>' + escHtml(types[k]) + '</option>';
         }).join('');
+    }
+
+    function buildCondValueField(currentIndex, selectedDepId, selectedValue) {
+        var depQ = null;
+        for (var i = 0; i < currentIndex; i++) {
+            var qq = questions[i];
+            if (!qq) continue;
+            var key = qKey(qq, i);
+            if (String(key) === String(selectedDepId) || (qq.id && String(qq.id) === String(selectedDepId))) {
+                depQ = qq;
+                break;
+            }
+        }
+
+        var selected = String(selectedValue == null ? '' : selectedValue);
+        if (depQ && depQ.question_type === 'yes_no') {
+            var selYes = (selected === 'yes' || selected === 'بله' || selected === 'بلی') ? ' selected' : '';
+            var selNo = (selected === 'no' || selected === 'خیر' || selected === 'نه') ? ' selected' : '';
+            return '<select class="sc-q-cond-val">' +
+                '<option value="yes"' + selYes + '>بله</option>' +
+                '<option value="no"' + selNo + '>خیر</option>' +
+                '</select>' +
+                '<p class="description">برای سوال بله/خیر حتماً یکی از این دو مقدار را انتخاب کنید.</p>';
+        }
+
+        if (depQ && (depQ.question_type === 'single_choice' || depQ.question_type === 'multiple_choice')) {
+            var choices = (depQ.options && depQ.options.choices) ? depQ.options.choices : [];
+            if (choices.length) {
+                return '<select class="sc-q-cond-val">' +
+                    '<option value="">انتخاب گزینه</option>' +
+                    choices.map(function (ch) {
+                        return '<option value="' + escHtml(ch) + '"' + (selected === String(ch) ? ' selected' : '') + '>' + escHtml(ch) + '</option>';
+                    }).join('') +
+                    '</select>';
+            }
+        }
+
+        return '<input type="text" class="regular-text sc-q-cond-val" placeholder="مقدار مورد انتظار (دقیقاً مثل پاسخ)" value="' + escHtml(selected) + '">';
     }
 
     function tpl(q, index) {
@@ -62,9 +105,10 @@
         var minVal = (q.options && q.options.min != null) ? q.options.min : 1;
         var maxVal = (q.options && q.options.max != null) ? q.options.max : 5;
         var cond = (q.settings && q.settings.conditional) ? q.settings.conditional : {};
-        var condEnabled = !!cond.enabled;
+        var condEnabled = !!(cond.enabled === true || cond.enabled === 1 || cond.enabled === '1' || cond.enabled === 'true');
         var showChoices = ['single_choice', 'multiple_choice'].indexOf(q.question_type) !== -1;
         var showRating = q.question_type === 'rating';
+        var condQid = cond.question_id || '';
 
         return '<div class="sc-survey-q-card" data-qid="' + escHtml(String(id)) + '" data-index="' + index + '">' +
             '<div class="sc-survey-q-card-head">' +
@@ -98,7 +142,7 @@
                     '<div class="sc-q-cond-fields"' + (condEnabled ? '' : ' style="display:none;"') + '>' +
                         '<div class="sc-survey-q-field">' +
                             '<label>سوال وابسته</label>' +
-                            '<select class="sc-q-cond-qid">' + buildDepOptions(index, cond.question_id || '') + '</select>' +
+                            '<select class="sc-q-cond-qid">' + buildDepOptions(index, condQid) + '</select>' +
                         '</div>' +
                         '<div class="sc-survey-q-field">' +
                             '<label>عملگر</label>' +
@@ -110,15 +154,11 @@
                                 '<option value="gte"' + (cond.operator === 'gte' ? ' selected' : '') + '>بزرگ‌تر یا مساوی</option>' +
                                 '<option value="lt"' + (cond.operator === 'lt' ? ' selected' : '') + '>کوچک‌تر از</option>' +
                                 '<option value="lte"' + (cond.operator === 'lte' ? ' selected' : '') + '>کوچک‌تر یا مساوی</option>' +
-                                '<option value="gt"' + (cond.operator === 'gt' ? ' selected' : '') + '>بزرگتر از</option>' +
-                                '<option value="gte"' + (cond.operator === 'gte' ? ' selected' : '') + '>بزرگتر یا مساوی</option>' +
-                                '<option value="lt"' + (cond.operator === 'lt' ? ' selected' : '') + '>کوچکتر از</option>' +
-                                '<option value="lte"' + (cond.operator === 'lte' ? ' selected' : '') + '>کوچکتر یا مساوی</option>' +
                             '</select>' +
                         '</div>' +
-                        '<div class="sc-survey-q-field">' +
+                        '<div class="sc-survey-q-field sc-q-cond-val-wrap">' +
                             '<label>مقدار</label>' +
-                            '<input type="text" class="regular-text sc-q-cond-val" placeholder="مقدار مورد انتظار" value="' + escHtml(cond.value || '') + '">' +
+                            buildCondValueField(index, condQid, cond.value || '') +
                         '</div>' +
                     '</div>' +
                 '</div>' +
@@ -175,13 +215,19 @@
 
     function collect() {
         syncQuestionsFromDom();
-        return questions.map(function (q) {
+        return questions.map(function (q, i) {
+            var key = q._key || (q.id ? String(q.id) : ('new_' + i));
+            var settings = q.settings || { required: false, conditional: { enabled: false } };
+            if (settings.conditional && settings.conditional.question_id) {
+                settings.conditional.question_id = String(settings.conditional.question_id);
+            }
             return {
-                id: parseQid(q._key || q.id),
+                id: parseQid(key),
+                _key: key,
                 question_type: q.question_type,
                 question_text: q.question_text,
                 options: q.options || { choices: [], min: 1, max: 5 },
-                settings: q.settings || { required: false, conditional: { enabled: false } }
+                settings: settings
             };
         });
     }
@@ -341,6 +387,17 @@
             if (on) {
                 $card.find('.sc-survey-q-conditional').prop('open', true);
             }
+        });
+
+        $builder.on('change', '.sc-q-cond-qid', function () {
+            var $card = $(this).closest('.sc-survey-q-card');
+            var index = $card.index();
+            syncQuestionsFromDom();
+            var depId = $(this).val() || '';
+            var currentVal = $card.find('.sc-q-cond-val').val() || '';
+            $card.find('.sc-q-cond-val-wrap').html(
+                '<label>مقدار</label>' + buildCondValueField(index, depId, currentVal)
+            );
         });
 
         if (!questions.length) {

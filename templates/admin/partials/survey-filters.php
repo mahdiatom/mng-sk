@@ -28,13 +28,57 @@ if ($filter_player > 0 && !empty($all_players)) {
         }
     }
 }
-?>
-<form method="get" action="" class=" sc-survey-filter-form">
-    <input type="hidden" name="page" value="<?php echo esc_attr($page_slug); ?>">
 
-    <div class="sc-users-export-card">
-        <h2><?php echo esc_html($filter_title); ?></h2>
-        <p class="description"><?php echo esc_html($filter_description); ?></p>
+$active_filters_count = 0;
+if ($survey_id > 0) {
+    $active_filters_count++;
+}
+if ($filter_player > 0) {
+    $active_filters_count++;
+}
+if ($filter_course > 0) {
+    $active_filters_count++;
+}
+if ($filter_date_from_shamsi !== '') {
+    $active_filters_count++;
+}
+if ($filter_date_to_shamsi !== '') {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
+$clear_url = $survey_id
+    ? admin_url('admin.php?page=' . $page_slug . '&survey_id=' . $survey_id)
+    : admin_url('admin.php?page=' . $page_slug);
+?>
+<div class="sc-members-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+    <div class="sc-members-list-filters-toolbar">
+        <button type="button"
+                class="sc-members-list-filters-toggle"
+                id="sc-survey-filters-toggle"
+                aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                aria-controls="sc-survey-filters-panel">
+            <span class="sc-members-list-filters-toggle-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </span>
+            <span class="sc-members-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+            </span>
+            <?php if ($active_filters_count > 0) : ?>
+                <span class="sc-members-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+            <?php endif; ?>
+            <span class="sc-members-list-filters-chevron" aria-hidden="true"></span>
+        </button>
+        <?php if ($active_filters_count > 0) : ?>
+            <a href="<?php echo esc_url($clear_url); ?>" class="sc-members-list-filters-clear">پاک کردن فیلترها</a>
+        <?php endif; ?>
+    </div>
+
+    <form method="get" action="" class="form_fillter_list_player sc-survey-filter-form sc-members-list-filters-panel" id="sc-survey-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
+        <input type="hidden" name="page" value="<?php echo esc_attr($page_slug); ?>">
+
+        <p class="description sc-survey-filter-desc"><?php echo esc_html($filter_description); ?></p>
 
         <div class="sc-filter-grid">
             <div class="sc-filter-field">
@@ -108,21 +152,40 @@ if ($filter_player > 0 && !empty($all_players)) {
             </div>
         </div>
 
-        <p class="submit">
+        <p class="submit sc-members-list-filters-actions">
             <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
-            <?php if ($survey_id) : ?>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=' . $page_slug . '&survey_id=' . $survey_id)); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-            <?php else : ?>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=' . $page_slug)); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
-            <?php endif; ?>
+            <a href="<?php echo esc_url($clear_url); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
             <?php if ($show_export && $survey_id) :
                 $export_get = isset($filter_request) ? $filter_request : $_GET;
                 $export_url = wp_nonce_url(add_query_arg(array_merge($export_get, ['sc_export_survey' => 1]), admin_url('admin.php')), 'sc_export_survey_' . $survey_id);
                 $pdf_export_url = wp_nonce_url(add_query_arg(array_merge($export_get, ['sc_export_survey_pdf' => 1]), admin_url('admin.php')), 'sc_export_survey_' . $survey_id);
                 ?>
-                <a href="<?php echo esc_url($export_url); ?>" class="button button_export">📊 خروجی Excel</a>
-                <a href="<?php echo esc_url($pdf_export_url); ?>" class="button button_export sc-survey-pdf-export-btn" target="_blank" rel="noopener">📄 خروجی PDF</a>
+                <a href="<?php echo esc_url($export_url); ?>" class="button button_export sc-members-list-export-btn">خروجی Excel</a>
+                <a href="<?php echo esc_url($pdf_export_url); ?>" class="button button_export sc-survey-pdf-export-btn sc-members-list-export-btn" target="_blank" rel="noopener">خروجی PDF</a>
             <?php endif; ?>
         </p>
-    </div>
-</form>
+    </form>
+</div>
+<script>
+jQuery(function ($) {
+    var $toggle = $('#sc-survey-filters-toggle');
+    if (!$toggle.length) return;
+    var $panel = $('#sc-survey-filters-panel');
+    var $card = $toggle.closest('.sc-members-list-filters-card');
+    var $label = $toggle.find('.sc-members-list-filters-toggle-label');
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+});
+</script>

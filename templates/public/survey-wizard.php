@@ -11,12 +11,22 @@ $member_id = sc_survey_get_member_id_for_user($user_id);
 $existing = sc_survey_get_user_response($survey->id, $user_id, $member_id);
 $already_completed = $existing && $existing->status === 'completed';
 $questions_for_js = array_map(function ($q) {
+    $settings = sc_survey_decode_json($q->settings_json);
+    if (!empty($settings['conditional']) && is_array($settings['conditional'])) {
+        $c = $settings['conditional'];
+        $settings['conditional'] = [
+            'enabled' => !empty($c['enabled']) ? 1 : 0,
+            'question_id' => isset($c['question_id']) ? absint($c['question_id']) : 0,
+            'operator' => isset($c['operator']) ? sanitize_key($c['operator']) : 'equals',
+            'value' => isset($c['value']) ? (string) $c['value'] : '',
+        ];
+    }
     return [
         'id' => (int) $q->id,
         'question_type' => $q->question_type,
         'question_text' => $q->question_text,
         'options' => sc_survey_decode_json($q->options_json),
-        'settings' => sc_survey_decode_json($q->settings_json),
+        'settings' => $settings,
     ];
 }, $questions);
 ?>
@@ -54,6 +64,14 @@ $questions_for_js = array_map(function ($q) {
             <?php if (!empty($survey->description)) : ?>
                 <p class="sc-dashboard-page-subtitle"><?php echo wp_kses_post($survey->description); ?></p>
             <?php endif; ?>
+
+            <div class="sc-survey-progress-card sc-survey-header-inline">
+                <div class="sc-survey-progress-wrap">
+                    <div class="sc-survey-progress-bar"><span id="scSurveyProgressFill"></span></div>
+                    <span id="scSurveyProgressText" class="sc-survey-progress-label"></span>
+                </div>
+                <div id="scSurveyProgressSteps" class="sc-survey-progress-steps" aria-label="پیشرفت سوالات"></div>
+            </div>
 
             <?php
             $is_guest = !is_user_logged_in();
@@ -127,7 +145,7 @@ $questions_for_js = array_map(function ($q) {
                 </div>
                 <?php endif; ?>
 
-                <div id="sc-survey-step-container"></div>
+                <div id="sc-survey-step-container" class="sc-survey-one-question"></div>
                 <div class="sc-survey-nav sc-dashboard-toolbar">
                     <button type="button" class="sc-dashboard-btn sc-survey-btn-secondary" id="sc-survey-prev" disabled>قبلی</button>
                     <button type="button" class="sc-dashboard-btn" id="sc-survey-next">بعدی</button>

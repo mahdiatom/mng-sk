@@ -120,21 +120,60 @@ foreach ($surveys as $s) {
         $public_count++;
     }
 }
+$active_filters_count = 0;
+if ($filter_search !== '') {
+    $active_filters_count++;
+}
+if ($filter_status !== 'all') {
+    $active_filters_count++;
+}
+if ($filter_public !== 'all') {
+    $active_filters_count++;
+}
+$filters_open = $active_filters_count > 0;
 ?>
-<div class="wrap sc-users-export-wrap sc-survey-list-wrap">
-    <h1 class="wp-heading-inline">لیست نظرسنجی‌ها</h1>
-    <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-survey')); ?>" class="page-title-action">افزودن نظرسنجی</a>
-    <hr class="wp-header-end">
-    <p class="description">مدیریت نظرسنجی‌ها، مشاهده داده‌ها و آمار.</p>
+<div class="wrap sc-members-list-wrap sc-survey-list-wrap sc-survey-admin-shell">
+    <div class="sc-members-list-header">
+        <div class="sc-members-list-header-text">
+            <h1 class="sc-members-list-title">لیست نظرسنجی‌ها</h1>
+            <p class="sc-members-list-desc">مدیریت نظرسنجی‌ها، مشاهده داده‌ها و آمار.</p>
+        </div>
+        <div class="sc-members-list-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-add-survey')); ?>" class="page-title-action sc-members-list-add-btn">افزودن نظرسنجی</a>
+        </div>
+    </div>
 
     <?php if ($notice !== '') : ?>
         <div class="notice notice-<?php echo esc_attr($notice_type); ?> is-dismissible"><p><?php echo esc_html($notice); ?></p></div>
     <?php endif; ?>
 
-    <form method="get" action="" class="form_fillter_list_player sc-survey-filter-form">
-        <input type="hidden" name="page" value="sc-surveys">
-        <div class="sc-users-export-card">
-            <h2>فیلتر لیست</h2>
+    <div class="sc-members-list-filters-card<?php echo $filters_open ? ' is-open' : ''; ?>">
+        <div class="sc-members-list-filters-toolbar">
+            <button type="button"
+                    class="sc-members-list-filters-toggle"
+                    id="sc-survey-list-filters-toggle"
+                    aria-expanded="<?php echo $filters_open ? 'true' : 'false'; ?>"
+                    aria-controls="sc-survey-list-filters-panel">
+                <span class="sc-members-list-filters-toggle-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="sc-members-list-filters-toggle-label" data-label-open="بستن فیلترها" data-label-closed="مشاهده فیلترها">
+                    <?php echo $filters_open ? 'بستن فیلترها' : 'مشاهده فیلترها'; ?>
+                </span>
+                <?php if ($active_filters_count > 0) : ?>
+                    <span class="sc-members-list-filters-badge"><?php echo (int) $active_filters_count; ?></span>
+                <?php endif; ?>
+                <span class="sc-members-list-filters-chevron" aria-hidden="true"></span>
+            </button>
+            <?php if ($active_filters_count > 0) : ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-surveys')); ?>" class="sc-members-list-filters-clear">پاک کردن فیلترها</a>
+            <?php endif; ?>
+        </div>
+
+        <form method="get" action="" class="form_fillter_list_player sc-survey-filter-form sc-members-list-filters-panel" id="sc-survey-list-filters-panel"<?php echo $filters_open ? '' : ' hidden'; ?>>
+            <input type="hidden" name="page" value="sc-surveys">
             <div class="sc-filter-grid">
                 <div class="sc-filter-field">
                     <label class="sc-filter-label" for="filter_search">جستجوی عنوان</label>
@@ -158,12 +197,12 @@ foreach ($surveys as $s) {
                     </select>
                 </div>
             </div>
-            <p class="submit">
+            <p class="submit sc-members-list-filters-actions">
                 <input type="submit" name="filter" class="button button-primary" value="اعمال فیلتر">
                 <a href="<?php echo esc_url(admin_url('admin.php?page=sc-surveys')); ?>" class="button delete_fillter">پاک کردن فیلترها</a>
             </p>
-        </div>
-    </form>
+        </form>
+    </div>
 
     <div class="sc-dashboard-stats">
         <div class="sc-stat-box">
@@ -193,7 +232,7 @@ foreach ($surveys as $s) {
             <input type="hidden" name="filter_public" value="<?php echo esc_attr($filter_public); ?>">
         <?php endif; ?>
 
-        <div class="sc-users-export-card sc-survey-table-card">
+        <div class="sc-users-export-card sc-survey-table-card sc-members-list-table-card">
             <div class="tablenav top sc-survey-bulk-nav">
                 <div class="alignleft actions bulkactions">
                     <label for="sc-survey-bulk-action" class="screen-reader-text">عملیات دسته‌جمعی</label>
@@ -276,3 +315,26 @@ foreach ($surveys as $s) {
         </div>
     </form>
 </div>
+<script>
+jQuery(function ($) {
+    var $toggle = $('#sc-survey-list-filters-toggle');
+    if (!$toggle.length) return;
+    var $panel = $('#sc-survey-list-filters-panel');
+    var $card = $toggle.closest('.sc-members-list-filters-card');
+    var $label = $toggle.find('.sc-members-list-filters-toggle-label');
+    $toggle.on('click', function () {
+        var isOpen = $card.hasClass('is-open');
+        if (isOpen) {
+            $card.removeClass('is-open');
+            $panel.attr('hidden', true);
+            $toggle.attr('aria-expanded', 'false');
+            $label.text($label.data('label-closed'));
+        } else {
+            $card.addClass('is-open');
+            $panel.removeAttr('hidden');
+            $toggle.attr('aria-expanded', 'true');
+            $label.text($label.data('label-open'));
+        }
+    });
+});
+</script>

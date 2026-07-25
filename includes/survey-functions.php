@@ -41,10 +41,101 @@ function sc_get_survey($survey_id) {
 function sc_get_survey_questions($survey_id) {
     global $wpdb;
     $table = $wpdb->prefix . 'sc_survey_questions';
-    return $wpdb->get_results($wpdb->prepare(
+    $questions = $wpdb->get_results($wpdb->prepare(
         "SELECT * FROM $table WHERE survey_id = %d ORDER BY sort_order ASC, id ASC",
         absint($survey_id)
     ));
+    if (!empty($questions)) {
+        $questions = sc_survey_repair_conditional_question_ids($questions);
+    }
+    return $questions;
+}
+
+/**
+ * Apply members-list / users-list admin skin on survey pages.
+ *
+ * @param string $classes
+ * @return string
+ */
+function sc_survey_admin_body_class($classes) {
+    if (!is_admin()) {
+        return $classes;
+    }
+    $page = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : '';
+    $pages = ['sc-surveys', 'sc-add-survey', 'sc-survey-data', 'sc-survey-stats', 'sc-coach-surveys'];
+    if (in_array($page, $pages, true)) {
+        $classes .= ' sc-survey-admin-page';
+        if ($page === 'sc-add-survey') {
+            $classes .= ' sc-survey-admin-edit-page';
+        }
+    }
+    return $classes;
+}
+add_filter('admin_body_class', 'sc_survey_admin_body_class');
+
+/**
+ * Remap legacy conditional.question_id values like "new_0" to real question IDs.
+ *
+ * @param array $questions
+ * @return array
+ */
+function sc_survey_repair_conditional_question_ids($questions) {
+    global $wpdb;
+    if (empty($questions) || !is_array($questions)) {
+        return $questions;
+    }
+
+    $table = $wpdb->prefix . 'sc_survey_questions';
+    $ordered = array_values($questions);
+    $valid_ids = [];
+    foreach ($ordered as $q) {
+        $valid_ids[(int) $q->id] = true;
+    }
+
+    foreach ($questions as $q) {
+        $settings = sc_survey_decode_json($q->settings_json);
+        if (empty($settings['conditional']) || !is_array($settings['conditional'])) {
+            continue;
+        }
+        if (empty($settings['conditional']['enabled'])) {
+            continue;
+        }
+
+        $dep_raw = isset($settings['conditional']['question_id']) ? (string) $settings['conditional']['question_id'] : '';
+        if ($dep_raw === '') {
+            continue;
+        }
+
+        $dep_id = absint($dep_raw);
+        if ($dep_id && isset($valid_ids[$dep_id])) {
+            if ((string) $dep_id !== $dep_raw) {
+                $settings['conditional']['question_id'] = $dep_id;
+                $wpdb->update($table, [
+                    'settings_json' => wp_json_encode($settings, JSON_UNESCAPED_UNICODE),
+                ], ['id' => (int) $q->id]);
+                $q->settings_json = wp_json_encode($settings, JSON_UNESCAPED_UNICODE);
+            }
+            continue;
+        }
+
+        $mapped = 0;
+        if (preg_match('/^new_(\d+)$/', $dep_raw, $m)) {
+            $idx = (int) $m[1];
+            if (isset($ordered[$idx])) {
+                $mapped = (int) $ordered[$idx]->id;
+            }
+        }
+
+        if ($mapped && isset($valid_ids[$mapped]) && $mapped !== (int) $q->id) {
+            $settings['conditional']['question_id'] = $mapped;
+            $wpdb->update($table, [
+                'settings_json' => wp_json_encode($settings, JSON_UNESCAPED_UNICODE),
+            ], ['id' => (int) $q->id]);
+            $q->settings_json = wp_json_encode($settings, JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    return $questions;
 }
 
 function sc_survey_public_url($survey) {
@@ -172,28 +263,68 @@ function sc_survey_save_questions($survey_id, $questions) {
     $existing_ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM $table WHERE survey_id = %d", $survey_id));
     $keep_ids = [];
     $order = 0;
+    $key_to_id = [];
+    $pending_settings = [];
 
-    foreach ((array) $questions as $q) {
+    foreach ((array) $questions as $idx => $q) {
         $order++;
         $qid = isset($q['id']) ? absint($q['id']) : 0;
+        $temp_key = '';
+        if (!empty($q['_key'])) {
+            $temp_key = (string) $q['_key'];
+        } elseif ($qid) {
+            $temp_key = (string) $qid;
+        } else {
+            $temp_key = 'new_' . (int) $idx;
+        }
+
+        $settings = isset($q['settings']) && is_array($q['settings']) ? $q['settings'] : [];
         $row = [
             'survey_id' => $survey_id,
             'question_type' => isset($q['question_type']) ? sanitize_key($q['question_type']) : 'text',
             'question_text' => isset($q['question_text']) ? wp_kses_post($q['question_text']) : '',
             'options_json' => wp_json_encode(isset($q['options']) ? $q['options'] : [], JSON_UNESCAPED_UNICODE),
-            'settings_json' => wp_json_encode(isset($q['settings']) ? $q['settings'] : [], JSON_UNESCAPED_UNICODE),
+            'settings_json' => wp_json_encode($settings, JSON_UNESCAPED_UNICODE),
             'sort_order' => $order,
             'updated_at' => $now,
         ];
 
         if ($qid && in_array((string) $qid, array_map('strval', $existing_ids), true)) {
             $wpdb->update($table, $row, ['id' => $qid]);
-            $keep_ids[] = $qid;
+            $final_id = $qid;
         } else {
             $row['created_at'] = $now;
             $wpdb->insert($table, $row);
-            $keep_ids[] = (int) $wpdb->insert_id;
+            $final_id = (int) $wpdb->insert_id;
         }
+
+        $keep_ids[] = $final_id;
+        $key_to_id[$temp_key] = $final_id;
+        $key_to_id[(string) $final_id] = $final_id;
+        if ($qid) {
+            $key_to_id[(string) $qid] = $final_id;
+        }
+        $pending_settings[$final_id] = $settings;
+    }
+
+    foreach ($pending_settings as $final_id => $settings) {
+        if (empty($settings['conditional']) || !is_array($settings['conditional'])) {
+            continue;
+        }
+        $dep_raw = isset($settings['conditional']['question_id']) ? (string) $settings['conditional']['question_id'] : '';
+        if ($dep_raw === '') {
+            continue;
+        }
+        if (isset($key_to_id[$dep_raw])) {
+            $settings['conditional']['question_id'] = (int) $key_to_id[$dep_raw];
+        } else {
+            $settings['conditional']['question_id'] = absint($dep_raw);
+        }
+        $wpdb->update(
+            $table,
+            ['settings_json' => wp_json_encode($settings, JSON_UNESCAPED_UNICODE)],
+            ['id' => (int) $final_id]
+        );
     }
 
     foreach ($existing_ids as $eid) {
@@ -1072,24 +1203,31 @@ function sc_survey_normalize_answer_value($question, $raw) {
 
 function sc_survey_compare_conditional($dep_str, $operator, $expected) {
     $operator = sanitize_key($operator);
-    $dep_str = (string) $dep_str;
-    $expected = (string) $expected;
+    $dep_raw = trim((string) $dep_str);
+    $exp_raw = trim((string) $expected);
 
     switch ($operator) {
         case 'not_equals':
-            return $dep_str !== $expected;
+            if ($dep_raw === '') {
+                return false;
+            }
+            return sc_survey_normalize_conditional_value($dep_raw) !== sc_survey_normalize_conditional_value($exp_raw);
         case 'contains':
-            return strpos($dep_str, $expected) !== false;
+            return $dep_raw !== '' && strpos($dep_raw, $exp_raw) !== false;
         case 'in':
-            $parts = array_map('trim', explode(',', $expected));
-            return in_array($dep_str, $parts, true);
+            $parts = array_map('sc_survey_normalize_conditional_value', array_map('trim', explode(',', $exp_raw)));
+            return in_array(sc_survey_normalize_conditional_value($dep_raw), $parts, true);
         case 'gt':
         case 'gte':
         case 'lt':
         case 'lte':
-            if (is_numeric($dep_str) && is_numeric($expected)) {
-                $dep_num = (float) $dep_str;
-                $exp_num = (float) $expected;
+            // Never map 0/1 to yes/no for numeric operators.
+            if ($dep_raw === '' || $exp_raw === '') {
+                return false;
+            }
+            if (is_numeric($dep_raw) && is_numeric($exp_raw)) {
+                $dep_num = (float) $dep_raw;
+                $exp_num = (float) $exp_raw;
                 if ($operator === 'gt') {
                     return $dep_num > $exp_num;
                 }
@@ -1101,8 +1239,8 @@ function sc_survey_compare_conditional($dep_str, $operator, $expected) {
                 }
                 return $dep_num <= $exp_num;
             }
-            $dep_norm = str_replace('-', '/', $dep_str);
-            $exp_norm = str_replace('-', '/', $expected);
+            $dep_norm = str_replace('-', '/', $dep_raw);
+            $exp_norm = str_replace('-', '/', $exp_raw);
             if ($operator === 'gt') {
                 return $dep_norm > $exp_norm;
             }
@@ -1115,8 +1253,38 @@ function sc_survey_compare_conditional($dep_str, $operator, $expected) {
             return $dep_norm <= $exp_norm;
         case 'equals':
         default:
-            return $dep_str === $expected;
+            return sc_survey_normalize_conditional_value($dep_raw) === sc_survey_normalize_conditional_value($exp_raw);
     }
+}
+
+/**
+ * Normalize yes/no labels for equality checks.
+ * Note: bare 0/1 are NOT mapped — they are numeric answers.
+ *
+ * @param string $value
+ * @return string
+ */
+function sc_survey_normalize_conditional_value($value) {
+    $value = trim((string) $value);
+    $map = [
+        'بله' => 'yes',
+        'بلی' => 'yes',
+        'آره' => 'yes',
+        'خیر' => 'no',
+        'نه' => 'no',
+        'yes' => 'yes',
+        'no' => 'no',
+        'true' => 'yes',
+        'false' => 'no',
+    ];
+    $lower = function_exists('mb_strtolower') ? mb_strtolower($value, 'UTF-8') : strtolower($value);
+    if (isset($map[$value])) {
+        return $map[$value];
+    }
+    if (isset($map[$lower])) {
+        return $map[$lower];
+    }
+    return $value;
 }
 
 function sc_survey_evaluate_conditional($question, $answers_by_qid) {

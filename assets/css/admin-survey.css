@@ -443,3 +443,571 @@
 .sc-coach-surveys-admin .sc-survey-thankyou-card {
     margin-top: 16px;
 }
+
+/* ——— Survey admin: members-list SaaS shell ——— */
+body.toplevel_page_sc-surveys .sc-survey-admin-shell.sc-members-list-wrap,
+body[class*="_page_sc-surveys"] .sc-survey-admin-shell.sc-members-list-wrap,
+body[class*="_page_sc-add-survey"] .sc-survey-admin-shell.sc-members-list-wrap,
+body[class*="_page_sc-survey-data"] .sc-survey-admin-shell.sc-members-list-wrap,
+body[class*="_page_sc-survey-stats"] .sc-survey-admin-shell.sc-members-list-wrap,
+body[class*="_page_sc-coach-surveys"] .sc-survey-admin-shell.sc-members-list-wrap,
+.sc-survey-admin-shell.sc-members-list-wrap {
+    margin-block: 16px 24px;
+    margin-inline-start: 0;
+    margin-inline-end: 20px;
+    padding: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    background: transparent !important;
+}
+
+.sc-survey-admin-shell .sc-members-list-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.sc-survey-admin-shell .sc-members-list-title {
+    margin: 0 0 6px;
+    padding: 0;
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #1e1b2e;
+    line-height: 1.3;
+}
+
+.sc-survey-admin-shell .sc-members-list-desc {
+    margin: 0;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.sc-survey-admin-shell .sc-members-list-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.sc-survey-admin-shell .sc-members-list-add-btn,
+.sc-survey-admin-shell .sc-members-list-add-btn.page-title-action,
+.sc-survey-admin-shell .sc-members-list-add-btn.button-primary {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 8px 20px !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 999px !important;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    color: #fff !important;
+    font-weight: 700;
+    font-size: 13px;
+    text-decoration: none !important;
+    box-shadow: 0 8px 22px rgba(109, 52, 255, 0.28);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sc-survey-admin-shell .sc-members-list-add-btn:hover {
+    color: #fff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 28px rgba(109, 52, 255, 0.36);
+}
+
+.sc-survey-admin-shell .sc-members-list-export-btn,
+.sc-survey-admin-shell a.sc-members-list-export-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(109, 52, 255, 0.28);
+    background: #fff;
+    color: #4a1fb8;
+    font-weight: 700;
+    font-size: 13px;
+    text-decoration: none;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+.sc-survey-admin-shell .sc-members-list-filters-card {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%);
+    border: 1px solid rgba(109, 52, 255, 0.12);
+    box-shadow: 0 8px 28px rgba(74, 31, 184, 0.07), 0 2px 8px rgba(15, 23, 42, 0.04);
+    box-sizing: border-box;
+}
+
+.sc-survey-admin-shell .sc-members-list-filters-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.sc-survey-admin-shell .sc-members-list-filters-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 6px 4px;
+    color: #3b2a7a;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.sc-survey-admin-shell .sc-members-list-filters-toggle-icon {
+    display: inline-flex;
+    width: 34px;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(109, 52, 255, 0.1);
+    color: #4a1fb8;
+}
+
+.sc-survey-admin-shell .sc-members-list-filters-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #6d34ff;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.sc-survey-admin-shell .sc-members-list-filters-chevron {
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    margin-top: -4px;
+    transition: transform 0.2s ease;
+}
+
+.sc-survey-admin-shell .sc-members-list-filters-card.is-open .sc-members-list-filters-chevron {
+    transform: rotate(-135deg);
+    margin-top: 4px;
+}
+
+.sc-survey-admin-shell .sc-members-list-filters-clear {
+    color: #6d34ff;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.sc-survey-admin-shell .sc-members-list-filters-panel {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(109, 52, 255, 0.1);
+}
+
+.sc-survey-admin-shell .sc-members-list-filters-panel[hidden] {
+    display: none !important;
+}
+
+.sc-survey-admin-shell .sc-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px 16px;
+    align-items: end;
+}
+
+.sc-survey-admin-shell .sc-filter-label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #374151;
+    font-size: 12px;
+}
+
+.sc-survey-admin-shell .sc-filter-control,
+.sc-survey-admin-shell .sc-members-list-filters-panel select,
+.sc-survey-admin-shell .sc-members-list-filters-panel input[type="text"] {
+    width: 100%;
+    min-height: 40px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    padding: 8px 12px;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+.sc-survey-admin-shell .sc-members-list-filters-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin: 16px 0 4px;
+}
+
+.sc-survey-admin-shell .sc-members-list-table-card,
+.sc-survey-admin-shell .sc-users-export-card {
+    background: #fff;
+    border: 1px solid rgba(109, 52, 255, 0.1);
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 8px 28px rgba(74, 31, 184, 0.06), 0 2px 8px rgba(15, 23, 42, 0.03);
+    margin-bottom: 16px;
+}
+
+.sc-survey-admin-shell .sc-dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin: 0 0 16px;
+}
+
+.sc-survey-admin-shell .sc-stat-box {
+    background: #fff;
+    border: 1px solid rgba(109, 52, 255, 0.1);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 4px 16px rgba(74, 31, 184, 0.05);
+}
+
+.sc-survey-admin-shell .sc-survey-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.sc-survey-admin-shell .sc-survey-filter-desc {
+    margin: 0 0 12px;
+}
+
+@media (max-width: 782px) {
+    .sc-survey-admin-shell.sc-members-list-wrap {
+        margin-inline-end: 10px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════
+   Survey admin — match players list/edit SaaS purple
+   ═══════════════════════════════════════════════════ */
+
+body.sc-survey-admin-page #wpcontent {
+    background: #f4f2fa !important;
+}
+
+body.sc-survey-admin-page .sc-survey-admin-shell.sc-members-list-wrap {
+    background: transparent !important;
+}
+
+/* Section cards (add/edit) — like player field groups */
+body.sc-survey-admin-page .sc-survey-admin-shell .sc-users-export-card,
+body.sc-survey-admin-page .sc-survey-admin-shell .sc-members-list-table-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 55%, #f3f0ff 100%) !important;
+    border: 1px solid rgba(109, 52, 255, 0.12) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 28px rgba(74, 31, 184, 0.07), 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+    padding: 20px 22px !important;
+}
+
+body.sc-survey-admin-page .sc-survey-admin-shell .sc-users-export-card > h2,
+body.sc-survey-admin-page .sc-survey-admin-shell .sc-survey-questions-head h2 {
+    margin: 0 0 14px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #1e1b2e;
+}
+
+/* Form rows → field cards like ویرایش بازیکن */
+body.sc-survey-admin-page .sc-survey-admin-wrap .sc-row,
+body.sc-survey-admin-edit-page .sc-row {
+    display: grid;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid rgba(109, 52, 255, 0.1);
+    box-shadow: 0 2px 10px rgba(74, 31, 184, 0.04);
+    box-sizing: border-box;
+}
+
+body.sc-survey-admin-page .sc-survey-admin-wrap .sc-row > label:first-child,
+body.sc-survey-admin-edit-page .sc-row > label:first-child {
+    display: block;
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+body.sc-survey-admin-page .sc-survey-admin-wrap input[type="text"],
+body.sc-survey-admin-page .sc-survey-admin-wrap input[type="number"],
+body.sc-survey-admin-page .sc-survey-admin-wrap input.regular-text,
+body.sc-survey-admin-page .sc-survey-admin-wrap select,
+body.sc-survey-admin-page .sc-survey-admin-wrap textarea,
+body.sc-survey-admin-page .sc-survey-admin-wrap .sc-filter-control {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-height: 40px;
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    padding: 8px 12px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.sc-survey-admin-page .sc-survey-admin-wrap textarea {
+    min-height: 88px;
+    resize: vertical;
+}
+
+body.sc-survey-admin-page .sc-survey-admin-wrap input:focus,
+body.sc-survey-admin-page .sc-survey-admin-wrap select:focus,
+body.sc-survey-admin-page .sc-survey-admin-wrap textarea:focus {
+    border-color: #6d34ff !important;
+    box-shadow: 0 0 0 3px rgba(109, 52, 255, 0.12) !important;
+    outline: none;
+}
+
+body.sc-survey-admin-page .sc-survey-admin-wrap .sc-inline-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 12px 4px 0;
+    font-weight: 600;
+    color: #374151;
+}
+
+/* Question builder cards */
+body.sc-survey-admin-page .sc-survey-q-card {
+    background: #fff !important;
+    border: 1px solid rgba(109, 52, 255, 0.14) !important;
+    border-radius: 14px !important;
+    padding: 16px 18px !important;
+    box-shadow: 0 6px 20px rgba(74, 31, 184, 0.06);
+}
+
+body.sc-survey-admin-page .sc-survey-q-num {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(109, 52, 255, 0.1);
+    color: #4a1fb8 !important;
+    font-weight: 800;
+    font-size: 12px;
+}
+
+body.sc-survey-admin-page .sc-survey-q-conditional {
+    border-color: rgba(109, 52, 255, 0.18) !important;
+    border-radius: 12px !important;
+    background: #faf8ff !important;
+}
+
+body.sc-survey-admin-page .sc-survey-q-conditional-title {
+    color: #4a1fb8 !important;
+}
+
+/* Tables inside survey pages */
+body.sc-survey-admin-page .sc-survey-admin-shell .wp-list-table {
+    border: none !important;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+}
+
+body.sc-survey-admin-page .sc-survey-admin-shell .wp-list-table thead th,
+body.sc-survey-admin-page .sc-survey-admin-shell .wp-list-table thead td {
+    background: #f8f7ff !important;
+    color: #4b5563;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(109, 52, 255, 0.1) !important;
+}
+
+body.sc-survey-admin-page .sc-survey-admin-shell .wp-list-table tbody tr:hover {
+    background: rgba(109, 52, 255, 0.04) !important;
+}
+
+body.sc-survey-admin-page .sc-survey-badge-active {
+    background: #dcfce7 !important;
+    color: #166534 !important;
+}
+
+body.sc-survey-admin-page .sc-survey-badge-inactive {
+    background: #fee2e2 !important;
+    color: #991b1b !important;
+}
+
+body.sc-survey-admin-page .sc-survey-badge-public {
+    background: #ede9fe !important;
+    color: #5b21b6 !important;
+}
+
+/* Stats cards */
+body.sc-survey-admin-page .sc-survey-stat-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 100%) !important;
+    border: 1px solid rgba(109, 52, 255, 0.12) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 24px rgba(74, 31, 184, 0.06) !important;
+}
+
+body.sc-survey-admin-page .sc-survey-stat-type {
+    background: rgba(109, 52, 255, 0.1) !important;
+    color: #4a1fb8 !important;
+}
+
+/* Primary/filter buttons */
+body.sc-survey-admin-page .sc-members-list-filters-actions .button-primary,
+body.sc-survey-admin-page .sc-survey-form-actions .button-primary,
+body.sc-survey-admin-page .sc-survey-bulk-submit.button {
+    border: none !important;
+    border-radius: 999px !important;
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    color: #fff !important;
+    font-weight: 700 !important;
+    box-shadow: 0 6px 18px rgba(109, 52, 255, 0.25);
+    min-height: 38px;
+}
+
+body.sc-survey-admin-page .delete_fillter.button,
+body.sc-survey-admin-page .sc-members-list-filters-actions .button:not(.button-primary) {
+    border-radius: 999px !important;
+    border: 1px solid rgba(109, 52, 255, 0.25) !important;
+    background: #fff !important;
+    color: #4a1fb8 !important;
+    font-weight: 600;
+}
+
+/* Response edit */
+body.sc-survey-admin-page .sc-survey-edit-question {
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(109, 52, 255, 0.1);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 2px 10px rgba(74, 31, 184, 0.04);
+}
+
+body.sc-survey-admin-page .sc-survey-edit-question:last-of-type {
+    border-bottom: 1px solid rgba(109, 52, 255, 0.1);
+}
+
+/* Date row / status row layouts */
+body.sc-survey-admin-page .sc-survey-date-row,
+body.sc-survey-admin-page .sc-survey-status-row,
+body.sc-survey-admin-page .sc-survey-include-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    align-items: flex-end;
+}
+
+body.sc-survey-admin-page .sc-survey-date-field {
+    flex: 1 1 180px;
+    max-width: 240px;
+}
+
+body.sc-survey-admin-page .sc-survey-guest-settings {
+    margin-top: 8px;
+    padding: 14px;
+    border-radius: 12px;
+    background: rgba(109, 52, 255, 0.04);
+    border: 1px dashed rgba(109, 52, 255, 0.2);
+}
+
+body.sc-survey-admin-page .sc-survey-guest-settings h4 {
+    margin: 0 0 10px;
+    color: #4a1fb8;
+    font-size: 13px;
+}
+
+/* Coach fill inside admin */
+body.sc-survey-admin-page .sc-coach-surveys-admin .sc-dashboard-btn,
+body.sc-survey-admin-page .sc-coach-surveys-admin .sc-pn-btn-primary {
+    background: linear-gradient(135deg, #6d34ff 0%, #4a1fb8 100%) !important;
+    border: none !important;
+    border-radius: 999px !important;
+    color: #fff !important;
+    box-shadow: 0 6px 18px rgba(109, 52, 255, 0.25);
+}
+
+body.sc-survey-admin-page .sc-coach-surveys-admin .sc-survey-btn-secondary {
+    background: #fff !important;
+    color: #4a1fb8 !important;
+    border: 1px solid rgba(109, 52, 255, 0.28) !important;
+    border-radius: 999px !important;
+}
+
+/* Add/edit survey — 2-col field grid like player edit */
+body.sc-survey-admin-edit-page .sc-users-export-card.sc-members-list-table-card {
+    display: block;
+}
+
+body.sc-survey-admin-edit-page .sc-users-export-card > .sc-row {
+    /* already card-styled */
+}
+
+@media (min-width: 960px) {
+    body.sc-survey-admin-edit-page #sc-survey-form {
+        display: block;
+    }
+
+    body.sc-survey-admin-edit-page .sc-users-export-card.sc-members-list-table-card:not(.sc-survey-questions-card):not(.sc-survey-audience-card) {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px 16px;
+        align-items: start;
+    }
+
+    body.sc-survey-admin-edit-page .sc-users-export-card.sc-members-list-table-card:not(.sc-survey-questions-card):not(.sc-survey-audience-card) > h2,
+    body.sc-survey-admin-edit-page .sc-users-export-card.sc-members-list-table-card:not(.sc-survey-questions-card):not(.sc-survey-audience-card) > .description,
+    body.sc-survey-admin-edit-page .sc-users-export-card.sc-members-list-table-card:not(.sc-survey-questions-card):not(.sc-survey-audience-card) > .sc-survey-guest-settings,
+    body.sc-survey-admin-edit-page .sc-users-export-card.sc-members-list-table-card:not(.sc-survey-questions-card):not(.sc-survey-audience-card) > .sc-row.sc-survey-status-row,
+    body.sc-survey-admin-edit-page .sc-users-export-card.sc-members-list-table-card:not(.sc-survey-questions-card):not(.sc-survey-audience-card) > .sc-row.sc-survey-date-row,
+    body.sc-survey-admin-edit-page .sc-users-export-card.sc-members-list-table-card:not(.sc-survey-questions-card):not(.sc-survey-audience-card) > .sc-row.sc-survey-include-row,
+    body.sc-survey-admin-edit-page .sc-users-export-card.sc-members-list-table-card:not(.sc-survey-questions-card):not(.sc-survey-audience-card) > p {
+        grid-column: 1 / -1;
+    }
+}
+
+body.sc-survey-admin-page .sc-survey-questions-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+body.sc-survey-admin-page .sc-stat-box h3 {
+    margin: 0 0 6px;
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 600;
+}
+
+body.sc-survey-admin-page .sc-stat-box > div {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #1e1b2e;
+}
+
+body.sc-survey-admin-page .sc-survey-data-table-title {
+    color: #1e1b2e;
+    font-weight: 800;
+}

@@ -14,7 +14,7 @@ $selected_event_ids = array_map('intval', (array) ($target_config['event_ids'] ?
 $selected_team_names = (array) ($target_config['team_names'] ?? []);
 $selected_level_names = (array) ($target_config['level_names'] ?? []);
 ?>
-<div class="sc-users-export-card sc-survey-audience-card">
+<div class="sc-users-export-card sc-survey-audience-card sc-members-list-table-card">
     <h2>مخاطبان نظرسنجی</h2>
     <p class="description">برای کدام دسته از مخاطبین میخواهید این نظرسنجی را انجام دهید؟</p>
 

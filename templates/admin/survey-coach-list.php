@@ -18,14 +18,18 @@ if ($fill_survey_id > 0) {
     }
 }
 ?>
-<div class="wrap sc-users-export-wrap sc-survey-list-wrap sc-coach-surveys-admin">
+<div class="wrap sc-members-list-wrap sc-survey-list-wrap sc-coach-surveys-admin sc-survey-admin-shell">
     <?php if ($survey_to_fill) : ?>
-        <h1>شرکت در نظرسنجی</h1>
-        <p class="description">
-            <a href="<?php echo esc_url($base_url); ?>">← بازگشت به لیست نظرسنجی‌ها</a>
-        </p>
+        <div class="sc-members-list-header">
+            <div class="sc-members-list-header-text">
+                <h1 class="sc-members-list-title">شرکت در نظرسنجی</h1>
+                <p class="sc-members-list-desc">
+                    <a href="<?php echo esc_url($base_url); ?>">← بازگشت به لیست نظرسنجی‌ها</a>
+                </p>
+            </div>
+        </div>
 
-        <div class="sc-users-export-card sc-coach-survey-fill-card">
+        <div class="sc-users-export-card sc-coach-survey-fill-card sc-members-list-table-card">
             <?php
             $survey = $survey_to_fill;
             $questions = sc_get_survey_questions($survey->id);
@@ -35,14 +39,18 @@ if ($fill_survey_id > 0) {
             ?>
         </div>
     <?php else : ?>
-        <h1>نظرسنجی‌ها</h1>
-        <p class="description">نظرسنجی‌های فعال مربوط به شما را مشاهده و تکمیل کنید.</p>
+        <div class="sc-members-list-header">
+            <div class="sc-members-list-header-text">
+                <h1 class="sc-members-list-title">نظرسنجی‌ها</h1>
+                <p class="sc-members-list-desc">نظرسنجی‌های فعال مربوط به شما را مشاهده و تکمیل کنید.</p>
+            </div>
+        </div>
 
         <?php if ($fill_survey_id > 0) : ?>
             <div class="notice notice-warning is-dismissible"><p>این نظرسنجی در دسترس شما نیست یا قبلاً تکمیل شده است.</p></div>
         <?php endif; ?>
 
-        <div class="sc-users-export-card">
+        <div class="sc-users-export-card sc-members-list-table-card">
             <?php if (empty($list)) : ?>
                 <div class="sc-dashboard-empty">نظرسنجی فعالی برای شما وجود ندارد.</div>
             <?php else : ?>
@@ -74,7 +82,7 @@ if ($fill_survey_id > 0) {
                                 <?php if ($row['completed']) : ?>
                                     <span class="description">پاسخ شما ثبت شده است.</span>
                                 <?php else : ?>
-                                    <a class="button button-primary" href="<?php echo esc_url($fill_url); ?>">شرکت در نظرسنجی</a>
+                                    <a class="button button-primary sc-members-list-add-btn" href="<?php echo esc_url($fill_url); ?>">شرکت در نظرسنجی</a>
                                 <?php endif; ?>
                             </td>
                         </tr>

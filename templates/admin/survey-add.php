@@ -116,9 +116,16 @@ $questions_json = wp_json_encode(array_map(function ($q) {
     ];
 }, $questions), JSON_UNESCAPED_UNICODE);
 ?>
-<div class="wrap sc-users-export-wrap sc-survey-admin-wrap">
-    <h1><?php echo $survey ? 'ویرایش نظرسنجی' : 'افزودن نظرسنجی'; ?></h1>
-    <p class="description">تنظیمات، مخاطبان، زمان‌بندی و سوالات نظرسنجی را در کارت‌های زیر مدیریت کنید.</p>
+<div class="wrap sc-members-list-wrap sc-survey-admin-wrap sc-survey-admin-shell">
+    <div class="sc-members-list-header">
+        <div class="sc-members-list-header-text">
+            <h1 class="sc-members-list-title"><?php echo $survey ? 'ویرایش نظرسنجی' : 'افزودن نظرسنجی'; ?></h1>
+            <p class="sc-members-list-desc">تنظیمات، مخاطبان، زمان‌بندی و سوالات نظرسنجی را در کارت‌های زیر مدیریت کنید.</p>
+        </div>
+        <div class="sc-members-list-header-actions">
+            <a href="<?php echo esc_url(admin_url('admin.php?page=sc-surveys')); ?>" class="sc-members-list-export-btn">بازگشت به لیست</a>
+        </div>
+    </div>
 
     <?php if ($survey && !empty($survey->is_public) && function_exists('sc_survey_public_url')) :
         $pub = sc_survey_public_url($survey); ?>
@@ -130,7 +137,7 @@ $questions_json = wp_json_encode(array_map(function ($q) {
         <input type="hidden" name="sc_save_survey" value="1">
         <input type="hidden" name="survey_questions_json" id="survey_questions_json" value="">
 
-        <div class="sc-users-export-card">
+        <div class="sc-users-export-card sc-members-list-table-card">
             <h2>اطلاعات پایه</h2>
             <div class="sc-row">
                 <label for="sc-survey-title">عنوان</label>
@@ -193,7 +200,7 @@ $questions_json = wp_json_encode(array_map(function ($q) {
             </div>
         </div>
 
-        <div class="sc-users-export-card">
+        <div class="sc-users-export-card sc-members-list-table-card">
             <h2>فعال‌سازی خودکار</h2>
             <div class="sc-row">
                 <label for="trigger_type">نوع فعال‌سازی</label>
@@ -223,19 +230,19 @@ $questions_json = wp_json_encode(array_map(function ($q) {
 
         <?php include SC_TEMPLATES_ADMIN_DIR . 'partials/survey-audience-filters.php'; ?>
 
-        <div class="sc-users-export-card sc-survey-questions-card">
+        <div class="sc-users-export-card sc-survey-questions-card sc-members-list-table-card">
             <div class="sc-survey-questions-head">
                 <h2>سوالات</h2>
-                <button type="button" class="button button-primary" id="sc-add-question">+ افزودن سوال</button>
+                <button type="button" class="button button-primary sc-members-list-add-btn" id="sc-add-question">+ افزودن سوال</button>
             </div>
-            <p class="description">هر سوال در یک کارت جداگانه است. منطق شرطی فقط به سوالات قبلی وابسته می‌شود.</p>
+            <p class="description">هر سوال در یک کارت جداگانه است. منطق شرطی فقط به سوالات قبلی وابسته می‌شود و در فرم کاربر به‌صورت آنی اعمال می‌شود.</p>
             <div id="sc-survey-questions-builder"></div>
         </div>
 
        
-            <p class="submit">
-                <button type="submit" class="button button-primary ">ذخیره نظرسنجی</button>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-surveys')); ?>" class="sc_button">بازگشت به لیست</a>
+            <p class="submit sc-survey-form-actions">
+                <button type="submit" class="button button-primary sc-members-list-add-btn">ذخیره نظرسنجی</button>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=sc-surveys')); ?>" class="sc_button sc-members-list-export-btn">بازگشت به لیست</a>
             </p>
     
     </form>

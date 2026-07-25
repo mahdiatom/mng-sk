@@ -93,8 +93,13 @@ $show_export = true;
 $filter_title = 'فیلتر داده‌ها';
 $filter_description = 'بازه تاریخی خود را جهت فیلتر در ابتدا حتما مشخص کنید.';
 ?>
-<div class="wrap sc-users-export-wrap sc-survey-data-wrap">
-    <h1>داده‌های نظرسنجی</h1>
+<div class="wrap sc-members-list-wrap sc-survey-data-wrap sc-survey-admin-shell">
+    <div class="sc-members-list-header">
+        <div class="sc-members-list-header-text">
+            <h1 class="sc-members-list-title">داده‌های نظرسنجی</h1>
+            <p class="sc-members-list-desc">پاسخ‌های ثبت‌شده را فیلتر، ویرایش و خروجی بگیرید.</p>
+        </div>
+    </div>
 
     <?php if ($notice !== '') : ?>
         <div class="notice notice-<?php echo esc_attr($notice_type); ?> is-dismissible"><p><?php echo esc_html($notice); ?></p></div>
@@ -103,14 +108,14 @@ $filter_description = 'بازه تاریخی خود را جهت فیلتر در 
     <?php include SC_TEMPLATES_ADMIN_DIR . 'partials/survey-filters.php'; ?>
 
     <?php if (empty($surveys)) : ?>
-        <div class="sc-users-export-card"><p>هنوز نظرسنجی ثبت نشده است.</p></div>
+        <div class="sc-users-export-card sc-members-list-table-card"><p>هنوز نظرسنجی ثبت نشده است.</p></div>
     <?php elseif ($survey_id) : ?>
         <form method="post" id="sc-survey-responses-form" class="sc-survey-responses-bulk-form">
             <?php wp_nonce_field('sc_bulk_survey_responses', 'sc_bulk_survey_responses_nonce'); ?>
             <input type="hidden" name="sc_bulk_survey_responses_submit" value="1">
             <input type="hidden" name="survey_id" value="<?php echo (int) $survey_id; ?>">
 
-            <div class="sc-users-export-card sc-survey-table-card">
+            <div class="sc-users-export-card sc-survey-table-card sc-members-list-table-card">
                 <div class="tablenav top sc-survey-bulk-nav">
                     <div class="alignleft actions bulkactions">
                         <label for="sc-survey-response-bulk-action" class="screen-reader-text">عملیات دسته‌جمعی</label>
